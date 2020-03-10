@@ -64,17 +64,17 @@ class Column : public Object {
  */
 class IntColumn : public Column {
     public:
-        IntArray* ints_;
+        IntVector* ints_;
         
         /** Constructs an empty IntColumn */
         IntColumn() {
-            ints_ = new IntArray();
+            ints_ = new IntVector();
             type_ = 'I';
         }
 
         /** Constructs an IntColumn initialized with the given integers. */
         IntColumn(int n, ...) {
-            ints_ = new IntArray();
+            ints_ = new IntVector();
             type_ = 'I';
             va_list vl;
             va_start(vl, n);
@@ -151,7 +151,7 @@ class IntColumn : public Column {
         }
 
         /** Getter for this column's underlying array of fields. */
-        IntArray* get_fields() {
+        IntVector* get_fields() {
             return ints_;
         }
 
@@ -177,17 +177,17 @@ class IntColumn : public Column {
  */
 class BoolColumn : public Column {
     public:
-        BoolArray* bools_;
+        BoolVector* bools_;
         
         /** Constructs an empty BoolColumn */
         BoolColumn() {
-            bools_ = new BoolArray();
+            bools_ = new BoolVector();
             type_ = 'B';
         }
 
         /** Constructs an BoolColumn initialized with the given booleans. */
         BoolColumn(int n, ...) {
-            bools_ = new BoolArray();
+            bools_ = new BoolVector();
             type_ = 'B';
             va_list vl;
             va_start(vl, n);
@@ -264,7 +264,7 @@ class BoolColumn : public Column {
         }
 
         /** Getter for this column's underlying array of fields. */
-        BoolArray* get_fields() {
+        BoolVector* get_fields() {
             return bools_;
         }
 
@@ -290,17 +290,17 @@ class BoolColumn : public Column {
  */
 class FloatColumn : public Column {
     public:
-        FloatArray* floats_;
+        FloatVector* floats_;
         
         /** Constructs an empty FloatColumn */
         FloatColumn() {
-            floats_ = new FloatArray();
+            floats_ = new FloatVector();
             type_ = 'F';
         }
 
         /** Constructs an FloatColumn initialized with the given floats. */
         FloatColumn(int n, ...) {
-            floats_ = new FloatArray();
+            floats_ = new FloatVector();
             type_ = 'F';
             va_list vl;
             va_start(vl, n);
@@ -377,7 +377,7 @@ class FloatColumn : public Column {
         }
 
         /** Getter for this column's underlying array of fields. */
-        FloatArray* get_fields() {
+        FloatVector* get_fields() {
             return floats_;
         }
 
@@ -401,17 +401,17 @@ class FloatColumn : public Column {
  */
 class StringColumn : public Column {
     public:
-        Array* strings_;
+        Vector* strings_;
         
         /** Constructs an empty StringColumn */
         StringColumn() {
-            strings_ = new Array();
+            strings_ = new Vector();
             type_ = 'S';
         }
 
         /** Constructs a StringColumn and initializes it with the given strings. */
         StringColumn(int n, ...) {
-            strings_ = new Array();
+            strings_ = new Vector();
             type_ = 'S';
             va_list vl;
             va_start(vl, n);
@@ -488,7 +488,7 @@ class StringColumn : public Column {
         }
 
         /** Getter for this column's underlying array of fields. */
-        Array* get_fields() {
+        Vector* get_fields() {
             return strings_;
         }
 

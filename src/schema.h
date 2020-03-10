@@ -17,15 +17,15 @@
  */
 class Schema : public Object {
     public:
-        IntArray* col_types_;
-        Array* col_names_;
-        Array* row_names_;
+        IntVector* col_types_;
+        Vector* col_names_;
+        Vector* row_names_;
  
         /** Copying constructor */
         Schema(Schema& from) {
-            col_types_ = new IntArray();
-            col_names_ = new Array();
-            row_names_ = new Array();
+            col_types_ = new IntVector();
+            col_names_ = new Vector();
+            row_names_ = new Vector();
             col_types_->append_all(from.get_types());
             col_names_->append_all(from.get_col_names());
             row_names_->append_all(from.get_row_names());
@@ -33,9 +33,9 @@ class Schema : public Object {
         
         /** Create an empty schema **/
         Schema() {
-            col_types_ = new IntArray();
-            col_names_ = new Array();
-            row_names_ = new Array();
+            col_types_ = new IntVector();
+            col_names_ = new Vector();
+            row_names_ = new Vector();
         }
         
         /** Create a schema from a string of types. A string that contains
@@ -44,9 +44,9 @@ class Schema : public Object {
          *  undefined. **/
         Schema(const char* types) {
             exit_if_not(types != nullptr, "Null types argument provided.");
-            col_types_ = new IntArray();
-            col_names_ = new Array();
-            row_names_ = new Array();
+            col_types_ = new IntVector();
+            col_names_ = new Vector();
+            row_names_ = new Vector();
             for (int i = 0; i < strlen(types); i++) {
                 char c = types[i];
                 exit_if_not(c == 'S' || c == 'B' || c == 'I' || c == 'F', 
@@ -130,22 +130,22 @@ class Schema : public Object {
         }
 
         /** Getter for the array of column types */
-        IntArray* get_types() {
+        IntVector* get_types() {
             return col_types_;
         }
 
         /** Getter for the array of column names */
-        Array* get_col_names() {
+        Vector* get_col_names() {
             return col_names_;
         }
 
         /** Getter for the array of row names */
-        Array* get_row_names() {
+        Vector* get_row_names() {
             return row_names_;
         }
 
         void clear_row_names() {
             delete row_names_;
-            row_names_ = new Array();
+            row_names_ = new Vector();
         }
 };

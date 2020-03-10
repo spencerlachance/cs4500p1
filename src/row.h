@@ -20,31 +20,31 @@
  */
 class Row : public Object {
     public:
-        IntArray* col_types_;
-        Array* fields_;
+        IntVector* col_types_;
+        Vector* fields_;
         size_t idx_;
  
         /** Build a row following a schema. */
         Row(Schema& scm) {
-            col_types_ = new IntArray();
+            col_types_ = new IntVector();
             col_types_->append_all(scm.get_types());
-            fields_ = new Array();
+            fields_ = new Vector();
             idx_ = -1;
 
             for (int i = 0; i < col_types_->size(); i++) {
                 char type = col_types_->get(i);
                 switch (type) {
                     case 'I':
-                        fields_->append(new IntArray());
+                        fields_->append(new IntVector());
                         break;
                     case 'B':
-                        fields_->append(new BoolArray());
+                        fields_->append(new BoolVector());
                         break;
                     case 'F':
-                        fields_->append(new FloatArray());
+                        fields_->append(new FloatVector());
                         break;
                     case 'S':
-                        fields_->append(new Array());
+                        fields_->append(new Vector());
                         break;
                     default:
                         exit_if_not(false, "Invalid type found.");
@@ -62,7 +62,7 @@ class Row : public Object {
             * a value of the wrong type is undefined. */
         void set(size_t col, int val) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            IntArray* arr = dynamic_cast<IntArray*>(fields_->get(col));
+            IntVector* arr = dynamic_cast<IntVector*>(fields_->get(col));
             if (arr == nullptr) {
                 exit_if_not(false, "Column index corresponds to the wrong type.");
             }
@@ -70,7 +70,7 @@ class Row : public Object {
         }
         void set(size_t col, float val) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            FloatArray* arr = dynamic_cast<FloatArray*>(fields_->get(col));
+            FloatVector* arr = dynamic_cast<FloatVector*>(fields_->get(col));
             if (arr == nullptr) {
                 exit_if_not(false, "Column index corresponds to the wrong type.");
             }
@@ -78,7 +78,7 @@ class Row : public Object {
         }
         void set(size_t col, bool val) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            BoolArray* arr = dynamic_cast<BoolArray*>(fields_->get(col));
+            BoolVector* arr = dynamic_cast<BoolVector*>(fields_->get(col));
             if (arr == nullptr) {
                 exit_if_not(false, "Column index corresponds to the wrong type.");
             }
@@ -87,7 +87,7 @@ class Row : public Object {
         /** Acquire ownership of the string. */
         void set(size_t col, String* val) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            Array* arr = dynamic_cast<Array*>(fields_->get(col));
+            Vector* arr = dynamic_cast<Vector*>(fields_->get(col));
             if (arr == nullptr) {
                 exit_if_not(false, "Column index corresponds to the wrong type.");
             }
@@ -107,7 +107,7 @@ class Row : public Object {
             * of the requested type, the result is undefined. */
         int get_int(size_t col) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            IntArray* arr = dynamic_cast<IntArray*>(fields_->get(col));
+            IntVector* arr = dynamic_cast<IntVector*>(fields_->get(col));
             if (arr == nullptr) {
                 exit_if_not(false, "Column index corresponds to the wrong type.");
             }
@@ -115,7 +115,7 @@ class Row : public Object {
         }
         bool get_bool(size_t col) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            BoolArray* arr = dynamic_cast<BoolArray*>(fields_->get(col));
+            BoolVector* arr = dynamic_cast<BoolVector*>(fields_->get(col));
             if (arr == nullptr) {
                 exit_if_not(false, "Column index corresponds to the wrong type.");
             }
@@ -123,7 +123,7 @@ class Row : public Object {
         }
         float get_float(size_t col) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            FloatArray* arr = dynamic_cast<FloatArray*>(fields_->get(col));
+            FloatVector* arr = dynamic_cast<FloatVector*>(fields_->get(col));
             if (arr == nullptr) {
                 exit_if_not(false, "Column index corresponds to the wrong type.");
             }
@@ -131,7 +131,7 @@ class Row : public Object {
         }
         String* get_string(size_t col) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            Array* arr = dynamic_cast<Array*>(fields_->get(col));
+            Vector* arr = dynamic_cast<Vector*>(fields_->get(col));
             if (arr == nullptr) {
                 exit_if_not(false, "Column index corresponds to the wrong type.");
             }
@@ -177,7 +177,7 @@ class Row : public Object {
         }
 
         /** Getter for this row's schema's types. */
-        IntArray* get_types() {
+        IntVector* get_types() {
             return col_types_;
         }
 };

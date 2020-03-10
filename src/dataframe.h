@@ -63,7 +63,7 @@ class PrintRower : public Rower {
  */
 class DataFrame : public Object {
     public:
-        Array* columns_;
+        Vector* columns_;
         Schema* schema_;
         // Number of rows
         size_t length_;
@@ -76,7 +76,7 @@ class DataFrame : public Object {
  
         /** Create a data frame with the same columns as the given df but with no rows or rownames */
         DataFrame(DataFrame& df) {
-            columns_ = new Array();
+            columns_ = new Vector();
             columns_->append_all(df.get_columns());
             schema_ = new Schema(df.get_schema());
             schema_->clear_row_names();
@@ -86,8 +86,8 @@ class DataFrame : public Object {
         /** Create a data frame from a schema and columns. All columns are created
           * empty. */
         DataFrame(Schema& schema) {
-            IntArray* types = schema.get_types();
-            columns_ = new Array();
+            IntVector* types = schema.get_types();
+            columns_ = new Vector();
             for (int i = 0; i < types->size(); i++) {
                 char type = types->get(i);
                 switch (type) {
@@ -334,7 +334,7 @@ class DataFrame : public Object {
         }
 
         /** Getter for the dataframe's columns. */
-        Array* get_columns() {
+        Vector* get_columns() {
             return columns_;
         }
 
