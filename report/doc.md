@@ -1,21 +1,25 @@
+# Introduction
+The eau2 program allows the user to write a variety of programs that store their data on a database. The database is a network of nodes that stores and retrieves data in a distributed fashion.
+
+# Architecture
+eau2 is a program with three layers. The bottom layer is a network of KVStores that can talk to each other, store serialized data and share it upon request. The second layer is a dataframe whose columns are distributed arrays. Distributed arrays are arrays of keys used to retrieve data distributed accross multiple KVStore nodes. The application layer is the final layer that sits on top of both previous layers. From the application layer, the user can write programs that can accomplish a variety of tasks using dataframes and KVStores.
+
 # Implementation
 ^`type` is one of `(String*, int, bool, float)`
 
-# Node
-Subclass of Client.
-
 # KVStore
-Subclass of Server. This class acts as the middle-man between the layer above (distributed arrays) and the nodes that contain the actual data.
+Subclass of Client. This class receives keys from the layer above and returns deserialized data. If the key corresponds to another KVStore then it will talk to that KVStore and retrieve the data. Upon request, the KVStore class also sends its serialized data to other KVStore nodes. Upon start up, one of the nodes becomes a primary node that maintains new node registration to the network.
 
 **fields**:
-* Map from node indicies to their IP addresses
+* Map from other KVStore indicies to their IP addresses
+* Map from strings to serialized data blobs
 
 **methods**:
 * `char* serialize(type`^`* df)` - Serializes the given array of data into a byte stream.
 * `type* deserialize(char* stream)` - Deserializes the given byte stream into an array of data.
-* `void put(Key* k, type* v)` - Reads the node index from `k`, sends the corresponding node the string from `k` and a serialized version of `v`, and tells it to store `v` at that key.
-* `type* get(Key* k)` - Reads the node index from `k`, sends the string from `k` to the corresponding node, and tells it to retrieve the value at that key.
-* `type* getAndWait(Key* k)` - Reads the node index from `k`, sends the string from `k` to the corresponding node, and tells it to retrieve the value at that key. If there is no value at that key, wait until there is.
+* `void put(Key* k, type* v)` - Reads the KVStore node index from `k`, sends the corresponding node the string from `k` and a serialized version of `v`, and tells it to store `v` at that key.
+* `type* get(Key* k)` - Reads the KVStore index from `k`, sends the string from `k` to the corresponding node, and tells it to retrieve the value at that key.
+* `type* getAndWait(Key* k)` - Reads the KVStore index from `k`, sends the string from `k` to the corresponding node, and tells it to retrieve the value at that key. If there is no value at that key, wait until there is, then retrieve it.
 
 
 # Vector
@@ -28,9 +32,8 @@ An array of objects split into fixed-size chunks. When it fills up, it grows, al
 * `void append(Object* val)` - Appends the given object to the end of the vector.
 * `Object* get(size_t idx)` - Returns the object in the vector at the given index.
 
-
 # IntVector, BoolVector, FloatVector
-
+Similar to the Vector class, but holds primitives instead of objects.
 
 # DistributedArray (Column)
 Subclass of Vector. Each chunk is stored as a k/v pair.
@@ -38,10 +41,6 @@ Subclass of Vector. Each chunk is stored as a k/v pair.
 **fields**: 
 * List of keys pointing to each chunk
 * Cache?
-
-**methods**: 
-* 
-
 
 # DataFrame
 * Table containing columns of a specific type
@@ -68,3 +67,7 @@ Users will subclass this in order to write their applications that use the eau2 
 # Open Questions
 * What type is v in put(k, v)? Should it be an already serialized byte stream or an object/primitive?
 * What is the distributed array's cache?
+
+# Status
+## TODO:
+* Allow for serialization and deserialization of dataframes
