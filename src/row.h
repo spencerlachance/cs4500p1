@@ -44,13 +44,6 @@ class DataType : public Object {
     }
 
     /**
-     * Destructor
-     */
-    ~DataType() {
-        if (type == 'S' && t.s != nullptr) delete t.s;
-    }
-
-    /**
      * These setters set the value of this object to the given one. Once a value is set, the
      * object's type is locked down and cannot change.
      */
@@ -69,6 +62,7 @@ class DataType : public Object {
         t.f = val;
         type = 'F';
     }
+    // Does not take ownership of the String because this is a placeholder object
     void set_string(String* val) {
         exit_if_not(type == 'U', "This object's value has already been set to a different type.");
         t.s = val;
@@ -155,7 +149,7 @@ class Row : public Object {
             exit_if_not(col < width(), "Column index out of bounds.");
             exit_if_not(col_types_->get(col) == 'S', "Column index corresponds to the wrong type.");
             DataType* dt = new DataType();
-            dt->set_string(val->clone());
+            dt->set_string(val);
             fields_->set(dt, col);
         }
         

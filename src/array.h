@@ -86,7 +86,7 @@ class Vector : public Object {
             }
         }
         
-        // Appends val to the end of the vector.
+        // Appends val to the end of the vector. Takes control of the val.
         void append(Object* val) {
             // If all of the chunks are full, allocate more memory for the outer array.
             if (size_ + 1 > chunk_capacity_ * CHUNK_SIZE) reallocate_();
@@ -105,7 +105,7 @@ class Vector : public Object {
             size_++;
         }
         
-        // Appends every element of vals to the end of the vector.
+        // Appends a clone of every element of vals to the end of the vector.
         // If vals is null, does nothing.
         void append_all(Vector* vals) {
             if (vals == NULL) return;

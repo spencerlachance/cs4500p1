@@ -483,11 +483,15 @@ class SorParser : public Object {
         }
 
         switch (column->get_type()) {
-            case 'S':
+            case 'S': {
                 slice.trim(STRING_QUOTE);
                 assert(slice.getLength() <= MAX_STRING);
-                dynamic_cast<StringColumn*>(column)->push_back(new String(slice.toCString()));
+                char* cstr = slice.toCString();
+                dynamic_cast<StringColumn*>(column)->push_back(new String(cstr));
+                // Because the String constructor clones the char*
+                delete[] cstr;
                 break;
+            }
             case 'I':
                 dynamic_cast<IntColumn*>(column)->push_back(slice.toInt());
                 break;

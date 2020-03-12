@@ -118,6 +118,7 @@ class ParserMain {
                 _df->add_row(*row);
             }
             delete row;
+            delete schema;
 
             fclose(file);
         }

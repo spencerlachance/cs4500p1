@@ -446,7 +446,7 @@ class StringColumn : public Column {
 
         /** Adds the given string to this column. Takes control of the string. */
         void push_back(String* val) {
-            strings_->append(val->clone());
+            strings_->append(val);
         }
 
         /** Returns nullptr because this is not an IntColumn. */
@@ -479,7 +479,7 @@ class StringColumn : public Column {
 
         /** Acquire ownership of the string.  Out of bound idx is undefined. */
         void set(size_t idx, String* val) {
-            strings_->set(val->clone(), idx);
+            strings_->set(val, idx);
         }
 
         /** Returns the number of fields in this StringColumn */

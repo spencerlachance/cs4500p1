@@ -242,7 +242,9 @@ class DataFrame : public Object {
                         col->push_back(row.get_float(j));
                         break;
                     case 'S':
-                        col->push_back(row.get_string(j));
+                        // Clone the string so that the Column and Row can both maintain control
+                        // of their string objects.
+                        col->push_back(row.get_string(j)->clone());
                         break;
                     default:
                         exit_if_not(false, "Column has invalid type.");
