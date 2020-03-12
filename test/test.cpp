@@ -71,6 +71,10 @@ class SumRower : public Rower {
         }
 };
 
+/**
+ * A simple test that fills a dataframe with one hundred ints and strings and then calculates
+ * the sum of the ints.
+ */
 void test1() {
     Schema s("IS");
     DataFrame* df = new DataFrame(s);
@@ -91,7 +95,20 @@ void test1() {
     printf("Test1 passed\n");
 }
 
+void test2(int argc, char** argv) {
+    ParserMain* pf = new ParserMain(argc, argv);
+    DataFrame* df = new DataFrame(*(pf->get_dataframe()));
+    SumRower* sr = new SumRower();
+    df->map(*sr);
+    assert(sr->get_total() == 2688200);
+    delete pf;
+    delete df;
+    delete sr;
+    printf("Test2 passed\n");
+}
+
 int main(int argc, char** argv) {
     test1();
+    test2(argc, argv);
     return 0;
 }

@@ -40,7 +40,7 @@ class Vector : public Object {
             for (int i = 0; i < CHUNK_SIZE; i++) {
                 objects_[0][i] = nullptr;
             }
-            // Initialize all other chunk entries to default value nullptr
+            // Initialize all other chunk uninitialized chunks to default value nullptr
             for (int i = 1; i < chunk_capacity_; i++) {
                 objects_[i] = nullptr;
             }
@@ -80,6 +80,10 @@ class Vector : public Object {
             objects_ = new_outer_arr;
 
             chunk_capacity_ += INITIAL_CHUNK_CAPACITY;
+            // Initialize all other uninitialized chunks to default value nullptr
+            for (int i = chunk_count_; i < chunk_capacity_; i++) {
+                objects_[i] = nullptr;
+            }
         }
         
         // Appends val to the end of the vector.
@@ -241,7 +245,7 @@ class BoolVector : public Object {
             chunk_count_ = 1;
             bools_ = new bool*[chunk_capacity_];
             bools_[0] = new bool[CHUNK_SIZE];
-            // Initialize all other entries to default value nullptr
+            // Initialize all other uninitialized chunks to default value nullptr
             for (int i = 1; i < chunk_capacity_; i++) {
                 bools_[i] = nullptr;
             }
@@ -275,6 +279,10 @@ class BoolVector : public Object {
             bools_ = new_outer_arr;
 
             chunk_capacity_ += INITIAL_CHUNK_CAPACITY;
+            // Initialize all other uninitialized chunks to default value nullptr
+            for (int i = chunk_count_; i < chunk_capacity_; i++) {
+                bools_[i] = nullptr;
+            }
         }
     
         // Appends val onto the end of the vector
@@ -409,7 +417,7 @@ class IntVector : public Object {
             chunk_count_ = 1;
             ints_ = new int*[chunk_capacity_];
             ints_[0] = new int[CHUNK_SIZE];
-            // Initialize all other entries to default value nullptr
+            // Initialize all other uninitialized chunks to default value nullptr
             for (int i = 1; i < chunk_capacity_; i++) {
                 ints_[i] = nullptr;
             }
@@ -443,6 +451,10 @@ class IntVector : public Object {
             ints_ = new_outer_arr;
 
             chunk_capacity_ += INITIAL_CHUNK_CAPACITY;
+            // Initialize all other uninitialized chunks to default value nullptr
+            for (int i = chunk_count_; i < chunk_capacity_; i++) {
+                ints_[i] = nullptr;
+            }
         }
         
         // Appends val onto the end of the vector
@@ -579,7 +591,7 @@ class FloatVector : public Object {
             chunk_count_ = 1;
             floats_ = new float*[chunk_capacity_];
             floats_[0] = new float[CHUNK_SIZE];
-            // Initialize all other entries to default value nullptr
+            // Initialize all other uninitialized chunks to default value nullptr
             for (int i = 1; i < chunk_capacity_; i++) {
                 floats_[i] = nullptr;
             }
@@ -613,6 +625,10 @@ class FloatVector : public Object {
             floats_ = new_outer_arr;
 
             chunk_capacity_ += INITIAL_CHUNK_CAPACITY;
+            // Initialize all other uninitialized chunks to default value nullptr
+            for (int i = chunk_count_; i < chunk_capacity_; i++) {
+                floats_[i] = nullptr;
+            }
         }
 
         // Appends val onto the end of the vector

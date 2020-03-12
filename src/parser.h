@@ -625,11 +625,12 @@ class SorParser : public Object {
         // Guess the type for each column
         _reader->reset();
         _columns = new ColumnSet(max_columns);
-        _typeGuesses = new char[max_columns];
+        _typeGuesses = new char[max_columns + 1];
         _num_columns = max_columns;
         for (size_t i = 0; i < _num_columns; i++) {
             _typeGuesses[i] = 'U';
         }
+        _typeGuesses[_num_columns] = '\0';
 
         for (size_t i = 0; i < GUESS_SCHEMA_LINES; i++) {
             char* next_line = _reader->readLine();
