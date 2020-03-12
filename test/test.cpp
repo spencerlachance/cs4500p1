@@ -164,7 +164,10 @@ void test1() {
  * This test is meant to measure performance, so it does not verify that the sum is correct.
  */
 void test2(int argc, char** argv) {
+    // Upon construction, this class reads the command line arguments and builds a dataframe
+    // containing fields from a datafile.
     ParserMain* pf = new ParserMain(argc, argv);
+
     DataFrame* df = new DataFrame(*(pf->get_dataframe()));
     SumRower* sr = new SumRower();
     df->map(*sr);
