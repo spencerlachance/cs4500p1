@@ -19,7 +19,7 @@ class StringColumn;
  * one subclass per element type. Columns are mutable, equality is pointer
  * equality. 
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class Column : public Object {
@@ -59,7 +59,7 @@ class Column : public Object {
  * IntColumn::
  * Holds int values.
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class IntColumn : public Column {
@@ -172,7 +172,7 @@ class IntColumn : public Column {
  * BoolColumn::
  * Holds boolean values.
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class BoolColumn : public Column {
@@ -285,7 +285,7 @@ class BoolColumn : public Column {
  * FloatColumn::
  * Holds float values.
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class FloatColumn : public Column {
@@ -444,9 +444,9 @@ class StringColumn : public Column {
             return;
         }
 
-        /** Adds the given field to this column. */
+        /** Adds the given string to this column. Takes control of the string. */
         void push_back(String* val) {
-            strings_->append(val);
+            strings_->append(val->clone());
         }
 
         /** Returns nullptr because this is not an IntColumn. */
@@ -479,7 +479,7 @@ class StringColumn : public Column {
 
         /** Acquire ownership of the string.  Out of bound idx is undefined. */
         void set(size_t idx, String* val) {
-            strings_->set(val, idx);
+            strings_->set(val->clone(), idx);
         }
 
         /** Returns the number of fields in this StringColumn */

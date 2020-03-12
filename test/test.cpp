@@ -8,7 +8,7 @@
  * A Fielder that adds up every int it finds in a row.
  * 
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  */
 class SumFielder : public Fielder {
     public:
@@ -38,7 +38,7 @@ class SumFielder : public Fielder {
  * A Rower that adds up every int it finds in a row using a Fielder.
  * 
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  */
 class SumRower : public Rower {
     public:
@@ -73,22 +73,25 @@ class SumRower : public Rower {
 
 void test1() {
     Schema s("IS");
-    DataFrame df(s);
-    Row r(s);
+    DataFrame* df = new DataFrame(s);
+    Row* r = new Row(s);
+    String* str = new String("foo");
     for (int i = 1; i <= 100; i++) {
-        r.set(0, i);
-        r.set(1, new String("foo"));
-        df.add_row(r);
+        r->set(0, i);
+        r->set(1, str);
+        df->add_row(*r);
     }
     SumRower* sr = new SumRower();
-    df.map(*sr);
+    df->map(*sr);
     assert(sr->get_total() == 5050);
+    delete df;
+    delete r;
+    delete str;
     delete sr;
     printf("Test1 passed\n");
 }
 
 int main(int argc, char** argv) {
-    // ParserMain* pf = new ParserMain(argc, argv);
     test1();
     return 0;
 }

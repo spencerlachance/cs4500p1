@@ -7,6 +7,95 @@
 #include "schema.h"
 #include "visitors.h"
 
+/**
+ * A union describing a field that could exist in a row of a dataframe.
+ * 
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
+ * @author David Mberingabo <mberingabo.d@husky.neu.edu>
+ */
+union Type {
+    int i;
+    bool b;
+    float f;
+    String* s;
+};
+
+/**
+ * An Object wrapper class for the Type union. It is only allowed to one value of one of the four
+ * types.
+ * 
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
+ * @author David Mberingabo <mberingabo.d@husky.neu.edu>
+ */
+class DataType : public Object {
+    public:
+    union Type t;
+    char type;
+
+    /**
+     * Constructor
+     */
+    DataType() {
+        // Initialize the object with an unknown type
+        type = 'U';
+        // Initialize each string with nullptr to avoid deleting a string that has not been
+        // allocated
+        t.s = nullptr;
+    }
+
+    /**
+     * Destructor
+     */
+    ~DataType() {
+        if (type == 'S' && t.s != nullptr) delete t.s;
+    }
+
+    /**
+     * These setters set the value of this object to the given one. Once a value is set, the
+     * object's type is locked down and cannot change.
+     */
+    void set_int(int val) {
+        exit_if_not(type == 'U', "This object's value has already been set to a different type.");
+        t.i = val;
+        type = 'I';
+    }
+    void set_bool(bool val) {
+        exit_if_not(type == 'U', "This object's value has already been set to a different type.");
+        t.b = val;
+        type = 'B';
+    }
+    void set_float(float val) {
+        exit_if_not(type == 'U', "This object's value has already been set to a different type.");
+        t.f = val;
+        type = 'F';
+    }
+    void set_string(String* val) {
+        exit_if_not(type == 'U', "This object's value has already been set to a different type.");
+        t.s = val;
+        type = 'S';
+    }
+
+    /**
+     * These getters return this object's value.
+     */
+    int get_int() {
+        exit_if_not(type == 'I', "This object's type does not match the type requested.");
+        return t.i;
+    }
+    bool get_bool() {
+        exit_if_not(type == 'B', "This object's type does not match the type requested.");
+        return t.b;
+    }
+    float get_float() {
+        exit_if_not(type == 'F', "This object's type does not match the type requested.");
+        return t.f;
+    }
+    String* get_string() {
+        exit_if_not(type == 'S', "This object's type does not match the type requested.");
+        return t.s;
+    }
+};
+
 /*************************************************************************
  * Row::
  *
@@ -15,7 +104,7 @@
  * read/write complete rows. Internally a dataframe hold data in columns.
  * Rows have pointer equality.
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class Row : public Object {
@@ -30,26 +119,6 @@ class Row : public Object {
             col_types_->append_all(scm.get_types());
             fields_ = new Vector();
             idx_ = -1;
-
-            for (int i = 0; i < col_types_->size(); i++) {
-                char type = col_types_->get(i);
-                switch (type) {
-                    case 'I':
-                        fields_->append(new IntVector());
-                        break;
-                    case 'B':
-                        fields_->append(new BoolVector());
-                        break;
-                    case 'F':
-                        fields_->append(new FloatVector());
-                        break;
-                    case 'S':
-                        fields_->append(new Vector());
-                        break;
-                    default:
-                        exit_if_not(false, "Invalid type found.");
-                }
-            }
         }
 
         /** Destructor */
@@ -62,36 +131,32 @@ class Row : public Object {
             * a value of the wrong type is undefined. */
         void set(size_t col, int val) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            IntVector* arr = dynamic_cast<IntVector*>(fields_->get(col));
-            if (arr == nullptr) {
-                exit_if_not(false, "Column index corresponds to the wrong type.");
-            }
-            arr->set(val, 0);
+            exit_if_not(col_types_->get(col) == 'I', "Column index corresponds to the wrong type.");
+            DataType* dt = new DataType();
+            dt->set_int(val);
+            fields_->set(dt, col);
         }
         void set(size_t col, float val) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            FloatVector* arr = dynamic_cast<FloatVector*>(fields_->get(col));
-            if (arr == nullptr) {
-                exit_if_not(false, "Column index corresponds to the wrong type.");
-            }
-            arr->set(val, 0);
+            exit_if_not(col_types_->get(col) == 'F', "Column index corresponds to the wrong type.");
+            DataType* dt = new DataType();
+            dt->set_float(val);
+            fields_->set(dt, col);
         }
         void set(size_t col, bool val) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            BoolVector* arr = dynamic_cast<BoolVector*>(fields_->get(col));
-            if (arr == nullptr) {
-                exit_if_not(false, "Column index corresponds to the wrong type.");
-            }
-            arr->set(val, 0);
+            exit_if_not(col_types_->get(col) == 'B', "Column index corresponds to the wrong type.");
+            DataType* dt = new DataType();
+            dt->set_bool(val);
+            fields_->set(dt, col);
         }
         /** Acquire ownership of the string. */
         void set(size_t col, String* val) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            Vector* arr = dynamic_cast<Vector*>(fields_->get(col));
-            if (arr == nullptr) {
-                exit_if_not(false, "Column index corresponds to the wrong type.");
-            }
-            arr->set(val, 0);
+            exit_if_not(col_types_->get(col) == 'S', "Column index corresponds to the wrong type.");
+            DataType* dt = new DataType();
+            dt->set_string(val->clone());
+            fields_->set(dt, col);
         }
         
         /** Set/get the index of this row (ie. its position in the dataframe. This is
@@ -107,35 +172,27 @@ class Row : public Object {
             * of the requested type, the result is undefined. */
         int get_int(size_t col) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            IntVector* arr = dynamic_cast<IntVector*>(fields_->get(col));
-            if (arr == nullptr) {
-                exit_if_not(false, "Column index corresponds to the wrong type.");
-            }
-            return arr->get(0);
+            exit_if_not(col_types_->get(col) == 'I', "Column index corresponds to the wrong type.");
+            DataType* type = dynamic_cast<DataType*>(fields_->get(col));
+            return type->get_int();
         }
         bool get_bool(size_t col) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            BoolVector* arr = dynamic_cast<BoolVector*>(fields_->get(col));
-            if (arr == nullptr) {
-                exit_if_not(false, "Column index corresponds to the wrong type.");
-            }
-            return arr->get(0);
+            exit_if_not(col_types_->get(col) == 'B', "Column index corresponds to the wrong type.");
+            DataType* type = dynamic_cast<DataType*>(fields_->get(col));
+            return type->get_bool();
         }
         float get_float(size_t col) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            FloatVector* arr = dynamic_cast<FloatVector*>(fields_->get(col));
-            if (arr == nullptr) {
-                exit_if_not(false, "Column index corresponds to the wrong type.");
-            }
-            return arr->get(0);
+            exit_if_not(col_types_->get(col) == 'F', "Column index corresponds to the wrong type.");
+            DataType* type = dynamic_cast<DataType*>(fields_->get(col));
+            return type->get_float();
         }
         String* get_string(size_t col) {
             exit_if_not(col < width(), "Column index out of bounds.");
-            Vector* arr = dynamic_cast<Vector*>(fields_->get(col));
-            if (arr == nullptr) {
-                exit_if_not(false, "Column index corresponds to the wrong type.");
-            }
-            return dynamic_cast<String*>(arr->get(0));
+            exit_if_not(col_types_->get(col) == 'S', "Column index corresponds to the wrong type.");
+            DataType* type = dynamic_cast<DataType*>(fields_->get(col));
+            return type->get_string();
         }
         
         /** Number of fields in the row. */

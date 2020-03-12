@@ -15,7 +15,7 @@
  * of chunks runs out of space, a new array is allocated with more memory and 
  * the chunk pointers are transferred to it.
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class Vector : public Object {
@@ -36,7 +36,11 @@ class Vector : public Object {
             chunk_count_ = 1;
             objects_ = new Object**[chunk_capacity_];
             objects_[0] = new Object*[CHUNK_SIZE];
-            // Initialize all other entries to default value nullptr
+            // Initialize all values in the new chunk to default value nullptr
+            for (int i = 0; i < CHUNK_SIZE; i++) {
+                objects_[0][i] = nullptr;
+            }
+            // Initialize all other chunk entries to default value nullptr
             for (int i = 1; i < chunk_capacity_; i++) {
                 objects_[i] = nullptr;
             }
@@ -48,7 +52,13 @@ class Vector : public Object {
         ~Vector() {
             // Delete each chunk
             for (int i = 0; i < chunk_capacity_; i++) {
-                if (objects_[i] != nullptr) delete[] objects_[i];
+                if (objects_[i] != nullptr) {
+                    // Delete each object in the chunk
+                    for (int j = 0; j < CHUNK_SIZE; j++) {
+                        if (objects_[i][j] != nullptr) delete objects_[i][j];
+                    }
+                    delete[] objects_[i];
+                }
             }
             // Delete the array that holds the chunks
             delete[] objects_;
@@ -74,13 +84,16 @@ class Vector : public Object {
         
         // Appends val to the end of the vector.
         void append(Object* val) {
-            // If all of the chunks are full, allocate more memory for the outer 
-            // array.
+            // If all of the chunks are full, allocate more memory for the outer array.
             if (size_ + 1 > chunk_capacity_ * CHUNK_SIZE) reallocate_();
             // If the last chunk is full, initialize a new one and add val to it.
             if (size_ + 1 > chunk_count_ * CHUNK_SIZE) {
                 objects_[chunk_count_] = new Object*[CHUNK_SIZE];
                 objects_[chunk_count_][0] = val;
+                // Initialize all values in the new chunk to default value nullptr
+                for (int i = 1; i < CHUNK_SIZE; i++) {
+                    objects_[chunk_count_][i] = nullptr;
+                }
                 chunk_count_++;
             } else {
                 objects_[chunk_count_ - 1][size_ % CHUNK_SIZE] = val;
@@ -115,6 +128,11 @@ class Vector : public Object {
 
             int outer_idx = index / CHUNK_SIZE;
             int inner_idx = index % CHUNK_SIZE;
+            // Delete the object at this index if there is one
+            Object* replace_me = dynamic_cast<Object*>(objects_[outer_idx][inner_idx]);
+            if (replace_me != nullptr) {
+                delete replace_me;
+            }
             objects_[outer_idx][inner_idx] = val;
         }
         
@@ -201,7 +219,7 @@ class Vector : public Object {
  * of chunks runs out of space, a new array is allocated with more memory and 
  * the chunk pointers are transferred to it.
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class BoolVector : public Object {
@@ -261,8 +279,7 @@ class BoolVector : public Object {
     
         // Appends val onto the end of the vector
         void append(bool val) {
-            // If all of the chunks are full, allocate more memory for the outer
-            // array.
+            // If all of the chunks are full, allocate more memory for the outer array.
             if (size_ + 1 > chunk_capacity_ * CHUNK_SIZE) reallocate_();
             // If the last chunk is full, initialize a new one and add val to it.
             if (size_ + 1 > chunk_count_ * CHUNK_SIZE) {
@@ -370,7 +387,7 @@ class BoolVector : public Object {
  * of chunks runs out of space, a new array is allocated with more memory and 
  * the chunk pointers are transferred to it.
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class IntVector : public Object {
@@ -430,8 +447,7 @@ class IntVector : public Object {
         
         // Appends val onto the end of the vector
         void append(int val) {
-            // If all of the chunks are full, allocate more memory for the outer
-            // array.
+            // If all of the chunks are full, allocate more memory for the outer array.
             if (size_ + 1 > chunk_capacity_ * CHUNK_SIZE) reallocate_();
             // If the last chunk is full, initialize a new one and add val to it.
             if (size_ + 1 > chunk_count_ * CHUNK_SIZE) {
@@ -541,7 +557,7 @@ class IntVector : public Object {
  * of chunks runs out of space, a new array is allocated with more memory and 
  * the chunk pointers are transferred to it.
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class FloatVector : public Object {
@@ -601,8 +617,7 @@ class FloatVector : public Object {
 
         // Appends val onto the end of the vector
         void append(float val) {
-            // If all of the chunks are full, allocate more memory for the outer
-            // array.
+            // If all of the chunks are full, allocate more memory for the outer array.
             if (size_ + 1 > chunk_capacity_ * CHUNK_SIZE) reallocate_();
             // If the last chunk is full, initialize a new one and add val to it.
             if (size_ + 1 > chunk_count_ * CHUNK_SIZE) {

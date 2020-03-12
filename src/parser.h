@@ -15,7 +15,7 @@
  * 
  * @author (I would credit the 4500NE authors here, but I could not find their
  * names in the repo)
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 

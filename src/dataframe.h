@@ -13,7 +13,7 @@
  * Fielder that prints each field.
  * 
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  */
 class PrintFielder : public Fielder {
     public:
@@ -29,7 +29,7 @@ class PrintFielder : public Fielder {
  * Rower that prints each row.
  * 
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  */
 class PrintRower : public Rower {
     public:
@@ -58,7 +58,7 @@ class PrintRower : public Rower {
  * holds values of the same type (I, S, B, F). A dataframe has a schema that
  * describes it.
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class DataFrame : public Object {
