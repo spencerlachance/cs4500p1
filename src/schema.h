@@ -8,8 +8,7 @@
 /*************************************************************************
  * Schema::
  * A schema is a description of the contents of a data frame, the schema
- * knows the number of columns and number of rows, the type of each column,
- * optionally columns and rows can be named by strings.
+ * knows the number of columns and the type of each column.
  * The valid types are represented by the chars 'S', 'B', 'I' and 'F'.
  * 
  * @author Spencer LaChance <lachance.s@northeastern.edu>
@@ -18,24 +17,16 @@
 class Schema : public Object {
     public:
         IntVector* col_types_;
-        Vector* col_names_;
-        Vector* row_names_;
  
         /** Copying constructor */
         Schema(Schema& from) {
             col_types_ = new IntVector();
-            col_names_ = new Vector();
-            row_names_ = new Vector();
             col_types_->append_all(from.get_types());
-            col_names_->append_all(from.get_col_names());
-            row_names_->append_all(from.get_row_names());
         }
         
         /** Create an empty schema **/
         Schema() {
             col_types_ = new IntVector();
-            col_names_ = new Vector();
-            row_names_ = new Vector();
         }
         
         /** Create a schema from a string of types. A string that contains
@@ -45,56 +36,24 @@ class Schema : public Object {
         Schema(const char* types) {
             exit_if_not(types != nullptr, "Null types argument provided.");
             col_types_ = new IntVector();
-            col_names_ = new Vector();
-            row_names_ = new Vector();
             for (int i = 0; i < strlen(types); i++) {
                 char c = types[i];
                 exit_if_not(c == 'S' || c == 'B' || c == 'I' || c == 'F', 
                     "Invalid type character found.");
                 col_types_->append(c);
-                col_names_->append(nullptr);
             }
         }
 
         /** Destructor */
         ~Schema() {
             delete col_types_;
-            delete col_names_;
-            delete row_names_;
         }
         
         /** Add a column of the given type and name (can be nullptr), name
          *  is external. Names are expectd to be unique, duplicates result
          *  in undefined behavior. */
-        void add_column(char typ, String* name) {
+        void add_column(char typ) {
             col_types_->append(typ);
-            if (name != nullptr) {
-                exit_if_not(!col_names_->contains(name), "Duplicate column name given.");
-            }
-            col_names_->append(name);
-        }
-        
-        /** Add a row with a name (possibly nullptr), name is external.  Names are
-         *  expectd to be unique, duplicates result in undefined behavior. */
-        void add_row(String* name) {
-            if (name != nullptr) {
-                exit_if_not(!row_names_->contains(name), "Duplicate row name given.");
-            }
-            row_names_->append(name);
-        }
-        
-        /** Return name of row at idx; nullptr indicates no name. An idx >= length
-         *  is undefined. */
-        String* row_name(size_t idx) {
-            exit_if_not(idx < length(), "Row name index out of bounds.");
-            return dynamic_cast<String*>(row_names_->get(idx));
-        }
-        
-        /** Return name of column at idx; nullptr indicates no name given.
-         *  An idx >= width is undefined.*/
-        String* col_name(size_t idx) {
-            exit_if_not(idx < width(), "Column name index out of bounds.");
-            return dynamic_cast<String*>(col_names_->get(idx));
         }
         
         /** Return type of column at idx. An idx >= width is undefined. */
@@ -103,49 +62,13 @@ class Schema : public Object {
             return col_types_->get(idx);
         }
         
-        /** Given a column name return its index, or -1. */
-        int col_idx(const char* name) {
-            String* s = new String(name);
-            int idx = col_names_->index_of(s);
-            delete s;
-            return idx;
-        }
-        
-        /** Given a row name return its index, or -1. */
-        int row_idx(const char* name) {
-            String* s = new String(name);
-            int idx = row_names_->index_of(s);
-            delete s;
-            return idx;
-        }
-        
         /** The number of columns */
         size_t width() {
             return col_types_->size();
-        }
-        
-        /** The number of rows */
-        size_t length() {
-            return row_names_->size();
         }
 
         /** Getter for the array of column types */
         IntVector* get_types() {
             return col_types_;
-        }
-
-        /** Getter for the array of column names */
-        Vector* get_col_names() {
-            return col_names_;
-        }
-
-        /** Getter for the array of row names */
-        Vector* get_row_names() {
-            return row_names_;
-        }
-
-        void clear_row_names() {
-            delete row_names_;
-            row_names_ = new Vector();
         }
 };

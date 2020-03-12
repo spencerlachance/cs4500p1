@@ -79,7 +79,6 @@ class DataFrame : public Object {
             columns_ = new Vector();
             columns_->append_all(df.get_columns());
             schema_ = new Schema(df.get_schema());
-            schema_->clear_row_names();
             length_ = df.nrows();
         }
         
@@ -136,7 +135,7 @@ class DataFrame : public Object {
             }
             columns_->append(col);
             if (columns_->size() > schema_->width()) {
-                schema_->add_column(col->get_type(), name);
+                schema_->add_column(col->get_type());
             }
         }
         
@@ -161,16 +160,6 @@ class DataFrame : public Object {
             StringColumn* column = dynamic_cast<Column*>(columns_->get(col))->as_string();
             exit_if_not(column != nullptr, "Column index corresponds to the wrong type.");
             return column->get(row);
-        }
-        
-        /** Return the offset of the given column name or -1 if no such col. */
-        int get_col(String& col) {
-            return schema_->col_idx(col.c_str());
-        }
-        
-        /** Return the offset of the given row name or -1 if no such row. */
-        int get_row(String& row) {
-            return schema_->row_idx(row.c_str());
         }
         
         /** Set the value at the given column and row to the given value.
