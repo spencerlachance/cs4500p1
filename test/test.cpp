@@ -72,8 +72,63 @@ class SumRower : public Rower {
 };
 
 /**
- * A simple test that fills a dataframe with one hundred ints and strings, calculates
- * the sum of its ints, and then verifies that the sum is correct.
+ * A Fielder that accepts every int in a row that is above a given threshhold.
+ * 
+ * @author David Mberingabo <mberingabo.d@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ */
+class AboveFielder : public Fielder {
+    public:
+        bool passes_;
+        int thresh_;
+
+        void start(size_t r) {passes_ = true;}
+        void done() { }
+
+        AboveFielder(int thresh) {
+            thresh_ = thresh;
+        }
+        ~AboveFielder() { }
+
+        void accept(bool b) { }
+        void accept(float f) { }
+        void accept(String* s) { }
+        void accept(int i) {
+            if (i <= thresh_) passes_ = false;
+        }
+
+        bool check_pass() {
+            return passes_;
+        }
+};
+
+/**
+ * A Rower that accepts every row whose ints are above a given threshhold.
+ * 
+ * @author David Mberingabo <mberingabo.d@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ */
+class AboveRower : public Rower {
+    public:
+        AboveFielder* af_;
+
+        AboveRower(int thresh) {
+            af_ = new AboveFielder(thresh);
+        }
+
+        ~AboveRower() { delete af_; }
+
+        bool accept(Row& r) {
+            r.visit(r.get_idx(), *af_);
+            return af_->check_pass();
+        }
+
+        void join_delete(Rower* other) { }
+};
+
+/**
+ * A simple test that builds a dataframe with one hundred ints and strings, and then tests
+ * map() and filter()
  */
 void test1() {
     Schema s("IS");
@@ -88,11 +143,20 @@ void test1() {
     SumRower* sr = new SumRower();
     df->map(*sr);
     assert(sr->get_total() == 5050);
+    printf("Map test passed\n");
+
+    AboveRower* ar = new AboveRower(50);
+    DataFrame* filtered_df = df->filter(*ar);
+    assert(filtered_df->nrows() == 50);
+    printf("Filter test passed\n");
+    printf("Test1 passed\n");
+
     delete df;
     delete r;
     delete str;
     delete sr;
-    printf("Test1 passed\n");
+    delete ar;
+    delete filtered_df;
 }
 
 /**
