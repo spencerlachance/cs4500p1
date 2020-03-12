@@ -38,9 +38,6 @@ class DataType : public Object {
     DataType() {
         // Initialize the object with an unknown type
         type = 'U';
-        // Initialize each string with nullptr to avoid deleting a string that has not been
-        // allocated
-        t.s = nullptr;
     }
 
     /**
