@@ -69,6 +69,25 @@ Users will subclass this in order to write their applications that use the eau2 
 * `size_t this_node()` - returns this node's index
 
 # Use Cases
+The code below builds a DataFrame containing 100 ints and strings, and then calculates the sum of every int in the DataFrame.
+```
+Schema s("IS");
+DataFrame* df = new DataFrame(s);
+Row* r = new Row(s);
+String* str = new String("foo");
+for (int i = 1; i <= 100; i++) {
+    r->set(0, i);
+    r->set(1, str);
+    df->add_row(*r);
+}
+SumRower* sr = new SumRower();
+df->map(*sr);
+assert(sr->get_total() == 5050);
+delete df;
+delete r;
+delete str;
+delete sr;
+```
 
 # Open Questions
 * What type is v in put(k, v)? Should it be an already serialized byte stream or an object/primitive?
