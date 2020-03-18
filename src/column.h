@@ -4,7 +4,7 @@
 
 #include "object.h"
 #include "string.h"
-#include "array.h"
+#include "vector.h"
 #include <stdarg.h>
 
 class IntColumn;

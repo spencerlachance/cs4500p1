@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include "object.h"
-#include "string.h"
-#include "array.h"
+#include <assert.h>
 
-#define INITIAL_MAP_CAPACITY 16
+#include "object.h"
+
+#define INITIAL_MAP_CAPACITY 8
 
 /**
  * Private Node class that represents one entry in the Map's Array.
  * 
- * Contains a next Node field which creates a list of Map
+ * Contains a next Node field which creates a linked list of Map
  * entries that have the same index.
  */
 class Node : public Object {

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "object.h"
-#include "array.h"
+#include "vector.h"
 #include "schema.h"
 #include "visitors.h"
 

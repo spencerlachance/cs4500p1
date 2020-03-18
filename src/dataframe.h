@@ -2,12 +2,14 @@
 
 #pragma once
 
-#include "array.h"
+#include <thread>
+
+#include "vector.h"
 #include "helper.h"
 #include "schema.h"
 #include "column.h"
 #include "row.h"
-#include <thread>
+#include "kvstore.h"
 
 /**
  * Fielder that prints each field.
@@ -74,10 +76,10 @@ class DataFrame : public Object {
         // The clone Rowers that run on the other quarters of the df.
         Rower* r2_;
  
-        /** Create a data frame with the same columns as the given df but with no rows or rownames */
+        /** Create a data frame with the same columns as the given df but with no rows */
         DataFrame(DataFrame& df) {
             columns_ = new Vector();
-            columns_->append_all(df.get_columns());
+            columns_->append_all(df.get_columns_());
             schema_ = new Schema(df.get_schema());
             length_ = df.nrows();
         }
@@ -108,6 +110,17 @@ class DataFrame : public Object {
             length_ = 0;
         }
 
+        /**
+         * Creates an empty DataFrame with an empty schema. The intended use for this constructor
+         * is the case where columns will be added to the DataFrame. Then, as each column is added,
+         * its type is added to the schema.
+         */
+        DataFrame() {
+            schema_ = new Schema();
+            columns_ = new Vector();
+            length_ = 0;
+        }
+
         /** Destructor */
         ~DataFrame() {
             delete columns_;
@@ -121,9 +134,9 @@ class DataFrame : public Object {
         }
         
         /** Adds a column this dataframe, updates the schema, the new column
-          * is external, and appears as the last column of the dataframe, the
-          * name is optional and external. A nullptr column is undefined. */
-        void add_column(Column* col, String* name) {
+          * is external, and appears as the last column of the dataframe. 
+          * A nullptr column is undefined. */
+        void add_column(Column* col) {
             exit_if_not(col != nullptr, "Undefined column provided.");
             if (col->size() < length_) {
                 pad_column(col);
@@ -325,7 +338,7 @@ class DataFrame : public Object {
         }
 
         /** Getter for the dataframe's columns. */
-        Vector* get_columns() {
+        Vector* get_columns_() {
             return columns_;
         }
 
@@ -351,5 +364,117 @@ class DataFrame : public Object {
                         exit_if_not(false, "Invalid column type.");
                 }
             }
+        }
+
+        /**
+         * Builds a DataFrame with one column containing the data in the given int array, adds the
+         * DataFrame to the given KVStore at the given Key, and then returns the DataFrame.
+         */
+        static DataFrame* fromIntArray(Key* k, KVStore* kv, size_t size, int* vals) {
+            Column* col = new IntColumn();
+            for (int i = 0; i < size; i++) {
+                col->push_back(vals[i]);
+            }
+            DataFrame* res = new DataFrame();
+            res->add_column(col);
+            kv->put(*k, *res);
+            return res;
+        }
+
+        /**
+         * Builds a DataFrame with one column containing the data in the given bool array, adds the
+         * DataFrame to the given KVStore at the given Key, and then returns the DataFrame.
+         */
+        static DataFrame* fromBoolArray(Key* k, KVStore* kv, size_t size, bool* vals) {
+            Column* col = new BoolColumn();
+            for (int i = 0; i < size; i++) {
+                col->push_back(vals[i]);
+            }
+            DataFrame* res = new DataFrame();
+            res->add_column(col);
+            kv->put(*k, *res);
+            return res;
+        }
+
+        /**
+         * Builds a DataFrame with one column containing the data in the given float array, adds the
+         * DataFrame to the given KVStore at the given Key, and then returns the DataFrame.
+         */
+        static DataFrame* fromFloatArray(Key* k, KVStore* kv, size_t size, float* vals) {
+            Column* col = new FloatColumn();
+            for (int i = 0; i < size; i++) {
+                col->push_back(vals[i]);
+            }
+            DataFrame* res = new DataFrame();
+            res->add_column(col);
+            kv->put(*k, *res);
+            return res;
+        }
+
+        /**
+         * Builds a DataFrame with one column containing the data in the given string array, adds
+         * the DataFrame to the given KVStore at the given Key, and then returns the DataFrame.
+         */
+        static DataFrame* fromStringArray(Key* k, KVStore* kv, size_t size, String** vals) {
+            Column* col = new StringColumn();
+            for (int i = 0; i < size; i++) {
+                col->push_back(vals[i]);
+            }
+            DataFrame* res = new DataFrame();
+            res->add_column(col);
+            kv->put(*k, *res);
+            return res;
+        }
+
+        /**
+         * Builds a DataFrame with one column containing the single given int, adds the DataFrame
+         * to the given KVStore at the given Key, and then returns the DataFrame.
+         */
+        static DataFrame* fromIntScalar(Key* k, KVStore* kv, size_t size, int val) {
+            Column* col = new IntColumn();
+            col->push_back(val);
+            DataFrame* res = new DataFrame();
+            res->add_column(col);
+            kv->put(*k, *res);
+            return res;
+        }
+
+        /**
+         * Builds a DataFrame with one column containing the single given bool, adds the DataFrame
+         * to the given KVStore at the given Key, and then returns the DataFrame.
+         */
+        static DataFrame* fromBoolScalar(Key* k, KVStore* kv, size_t size, bool val) {
+            Column* col = new BoolColumn();
+            col->push_back(val);
+            DataFrame* res = new DataFrame();
+            res->add_column(col);
+            kv->put(*k, *res);
+            return res;
+        }
+
+        /**
+         * Builds a DataFrame with one column containing the single given float, adds the DataFrame
+         * to the given KVStore at the given Key, and then returns the DataFrame.
+         */
+        static DataFrame* fromIntScalar(Key* k, KVStore* kv, size_t size, float val) {
+            Column* col = new FloatColumn();
+            col->push_back(val);
+            DataFrame* res = new DataFrame();
+            res->add_column(col);
+            kv->put(*k, *res);
+            return res;
+        }
+
+        /**
+         * Builds a DataFrame with one column containing the single given string, adds the DataFrame
+         * to the given KVStore at the given Key, and then returns the DataFrame.
+         */
+        static DataFrame* fromStringScalar(Key* k, KVStore* kv, size_t size, String* val) {
+            Column* col = new StringColumn();
+            col->push_back(val);
+            DataFrame* res = new DataFrame();
+            res->add_column(col);
+            kv->put(*k, *res);
+            return res;
         }
 };

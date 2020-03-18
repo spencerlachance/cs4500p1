@@ -16,7 +16,7 @@ class Serial : public Object {
     public:
         
         /* Builds and returns an object from the given bytestream. */
-        Object* deserialize(const char* stream) {
+        static Object* deserialize(const char* stream) {
             // stream's initial 6 chars should be "{type: "
             assert(stream[0] == '{');
             assert(stream[1] == 't');
@@ -61,7 +61,7 @@ class Serial : public Object {
         }
 
         /** Returns an IntVector containing the fields of a Message from the given bytestream. */
-        IntVector* deserialize_message(int i, StrBuff* buff, const char* stream) {
+        static IntVector* deserialize_message(int i, StrBuff* buff, const char* stream) {
             char* x = new char[sizeof(char) + 1];
             x[1] = '\0';
             // Selecting the sender fields from the bytestream.
@@ -130,7 +130,7 @@ class Serial : public Object {
         }
 
         /* Builds and returns a Register from the given bytesetram. */
-        Register* deserialize_register(int i, StrBuff* buff, const char* stream) {
+        static Register* deserialize_register(int i, StrBuff* buff, const char* stream) {
             IntVector* msg_fields = deserialize_message(i, buff, stream);
             buff = new StrBuff();
             i = msg_fields->get(msg_fields->size() - 1);
@@ -183,13 +183,13 @@ class Serial : public Object {
         }
 
         /** Builds and returns an Acknowledge from the given bytestream. */
-        Acknowledge* deserialize_acknowledge(int i, StrBuff* buff, const char* stream) {
+        static Acknowledge* deserialize_acknowledge(int i, StrBuff* buff, const char* stream) {
             IntVector* msg_fields = deserialize_message(i, buff, stream);
             return new Acknowledge(msg_fields->get(0), msg_fields->get(1), msg_fields->get(2));
         }
 
         /* Builds and returns a Status from the given bytestream. */
-        Status* deserialize_status(int i, StrBuff* buff, const char* stream) {
+        static Status* deserialize_status(int i, StrBuff* buff, const char* stream) {
             IntVector* msg_fields = deserialize_message(i, buff, stream);
             buff = new StrBuff();
             // We use x as a char* to pass to the string buffer one by one from the stream[i] 
@@ -214,7 +214,7 @@ class Serial : public Object {
         }
 
         /* Builds and returns a Directory from the given bytestream. */
-        Directory* desrialize_directory(int i, StrBuff* buff, const char* stream) {
+        static Directory* desrialize_directory(int i, StrBuff* buff, const char* stream) {
             IntVector* msg_fields = deserialize_message(i, buff, stream);
             buff = new StrBuff();
             // We use x as a char* to pass to the string buffer one by one from the stream[i] 
@@ -299,7 +299,7 @@ class Serial : public Object {
         }
 
         /* Builds and returns a String from the given bytestream. */
-        String* deserialize_string(int i, StrBuff* buff, const char* stream) {
+        static String* deserialize_string(int i, StrBuff* buff, const char* stream) {
             buff = new StrBuff();
             char* x = new char[sizeof(char) + 1];
             x[1] = '\0';
@@ -327,7 +327,7 @@ class Serial : public Object {
         *  so we assume the return Array is an array of strings. 
         *  Create an Array, append strings from the stream to it and return it.
         */
-        Vector* deserialize_string_array(int i, StrBuff* buff, const char* stream) {
+        static Vector* deserialize_string_array(int i, StrBuff* buff, const char* stream) {
             buff = new StrBuff();
             char* x = new char[sizeof(char) + 1];
             x[1] = '\0';
@@ -371,7 +371,7 @@ class Serial : public Object {
         /* Builds and returns a FloatVector from the given bytestream
         *  Create a new FlaotVector(), fill it with floats from the stream and return it.
         * */
-        FloatVector* deserialize_float_array(int i, StrBuff* buff, const char* stream) {
+        static FloatVector* deserialize_float_array(int i, StrBuff* buff, const char* stream) {
             buff = new StrBuff();
             char* x = new char[sizeof(char) + 1];
             x[1] = '\0';
