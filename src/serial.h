@@ -3,7 +3,7 @@
 #pragma once
 
 #include <assert.h>
-
+#include "dataframe.h"
 #include "message.h"
 
 /**
@@ -27,7 +27,7 @@ class Serial : public Object {
             assert(stream[6] == ' ');
 
             // Fill a buffer with the type of object to create
-            // either "object", "string", "array" or "FloatVector".
+            // either "object", "string", "vector" or "FloatVector".
             StrBuff* buff = new StrBuff();
             int i = 7;
             char* x = new char[sizeof(char) + 1];
@@ -52,12 +52,20 @@ class Serial : public Object {
                 return deserialize_register(i, buff, stream);
             } else if (strcmp(type, "string") == 0) {
                 return deserialize_string(i, buff, stream);
-            } else if (strcmp(type, "array") == 0) {
-                return deserialize_string_array(i, buff, stream);
-            } else if (strcmp(type, "float_array") == 0) {
-                return deserialize_float_array(i, buff, stream);
+            } else if (strcmp(type, "vector") == 0) {
+                return deserialize_string_vector(i, buff, stream);
+            } else if (strcmp(type, "float_vector") == 0) {
+                return deserialize_float_vector(i, buff, stream);
+            } else if (strcmp(type, "dataframe") == 0) {
+                return deserialize_dataframe(i, buff, stream);
             }
 
+        }
+
+        /* Returns an DataFrame containing the columns and fields from the given bytestream. */
+        static DataFrame* deserialize_dataframe(int i, StrBuff* buff, const char* stream) {
+            DataFrame* rtrn_df = new DataFrame();
+            return rtrn_df;
         }
 
         /** Returns an IntVector containing the fields of a Message from the given bytestream. */
@@ -118,7 +126,7 @@ class Serial : public Object {
             buff = new StrBuff();
             // delete x to save memory.
             delete[] x;
-            // Appending sender, target and id to the return array
+            // Appending sender, target and id to the return vector
             IntVector* return_arr = new IntVector();
             return_arr->append(sender);
             return_arr->append(target);
@@ -322,12 +330,12 @@ class Serial : public Object {
             return new String(*(buff->get()));
         }
 
-        /* Builds and returns an Array representation of the given bytestream. 
-        *  Even if this is an Array containing object elements, only strings can be deserialized,
-        *  so we assume the return Array is an array of strings. 
-        *  Create an Array, append strings from the stream to it and return it.
+        /* Builds and returns an vector representation of the given bytestream. 
+        *  Even if this is an vector containing object elements, only strings can be deserialized,
+        *  so we assume the return vector is an vector of strings. 
+        *  Create an vector, append strings from the stream to it and return it.
         */
-        static Vector* deserialize_string_array(int i, StrBuff* buff, const char* stream) {
+        static Vector* deserialize_string_vector(int i, StrBuff* buff, const char* stream) {
             buff = new StrBuff();
             char* x = new char[sizeof(char) + 1];
             x[1] = '\0';
@@ -344,7 +352,7 @@ class Serial : public Object {
             assert(stream[i] == ' '); i++;
             assert(stream[i] == '['); i++;
 
-            // We use this array class for all types of objects but, for the scope 
+            // We use this vector class for all types of objects but, for the scope 
             // of this prototype, only string objects are deserializable, so we have 
             // an assert to check if it is possible to cast object elements to string.
             Vector* arr = new Vector();
@@ -360,7 +368,7 @@ class Serial : public Object {
                 assert(element != nullptr);
                 buff = new StrBuff();
                 arr->append(element);
-                if (stream[i] == ']') { break; } // Exit if you see end of float array.
+                if (stream[i] == ']') { break; } // Exit if you see end of float vector.
                 i++;
             }
 
@@ -371,7 +379,7 @@ class Serial : public Object {
         /* Builds and returns a FloatVector from the given bytestream
         *  Create a new FlaotVector(), fill it with floats from the stream and return it.
         * */
-        static FloatVector* deserialize_float_array(int i, StrBuff* buff, const char* stream) {
+        static FloatVector* deserialize_float_vector(int i, StrBuff* buff, const char* stream) {
             buff = new StrBuff();
             char* x = new char[sizeof(char) + 1];
             x[1] = '\0';
@@ -386,7 +394,7 @@ class Serial : public Object {
             assert(stream[i] == 's'); i++;
             assert(stream[i] == ':'); i++;
             assert(stream[i] == ' '); i++;
-            assert(stream[i] == '['); i++; // Now iterating over array elements.
+            assert(stream[i] == '['); i++; // Now iterating over vector elements.
 
             // New FloatVector we will return once we have filled it with corresponding floats
             FloatVector* f_arr = new FloatVector();

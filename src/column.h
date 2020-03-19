@@ -166,6 +166,23 @@ class IntColumn : public Column {
         void append_missing() {
             push_back(0);
         }
+
+        /** Returns a serialized representation of this Integer column. e.g. {I: [1,2,3]} */
+        const char* serialize() {
+            StrBuff buff;
+            buff.c("{I: [");
+            size_t size = ints_->size();
+            for (int i = 0; i < size; i++) {
+                int x = ints_->get(i);
+                buff.c(x);
+                if (i < size - 1) {
+                     buff.c(",");
+                }
+            }
+            buff.c("]}");
+
+            return buff.get()->c_str();
+        }
 };
  
 /*************************************************************************
@@ -278,6 +295,23 @@ class BoolColumn : public Column {
         /** Appends a default value that represents a missing field */
         void append_missing() {
             push_back(false);
+        }
+
+        /** Returns a serialized representation of this boolean column. e.g. {B: [1,0,1]} */
+        const char* serialize() {
+            StrBuff buff;
+            buff.c("{B: [");
+            size_t size = bools_->size();
+            for (int i = 0; i < size; i++) {
+                int b = bools_->get(i);
+                buff.c(b);
+                if (i < size - 1) {
+                     buff.c(",");
+                }
+            }
+            buff.c("]}");
+
+            return buff.get()->c_str();
         }
 };
  
@@ -392,6 +426,30 @@ class FloatColumn : public Column {
         void append_missing() {
             push_back(0.0f);
         }
+
+        // Turns a float to a char.
+        char* float_to_char(float f) {
+            char* c_float = new char[sizeof(float) + 1]; 
+            sprintf(c_float, "%.7f", f);
+            return c_float;
+        }
+
+        /** Returns a serialized representation of this float column. e.g. {F: [1.1,2.2,3.3]} */
+        const char* serialize() {
+            StrBuff buff;
+            buff.c("{F: [");
+            size_t size = floats_->size();
+            for (int i = 0; i < size; i++) {
+                float f = floats_->get(i);
+                buff.c(float_to_char(f));
+                if (i < size - 1) {
+                     buff.c(",");
+                }
+            }
+            buff.c("]}");
+
+            return buff.get()->c_str();
+        }
 };
  
 /*************************************************************************
@@ -502,5 +560,21 @@ class StringColumn : public Column {
         /** Appends a default value that represents a missing field */
         void append_missing() {
             push_back(nullptr);
+        }
+
+        /* Returns the serialized representation of this string column. */
+        const char* serialize() {
+            StrBuff buff;
+            buff.c("{S: [");
+            size_t size = strings_->size();
+            // Appending serialized strings in the array to buff
+            for (int i = 0; i < size; i++) {
+                buff.c(strings_->get(i)->c_str());
+                if (i < size - 1) {
+                     buff.c(",");
+                }
+            }
+            buff.c("]}");
+            return buff.get()->c_str();
         }
 };

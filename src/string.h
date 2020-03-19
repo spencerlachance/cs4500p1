@@ -82,6 +82,18 @@ public:
             hash = cstr_[i] + (hash << 6) + (hash << 16) - hash;
         return hash;
     }
+
+    /* Return a serialized (i.e. const char*) representation of a string */
+    const char* serialize() {
+        const char* s = "{type: string, cstr: ";
+        int x = strlen(s) + strlen(cstr_) + 2;
+        char* return_val = new char[x];
+        strcpy(return_val, s);
+        strcat(return_val, cstr_);
+        strcat(return_val, "}");
+        assert(strlen(return_val) == x - 1);
+        return return_val;
+    }
  };
 
 /** A string buffer builds a string from various pieces.
