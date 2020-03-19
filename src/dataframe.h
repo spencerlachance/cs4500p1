@@ -379,6 +379,7 @@ class DataFrame : public Object {
                 }
             }
             buff.c("]}");
+            
             return buff.get()->c_str();
         }
 

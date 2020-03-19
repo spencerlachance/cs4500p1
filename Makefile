@@ -1,5 +1,5 @@
 build:
-	g++ -pthread -g -std=c++11 test/test.cpp
+	g++ -pthread -g -std=c++11 test/test_dataframe.cpp
 	wget https://raw.githubusercontent.com/spencerlachance/cs4500datafile/master/datafile.zip
 	mkdir data
 	mv datafile.zip data

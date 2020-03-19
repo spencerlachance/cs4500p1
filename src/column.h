@@ -339,7 +339,7 @@ class FloatColumn : public Column {
             va_list vl;
             va_start(vl, n);
             for (int i = 0; i < n; i++) {
-                floats_->append(va_arg(vl, double));
+                floats_->append((float) va_arg(vl, double));
             }
             va_end(vl);
         }

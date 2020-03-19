@@ -1,8 +1,8 @@
 //lang::CwC
 
-#include "vector.h"
-#include "serial.h"
-#include "message.h"
+#include "../src/vector.h"
+#include "../src/serial.h"
+#include "../src/message.h"
 
 // /** Testing FloatVector serialization and deserialization. */
 // void test_float_array_serialization() {
@@ -182,6 +182,8 @@ void test_dataframe_serialization() {
     const char* serial_df = df->serialize();
     printf("%s\n", serial_df);
     assert(strcmp(serial_df, "{type: dataframe, columns: [{I: [1,2,3,4]}, {B: [1,0,1,0]}, {F: [1.1000000,2.2000000,3.3000000,4.4000001]}, {S: [hi,bye,hi,bye]}]"));
+
+    delete df;
 }
 
 int main() {
