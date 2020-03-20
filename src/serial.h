@@ -400,20 +400,18 @@ class Serial : public Object {
             FloatVector* f_arr = new FloatVector();
             
             while (true) {
-                assert(stream[i] == '{'); i++;
                 while (true) {
                     *x = stream[i];
                     buff->c(x);
                     i++;
-                    if (stream[i] == '}') { break; }
+                    if (stream[i] == ',' || stream[i] == ']') break;
                 }
                 char* chr = buff->get()->c_str();
                 buff = new StrBuff();
                 float f = atof(chr); // Deserialized chr to a float.
                 f_arr->append(f);
-                i++;
-                if (stream[i] == ']') { break; } // Break loop if stream[i] is ']'
-                assert(stream[i] == ',');
+                // Break loop if the end of the float list is reached
+                if (stream[i] == ']') { break; }
                 i++;
             }
 

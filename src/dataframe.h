@@ -369,8 +369,8 @@ class DataFrame : public Object {
         /* Returns a serialized representation of this DataFrame */
         const char* serialize() {
             StrBuff buff;
-            buff.c("{type: dataframe, columns : [");
-            size_t width = schema_->width();
+            buff.c("{type: dataframe, columns: [");
+            size_t width = ncols();
             for (int i = 0; i < width; i++) {
                 Column* col = dynamic_cast<Column*>(columns_->get(i));
                 buff.c(col->serialize());
@@ -379,7 +379,6 @@ class DataFrame : public Object {
                 }
             }
             buff.c("]}");
-            
             return buff.get()->c_str();
         }
 

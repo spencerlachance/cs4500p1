@@ -28,7 +28,7 @@ public:
     /** Returned c_str is owned by the object, don't modify nor delete. */
     virtual char* c_str() { return nullptr; }
 
-    /** Return a char pointer to a serialized representation of the given object. */
+    /** Returns a serialized representation of this object. */
     virtual const char* serialize() { 
         const char* s = "{type: object}";
         return s;

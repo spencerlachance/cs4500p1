@@ -83,7 +83,7 @@ public:
         return hash;
     }
 
-    /* Return a serialized (i.e. const char*) representation of a string */
+    /** Returns a serialized representation of this string */
     const char* serialize() {
         const char* s = "{type: string, cstr: ";
         int x = strlen(s) + strlen(cstr_) + 2;

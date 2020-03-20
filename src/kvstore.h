@@ -75,7 +75,7 @@
 //      * @param v The data that will be stored in the k/v store
 //      */
 //     void put(Key& k, DataFrame& v) {
-//         //map_->put(k.get_keystring(), new String(v.serialize()));
+//         // map_->put(k->get_keystring(), new String(v->serialize()));
 //     }
 
 //     /**

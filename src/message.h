@@ -268,8 +268,8 @@ class Directory : public Message {
 
         /* Destructor */
         ~Directory() {
-            delete[] ports_;
-            delete[] addresses_;
+            delete ports_;
+            delete addresses_;
         }
 
         /* Adds an address to the array of addresses */

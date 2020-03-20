@@ -200,18 +200,28 @@ class Vector : public Object {
             if (other == nullptr) return false;
             if (size_ == 0) return other->size() == 0;
 
-            // count is the total number of items read in the vector so far
-            int count = 0;
-            for (int i = 0; i < chunk_count_ && count < size_; i++) {
-                for (int j = 0; j < CHUNK_SIZE && count < size_; j++) {
-                    int inner_idx = j % CHUNK_SIZE;
-                    if (!(objects_[i][inner_idx] == NULL && other->get(count) == NULL)) return false;
-                    if (!objects_[i][inner_idx]->equals(other->get(count))) return false;
-                    count++;
-                } 
+            for (int i = 0; i < size_; i++) {
+                if (!(get(i)->equals(other->get(i)))) return false; // Object equality is tested here, not String equality.
             }
 
             return true;
+        }
+
+        /**
+         * Returns a serialized version of this Vector as a char*
+         */
+        const char* serialize() {
+            StrBuff buff;
+            buff.c("{type: vector, objects: [");
+            // Appending serialized strings in the array to buff
+            for (int i = 0; i < size_; i++) {
+                buff.c(get(i)->serialize());
+                if (i < size_ - 1) {
+                     buff.c(",");
+                }
+            }
+            buff.c("]}");
+            return buff.get()->c_str();
         }
 };
 
@@ -373,17 +383,32 @@ class BoolVector : public Object {
             if (other == nullptr) return false;
             if (size_ == 0) return other->size() == 0;
 
-            // count is the total number of items read in the vector so far
-            int count = 0;
-            for (int i = 0; i < chunk_count_ && count < size_; i++) {
-                for (int j = 0; j < CHUNK_SIZE && count < size_; j++) {
-                    int inner_idx = j % CHUNK_SIZE;
-                    if (!(bools_[i][inner_idx] == other->get(count))) return false;
-                    count++;
-                } 
+            for (int i = 0; i < size_; i++) {
+                if (!(get(i) == other->get(i))) return false;
             }
 
             return true;
+        }
+
+        /** 
+         * Returns a serialized representation of this bool vector.
+         */
+        const char* serialize() {
+            StrBuff buff;
+            buff.c("{type: bool_vector, bools: [");
+            for (int i = 0; i < size_; i++) {
+                bool b = get(i);
+                if (b) {
+                    buff.c("true");
+                } else {
+                    buff.c("false");
+                }
+                if (i < size_ - 1) {
+                     buff.c(",");
+                }
+            }
+            buff.c("]}");
+            return buff.get()->c_str();
         }
 };
 
@@ -547,17 +572,46 @@ class IntVector : public Object {
             if (other == nullptr) return false;
             if (size_ == 0) return other->size() == 0;
 
-            // count is the total number of items read in the vector so far
-            int count = 0;
-            for (int i = 0; i < chunk_count_ && count < size_; i++) {
-                for (int j = 0; j < CHUNK_SIZE && count < size_; j++) {
-                    int inner_idx = j % CHUNK_SIZE;
-                    if (!(ints_[i][inner_idx] == other->get(count))) return false;
-                    count++;
-                } 
+            for (int i = 0; i < size_; i++) {
+                if (!(get(i) == other->get(i))) return false;
             }
 
             return true;
+        }
+
+        /** 
+         * Returns a serialized representation of this int vector.
+         */
+        const char* serialize() {
+            StrBuff buff;
+            buff.c("{type: int_vector, ints: [");
+            for (int i = 0; i < size_; i++) {
+                int x = get(i);
+                buff.c(int_to_char(x));
+                if (i < size_ - 1) {
+                     buff.c(",");
+                }
+            }
+            buff.c("]}");
+            return buff.get()->c_str();
+        }
+
+        /** 
+         * Converts an int to a char*
+         */
+        char* int_to_char(int i) {
+            // The size of the buffer that will hold the float
+            size_t len = 5;
+            char* c_int = new char[len]; 
+            int ret = snprintf(c_int, len, "%d", i);
+            exit_if_not(ret >= 0, "snprintf failed");
+            while (ret >= len) {
+                // The float was too large for the buffer, so increase its size and try again
+                len += 5;
+                ret = snprintf(c_int, len, "%d", i);
+                exit_if_not(ret >= 0, "snprintf failed");
+            }
+            return c_int;
         }
 };
 
@@ -720,16 +774,48 @@ class FloatVector : public Object {
             if (other == nullptr) return false;
             if (size_ == 0) return other->size() == 0;
 
-            // count is the total number of items read in the vector so far
-            int count = 0;
-            for (int i = 0; i < chunk_count_ && count < size_; i++) {
-                for (int j = 0; j < CHUNK_SIZE && count < size_; j++) {
-                    int inner_idx = j % CHUNK_SIZE;
-                    if (!(floats_[i][inner_idx] == other->get(count))) return false;
-                    count++;
-                } 
+            for (int i = 0; i < size_; i++) {
+                float x = get(i);
+                float y = other->get(i);
+                if (!(get(i) == other->get(i))) return false;
             }
 
             return true;
+        }
+
+        /** 
+         * Returns a serialized representation of this float vector.
+         */
+        const char* serialize() {
+            StrBuff buff;
+            buff.c("{type: float_vector, floats: [");
+            for (int i = 0; i < size_; i++) {
+                float f = get(i);
+                buff.c(float_to_char(f));
+                if (i < size_ - 1) {
+                     buff.c(",");
+                }
+            }
+            buff.c("]}");
+
+            return buff.get()->c_str();
+        }
+
+        /** 
+         * Converts a float to a char*
+         */
+        char* float_to_char(float f) {
+            // The size of the buffer that will hold the float
+            size_t len = 10;
+            char* c_float = new char[len]; 
+            int ret = snprintf(c_float, len, "%.7f", f);
+            exit_if_not(ret >= 0, "snprintf failed");
+            while (ret >= len) {
+                // The float was too large for the buffer, so increase its size and try again
+                len += 10;
+                ret = snprintf(c_float, len, "%.7f", f);
+                exit_if_not(ret >= 0, "snprintf failed");
+            }
+            return c_float;
         }
 };
