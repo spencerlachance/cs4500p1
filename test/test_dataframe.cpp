@@ -127,34 +127,26 @@ class AboveRower : public Rower {
 };
 
 /**
- * A simple test that builds a dataframe with one hundred ints and strings, and then tests
- * map() and filter()
+ * A simple test that tests map() using a Rower that calculates the sum of every int in the
+ * dataframe.
  */
-void test1() {
-    Schema s("IS");
-    DataFrame* df = new DataFrame(s);
-    Row* r = new Row(s);
-    String* str = new String("foo");
-    for (int i = 1; i <= 100; i++) {
-        r->set(0, i);
-        r->set(1, str);
-        df->add_row(*r);
-    }
+void test_map(DataFrame* df) {
     SumRower* sr = new SumRower();
     df->map(*sr);
     assert(sr->get_total() == 5050);
     printf("Map test passed\n");
+    delete sr;
+}
 
+/**
+ * A simple test that tests filter() using a Rower that accepts all rows with ints greater
+ * than the given value.
+ */
+void test_filter(DataFrame* df) {
     AboveRower* ar = new AboveRower(50);
     DataFrame* filtered_df = df->filter(*ar);
     assert(filtered_df->nrows() == 50);
     printf("Filter test passed\n");
-    printf("Test1 passed\n");
-
-    delete df;
-    delete r;
-    delete str;
-    delete sr;
     delete ar;
     delete filtered_df;
 }
@@ -163,7 +155,7 @@ void test1() {
  * This test builds a DataFrame from data in a file and then calculates the sum of all of its ints.
  * This test is meant to measure performance, so it does not verify that the sum is correct.
  */
-void test2(int argc, char** argv) {
+void test_datafile(int argc, char** argv) {
     // Upon construction, this class reads the command line arguments and builds a dataframe
     // containing fields from a datafile.
     ParserMain* pf = new ParserMain(argc, argv);
@@ -174,11 +166,26 @@ void test2(int argc, char** argv) {
     delete pf;
     delete df;
     delete sr;
-    printf("Test2 passed\n");
+    printf("Datafile test passed\n");
 }
 
 int main(int argc, char** argv) {
-    test1();
-    test2(argc, argv);
+    Schema s("IS");
+    DataFrame* df = new DataFrame(s);
+    Row* r = new Row(s);
+    String* str = new String("foo");
+    for (int i = 1; i <= 100; i++) {
+        r->set(0, i);
+        r->set(1, str);
+        df->add_row(*r);
+    }
+
+    test_map(df);
+    test_filter(df);
+    test_datafile(argc, argv);
+
+    delete df;
+    delete r;
+    delete str;
     return 0;
 }
