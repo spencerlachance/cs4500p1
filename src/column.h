@@ -175,6 +175,13 @@ class IntColumn : public Column {
             buff.c("}");
             return buff.get()->c_str();
         }
+
+        /* Checks if this column is equal to the given object */
+        bool equals(Object* other) {
+            IntColumn* o = dynamic_cast<IntColumn*>(other);
+            if (o == nullptr) { return false; }
+            return ints_->equals(o->get_fields());
+        }
 };
  
 /*************************************************************************
@@ -296,6 +303,13 @@ class BoolColumn : public Column {
             buff.c(bools_->serialize());
             buff.c("}");
             return buff.get()->c_str();
+        }
+
+        /* Checks if this column is equal to the given object */
+        bool equals(Object* other) {
+            BoolColumn* o = dynamic_cast<BoolColumn*>(other);
+            if (o == nullptr) { return false; }
+            return bools_->equals(o->get_fields());
         }
 };
  
@@ -419,6 +433,13 @@ class FloatColumn : public Column {
             buff.c("}");
             return buff.get()->c_str();
         }
+
+        /* Checks if this column is equal to the given object */
+        bool equals(Object* other) {
+            FloatColumn* o = dynamic_cast<FloatColumn*>(other);
+            if (o == nullptr) { return false; }
+            return floats_->equals(o->get_fields());
+        }
 };
  
 /*************************************************************************
@@ -538,5 +559,12 @@ class StringColumn : public Column {
             buff.c(strings_->serialize());
             buff.c("}");
             return buff.get()->c_str();
+        }
+
+        /* Checks if this column is equal to the given object */
+        bool equals(Object* other) {
+            StringColumn* o = dynamic_cast<StringColumn*>(other);
+            if (o == nullptr) { return false; }
+            return strings_->equals(o->get_fields());
         }
 };
