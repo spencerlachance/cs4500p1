@@ -124,6 +124,13 @@ public:
         size_ += step;
         return *this;
     }
+    StrBuff& c(char ch) {
+        char* str = new char[2];
+        str[0] = ch;
+        str[strlen(str) - 1] = '\0';
+        const char* str1 = str;
+        return c(str1);
+    }
     StrBuff& c(String &s) { return c(s.c_str());  }
     StrBuff& c(size_t v) { return c(std::to_string(v).c_str());  } // Cpp
 
