@@ -108,16 +108,15 @@ public:
         val_ = new char[capacity_ = 10];
         size_ = 0;
     }
-
     ~StrBuff() {
         delete[] val_;
     }
-
     void clear() {
+        char* oldv = val_;
         val_ = new char[capacity_ = 10];
         size_ = 0;
+        delete[] oldv;
     }
-
     void grow_by_(size_t step) {
         if (step + size_ < capacity_) return;
         capacity_ *= 2;
@@ -134,24 +133,15 @@ public:
         size_ += step;
         return *this;
     }
-    StrBuff& c(char ch) {
-        char* str = new char[2];
-        str[0] = ch;
-        str[strlen(str) - 1] = '\0';
-        const char* str1 = str;
-        return c(str1);
-    }
     StrBuff& c(String &s) { return c(s.c_str());  }
     StrBuff& c(size_t v) { return c(std::to_string(v).c_str());  } // Cpp
 
-    char* get() {
+    String* get() {
         assert(val_ != nullptr); // can be called only once
         grow_by_(1);     // ensure space for terminator
         val_[size_] = 0; // terminate
-        char* c = new char[strlen(val_) + 1];
-        // String *res = new String(true, val_, size_);
-        strcpy(c, val_);
+        String *res = new String(true, val_, size_);
         val_ = nullptr; // val_ was consumed above
-        return c;
+        return res;
     }
 };

@@ -1,4 +1,4 @@
-//lang::CwC + a little Cpp
+// //lang::CwC + a little Cpp
 
 #pragma once
 

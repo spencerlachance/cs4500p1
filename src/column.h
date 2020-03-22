@@ -72,6 +72,12 @@ class IntColumn : public Column {
             type_ = 'I';
         }
 
+        /** Constructs a IntColumn with the given IntVector */
+        IntColumn(IntVector* ints) {
+            ints_ = ints;
+            type_ = 'I';
+        }
+
         /** Constructs an IntColumn initialized with the given integers. */
         IntColumn(int n, ...) {
             ints_ = new IntVector();
@@ -176,11 +182,12 @@ class IntColumn : public Column {
             return buff.get()->c_str();
         }
 
-        /* Checks if this column is equal to the given object */
+        /* Is this column equal to the given object? */
         bool equals(Object* other) {
             IntColumn* o = dynamic_cast<IntColumn*>(other);
-            if (o == nullptr) { return false; }
-            return ints_->equals(o->get_fields());
+            if (o == nullptr) { return false;}
+            if (o->size() != size()) { return false;}
+            return o->get_fields()->equals(get_fields());
         }
 };
  
@@ -198,6 +205,12 @@ class BoolColumn : public Column {
         /** Constructs an empty BoolColumn */
         BoolColumn() {
             bools_ = new BoolVector();
+            type_ = 'B';
+        }
+
+        /** Constructs a BoolColumn with the given BoolVector */
+        BoolColumn(BoolVector* bools) {
+            bools_ = bools;
             type_ = 'B';
         }
 
@@ -305,11 +318,12 @@ class BoolColumn : public Column {
             return buff.get()->c_str();
         }
 
-        /* Checks if this column is equal to the given object */
+        /* Is this column equal to the given object? */
         bool equals(Object* other) {
             BoolColumn* o = dynamic_cast<BoolColumn*>(other);
-            if (o == nullptr) { return false; }
-            return bools_->equals(o->get_fields());
+            if (o == nullptr) { return false;}
+            if (o->size() != size()) { return false;}
+            return o->get_fields()->equals(get_fields());
         }
 };
  
@@ -434,11 +448,12 @@ class FloatColumn : public Column {
             return buff.get()->c_str();
         }
 
-        /* Checks if this column is equal to the given object */
+        /* Is this column equal to the given object? */
         bool equals(Object* other) {
             FloatColumn* o = dynamic_cast<FloatColumn*>(other);
-            if (o == nullptr) { return false; }
-            return floats_->equals(o->get_fields());
+            if (o == nullptr) { return false;}
+            if (o->size() != size()) { return false;}
+            return o->get_fields()->equals(get_fields());
         }
 };
  
@@ -561,10 +576,11 @@ class StringColumn : public Column {
             return buff.get()->c_str();
         }
 
-        /* Checks if this column is equal to the given object */
+        /* Is this column equal to the given object? */
         bool equals(Object* other) {
             StringColumn* o = dynamic_cast<StringColumn*>(other);
-            if (o == nullptr) { return false; }
-            return strings_->equals(o->get_fields());
+            if (o == nullptr) { return false;}
+            if (o->size() != size()) { return false;}
+            return o->get_fields()->equals(get_fields());
         }
 };
