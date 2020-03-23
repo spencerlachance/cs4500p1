@@ -23,7 +23,9 @@ class Application : public Object {
     /**
      * Runs the application on the current node.
      */
-    virtual void run_();
+    virtual void run_() {
+        return;
+    }
 
     /**
      * Getter for the current node index.

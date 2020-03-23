@@ -1,10 +1,10 @@
 //lang::CwC
 
-#include "application.h"
-#include "dataframe.h"
+#include "../src/application.h"
+#include "../src/dataframe.h"
 
 /**
- * Simple eau2 application that builds a DataFrame containing floats 0-999,999, keeps track of the
+ * Simple eau2 application that builds a DataFrame containing floats 0-999,999 keeps track of the
  * floats' sum, puts the DataFrame into a KVStore, gets it back from the store, and verifies that
  * the sum of the DataFrame's values remains consistent.
  */
