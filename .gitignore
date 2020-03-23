@@ -1,4 +1,6 @@
 a.out
 .vscode
 test/test
+test/test.out
+test/test_serialization
 data

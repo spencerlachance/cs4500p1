@@ -201,7 +201,9 @@ class Vector : public Object {
             if (size_ == 0) return other->size() == 0;
 
             for (int i = 0; i < size_; i++) {
-                if (!(get(i)->equals(other->get(i)))) return false; // Object equality is tested here, not String equality.
+                String* s = dynamic_cast<String*>(get(i));
+                String* s_other = dynamic_cast<String*>(other->get(i));
+                if (!(s->equals(s))) return false;  // String equality, assuming Vector takes only strings.
             }
 
             return true;
@@ -384,7 +386,9 @@ class BoolVector : public Object {
             if (size_ == 0) return other->size() == 0;
 
             for (int i = 0; i < size_; i++) {
-                if (!(get(i) == other->get(i))) return false;
+                bool a = get(i);
+                bool b = other->get(i);
+                if (!(a== b)) return false;
             }
 
             return true;

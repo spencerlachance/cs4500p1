@@ -1,4 +1,4 @@
-//lang::CwC + a little Cpp
+// //lang::CwC + a little Cpp
 
 #pragma once
 
@@ -369,7 +369,9 @@ class DataFrame : public Object {
         /* Returns a serialized representation of this DataFrame */
         const char* serialize() {
             StrBuff buff;
-            buff.c("{type: dataframe, columns: [");
+            buff.c("{type: dataframe, ");
+            buff.c(ncols());
+            buff.c(" columns: [");
             size_t width = ncols();
             for (int i = 0; i < width; i++) {
                 Column* col = dynamic_cast<Column*>(columns_->get(i));
@@ -380,6 +382,19 @@ class DataFrame : public Object {
             }
             buff.c("]}");
             return buff.get()->c_str();
+        }
+
+        /* Checks if this DataFrame equals the given object */
+        bool equals(Object* other) {
+            DataFrame* o = dynamic_cast<DataFrame*>(other);
+            if (o == nullptr) { return false; }
+            if (ncols() != o->ncols()) { return false; }
+            if (nrows() != o->nrows()) { return false; }
+            for (int i = 0; i < ncols(); i++) {
+                if (!(columns_->get(i)->equals(o->get_columns_()->get(i)))) { return false; }
+            }
+
+            return true;
         }
 
         // /**
