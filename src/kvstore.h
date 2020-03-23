@@ -30,9 +30,7 @@ class Key : public Object {
     /**
      * Destructor
      */
-    ~Key() {
-        delete key_;
-    }
+    ~Key() { }
 
     /**
      * Getter for the key string.
@@ -82,7 +80,9 @@ class KVStore : public Object {
      * @param v The data that will be stored in the k/v store
      */
     void put(Key& k, DataFrame& v) {
-        // map_->put(k->get_keystring(), new String(v->serialize()));
+        const char* serial_df = v.serialize();
+        map_->put(k.get_keystring(), new String(serial_df));
+        delete[] serial_df;
     }
 
     /**
@@ -94,6 +94,7 @@ class KVStore : public Object {
      */
     DataFrame* get(Key& k) {
         String* serialized_df = dynamic_cast<String*>(map_->get(k.get_keystring()));
+        assert(serialized_df != nullptr);
         Deserializer* ds = new Deserializer(serialized_df->c_str());
         DataFrame* deserialized_df = dynamic_cast<DataFrame*>(ds->deserialize());
         assert(deserialized_df != nullptr);
@@ -109,7 +110,7 @@ class KVStore : public Object {
      * 
      * @return The deserialized data
      */
-    DataFrame* get_and_wait(Key& k) {
+    DataFrame* wait_and_get(Key& k) {
         bool contains_key = map_->containsKey(&k);
         while (!contains_key) {
             sleep(1);
@@ -183,7 +184,7 @@ DataFrame* DataFrame::fromStringArray(Key* k, KVStore* kv, size_t size, String**
  * Builds a DataFrame with one column containing the single given int, adds the DataFrame
  * to the given KVStore at the given Key, and then returns the DataFrame.
  */
-DataFrame* DataFrame::fromIntScalar(Key* k, KVStore* kv, size_t size, int val) {
+DataFrame* DataFrame::fromIntScalar(Key* k, KVStore* kv, int val) {
     Column* col = new IntColumn();
     col->push_back(val);
     DataFrame* res = new DataFrame();
@@ -196,7 +197,7 @@ DataFrame* DataFrame::fromIntScalar(Key* k, KVStore* kv, size_t size, int val) {
  * Builds a DataFrame with one column containing the single given bool, adds the DataFrame
  * to the given KVStore at the given Key, and then returns the DataFrame.
  */
-DataFrame* DataFrame::fromBoolScalar(Key* k, KVStore* kv, size_t size, bool val) {
+DataFrame* DataFrame::fromBoolScalar(Key* k, KVStore* kv, bool val) {
     Column* col = new BoolColumn();
     col->push_back(val);
     DataFrame* res = new DataFrame();
@@ -209,7 +210,7 @@ DataFrame* DataFrame::fromBoolScalar(Key* k, KVStore* kv, size_t size, bool val)
  * Builds a DataFrame with one column containing the single given float, adds the DataFrame
  * to the given KVStore at the given Key, and then returns the DataFrame.
  */
-DataFrame* DataFrame::fromIntScalar(Key* k, KVStore* kv, size_t size, float val) {
+DataFrame* DataFrame::fromIntScalar(Key* k, KVStore* kv, float val) {
     Column* col = new FloatColumn();
     col->push_back(val);
     DataFrame* res = new DataFrame();
@@ -222,7 +223,7 @@ DataFrame* DataFrame::fromIntScalar(Key* k, KVStore* kv, size_t size, float val)
  * Builds a DataFrame with one column containing the single given string, adds the DataFrame
  * to the given KVStore at the given Key, and then returns the DataFrame.
  */
-DataFrame* DataFrame::fromStringScalar(Key* k, KVStore* kv, size_t size, String* val) {
+DataFrame* DataFrame::fromStringScalar(Key* k, KVStore* kv, String* val) {
     Column* col = new StringColumn();
     col->push_back(val);
     DataFrame* res = new DataFrame();

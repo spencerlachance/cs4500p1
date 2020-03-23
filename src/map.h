@@ -35,7 +35,13 @@ class Node : public Object {
     /**
      * Deconstructor for Node class
      */
-    ~Node() { }
+    ~Node() {
+      delete key_;
+      delete val_;
+      if (next_ != nullptr) {
+        delete next_;
+      }
+    }
 
     /**
      * Gets this Node's key.
@@ -168,6 +174,7 @@ class Map : public Object {
     Map() {
       capacity_ = INITIAL_MAP_CAPACITY;
       objects_ = new Node*[capacity_];
+      for (int i = 0; i < capacity_; i++) objects_[i] = nullptr;
       size_ = 0;
     }
 
@@ -175,11 +182,17 @@ class Map : public Object {
     Map(int init_cap) {
       capacity_ = init_cap;
       objects_ = new Node*[capacity_];
+      for (int i = 0; i < capacity_; i++) objects_[i] = nullptr;
       size_ = 0;
     }
 
     // Destructor
     ~Map() {
+      for (int i = 0; i < capacity_; i++) {
+        if (objects_[i] != nullptr) {
+          delete objects_[i];
+        }
+      }
       delete[] objects_;
     }
 
@@ -211,7 +224,7 @@ class Map : public Object {
       Node* current;
       for (int i = 0; i < capacity_; i++) {
         current = get_node(i);
-        if (current != NULL) {
+        if (current != nullptr) {
           new_map->put(current->get_key(), current->get_value());
           while (current->has_next()) {
             current = current->get_next();
@@ -225,11 +238,12 @@ class Map : public Object {
     }
 
     // Add an Object to the map with an Object key
+    // Takes ownership of the key and val
     void put(Object* key, Object* val) {
       int index = key->hash() % capacity_;
       
       Node* current = get_node(index);
-      if (current == NULL) {
+      if (current == nullptr) {
         objects_[index] = new Node(key, val);
       } else {
         if (current->length() >= 3) {
@@ -265,7 +279,7 @@ class Map : public Object {
       int index = key->hash() % capacity_;
 
       Node* current = get_node(index);
-      if (current == NULL) return NULL;
+      if (current == nullptr) return nullptr;
 
       if (current->get_key()->equals(key)) {
         // The matching node is the first one in the linked list
@@ -276,7 +290,7 @@ class Map : public Object {
 
         Object* return_me = current->get_value();
         delete current;
-        objects_[index] = NULL;
+        objects_[index] = nullptr;
         return return_me;
       } else {
         // Start traversing the linked list
@@ -299,7 +313,7 @@ class Map : public Object {
           }
           current = current->get_next();
         }
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -308,7 +322,7 @@ class Map : public Object {
       int index = key->hash() % capacity_;
 
       Node* current = get_node(index);
-      if (current == NULL) return NULL;
+      if (current == nullptr) return nullptr;
 
       if (current->get_key()->equals(key)) {
         // The matching node is the first one in the linked list.
@@ -321,7 +335,7 @@ class Map : public Object {
             return current->get_value();
           }
         }
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -331,7 +345,7 @@ class Map : public Object {
       Node* tmp;
       for (int i = 0; i < capacity_; i++) {
         current = get_node(i);
-        if (current != NULL) {
+        if (current != nullptr) {
           while (current->has_next()) {
             tmp = current;
             current = current->get_next();
@@ -340,14 +354,14 @@ class Map : public Object {
           }
           delete current;
           size_--;
-          objects_[i] = NULL;
+          objects_[i] = nullptr;
         }
       }
     }
 
     // Is the key in the map?
     bool containsKey(Object* key) {
-      return get(key) != NULL;
+      return get(key) != nullptr;
     }
 
     // Get the number of keys in the map
@@ -365,7 +379,7 @@ class Map : public Object {
       for (int i = 0; i < capacity_; i++) {
         current = get_node(i);
         o_current = other->get_node(i);
-        if (current == NULL || o_current == NULL) {
+        if (current == nullptr || o_current == nullptr) {
           if (current != o_current) return false;
         } else {
           if (!current->equals(o_current)) return false;
@@ -380,7 +394,7 @@ class Map : public Object {
       Node* current;
       for (int i = 0; i < capacity_; i++) {
         current = get_node(i);
-        if (current != NULL) {
+        if (current != nullptr) {
           hash += current->hash();
         }
       }

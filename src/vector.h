@@ -623,7 +623,9 @@ class IntVector : public Object {
             exit_if_not(ret >= 0, "snprintf failed");
             while (ret >= len) {
                 // The float was too large for the buffer, so increase its size and try again
+                delete c_int;
                 len += 5;
+                c_int = new char[len];
                 ret = snprintf(c_int, len, "%d", i);
                 exit_if_not(ret >= 0, "snprintf failed");
             }
@@ -833,7 +835,9 @@ class FloatVector : public Object {
             exit_if_not(ret >= 0, "snprintf failed");
             while (ret >= len) {
                 // The float was too large for the buffer, so increase its size and try again
+                delete[] c_float;
                 len += 10;
+                c_float = new char[len]; 
                 ret = snprintf(c_float, len, "%.7f", f);
                 exit_if_not(ret >= 0, "snprintf failed");
             }

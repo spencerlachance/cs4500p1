@@ -17,15 +17,12 @@ class Application : public Object {
 
     Application(size_t idx) {
         idx_ = idx;
-        run_();
     }
 
     /**
      * Runs the application on the current node.
      */
-    virtual void run_() {
-        return;
-    }
+    virtual void run_() { }
 
     /**
      * Getter for the current node index.

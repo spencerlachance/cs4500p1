@@ -428,23 +428,23 @@ class DataFrame : public Object {
          * Builds a DataFrame with one column containing the single given int, adds the DataFrame
          * to the given KVStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromIntScalar(Key* k, KVStore* kv, size_t size, int val);
+        static DataFrame* fromIntScalar(Key* k, KVStore* kv, int val);
 
         /**
          * Builds a DataFrame with one column containing the single given bool, adds the DataFrame
          * to the given KVStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromBoolScalar(Key* k, KVStore* kv, size_t size, bool val);
+        static DataFrame* fromBoolScalar(Key* k, KVStore* kv, bool val);
 
         /**
          * Builds a DataFrame with one column containing the single given float, adds the DataFrame
          * to the given KVStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromIntScalar(Key* k, KVStore* kv, size_t size, float val);
+        static DataFrame* fromIntScalar(Key* k, KVStore* kv, float val);
 
         /**
          * Builds a DataFrame with one column containing the single given string, adds the DataFrame
          * to the given KVStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromStringScalar(Key* k, KVStore* kv, size_t size, String* val);
+        static DataFrame* fromStringScalar(Key* k, KVStore* kv, String* val);
 };
