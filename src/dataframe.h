@@ -139,11 +139,11 @@ class DataFrame : public Object {
         void add_column(Column* col) {
             exit_if_not(col != nullptr, "Undefined column provided.");
             if (col->size() < length_) {
-                pad_column(col);
+                pad_column_(col);
             } else if (col->size() > length_) {
                 length_ = col->size();
                 for (int i = 0; i < columns_->size(); i++) {
-                    pad_column(dynamic_cast<Column*>(columns_->get(i)));
+                    pad_column_(dynamic_cast<Column*>(columns_->get(i)));
                 }
             }
             columns_->append(col);
@@ -344,7 +344,7 @@ class DataFrame : public Object {
 
         /** Pads the given column with a default value until its length
          *  matches the number of rows in the data frame. */
-        void pad_column(Column* col) {
+        void pad_column_(Column* col) {
             char type = col->get_type();
             while (col->size() < length_) {
                 switch(type) {
@@ -369,19 +369,24 @@ class DataFrame : public Object {
         /* Returns a serialized representation of this DataFrame */
         const char* serialize() {
             StrBuff buff;
-            buff.c("{type: dataframe, ");
-            buff.c(ncols());
-            buff.c(" columns: [");
+            buff.c("{type: dataframe, columns: [");
             size_t width = ncols();
             for (int i = 0; i < width; i++) {
                 Column* col = dynamic_cast<Column*>(columns_->get(i));
-                buff.c(col->serialize());
+                const char* serial_col = col->serialize();
+                buff.c(serial_col);
+                delete[] serial_col;
                 if (i < width - 1) {
                     buff.c(",");
                 }
             }
             buff.c("]}");
-            return buff.get()->c_str();
+            String* serial_str = buff.get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete serial_str;
+            return copy;
         }
 
         /* Checks if this DataFrame equals the given object */
@@ -390,11 +395,7 @@ class DataFrame : public Object {
             if (o == nullptr) { return false; }
             if (ncols() != o->ncols()) { return false; }
             if (nrows() != o->nrows()) { return false; }
-            for (int i = 0; i < ncols(); i++) {
-                if (!(columns_->get(i)->equals(o->get_columns_()->get(i)))) { return false; }
-            }
-
-            return true;
+            return columns_->equals(o->get_columns_());
         }
 
         // /**

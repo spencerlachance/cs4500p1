@@ -82,7 +82,13 @@ class Message : public Object {
             buff->c(str); // Add id to buff->
             delete[] str;
 
-            return buff->get()->c_str();
+            String* serial_str = buff->get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete buff;
+            delete serial_str;
+            return copy;
         }
 };
  
@@ -104,7 +110,14 @@ class Acknowledge : public Message {
             const char* serial_msg = serialize_msg();
             buff->c(serial_msg);
             buff->c("}");
-            return buff->get()->c_str();
+            String* serial_str = buff->get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete[] serial_msg;
+            delete buff;
+            delete serial_str;
+            return copy;
         }
 };
  
@@ -119,6 +132,11 @@ class Status : public Message {
             sender_ = sender;
             target_ = target;
             msg_ = msg;
+        }
+
+        /** Destructor */
+        ~Status() {
+            delete msg_;
         }
 
         /* Returns a serialized representation of this status message. */
@@ -148,21 +166,26 @@ class Status : public Message {
             buff->c(msg_->c_str()); // Add the message to buff->
 
             buff->c("}");
-            return buff->get()->c_str();
+            String* serial_str = buff->get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete serial_str;
+            delete buff;
+            return copy;
         }
 
         bool equals(Object* other) {
             if (other == this) return true; // Reference equality.
             Status* o = dynamic_cast<Status*>(other);
             if (o == nullptr) return false;
-            return (o->get_msg()->equals(get_msg())) && (o->kind() == kind_) && (o->sender() == sender_) && (o->target() == target_) && (o->id() == id_); // Member fields equality
+            return (o->get_msg()->equals(get_msg())) && (o->kind() == kind_) &&
+                (o->sender() == sender_) && (o->target() == target_) && (o->id() == id_);
         }
 
-        /* Returns a copy of this messages msg field. */
+        /* Returns this Status' msg field. */
         String* get_msg() {
-            char* c = msg_->c_str();
-            String* return_value = new String(c);
-            return return_value;
+            return msg_;
         }
 };
  
@@ -233,7 +256,14 @@ class Register : public Message {
             buff->c(temp);
             buff->c("}");
 
-            return buff->get()->c_str();
+            String* serial_str = buff->get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete buff;
+            delete[] serial_msg;
+            delete serial_str;
+            return copy;
         }
 };
  
@@ -354,7 +384,13 @@ class Directory : public Message {
             }
 
             buff->c("]}");
-            return buff->get()->c_str();
+            String* serial_str = buff->get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete buff;
+            delete serial_str;
+            return copy;
         }
 
 };

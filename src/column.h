@@ -176,10 +176,17 @@ class IntColumn : public Column {
         /** Returns a serialized representation of this Integer column. */
         const char* serialize() {
             StrBuff buff;
+            const char* serial_vector = ints_->serialize();
             buff.c("{type: int_column, data: ");
-            buff.c(ints_->serialize());
+            buff.c(serial_vector);
             buff.c("}");
-            return buff.get()->c_str();
+            String* serial_str = buff.get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete serial_str;
+            delete[] serial_vector;
+            return copy;
         }
 
         /* Is this column equal to the given object? */
@@ -312,10 +319,17 @@ class BoolColumn : public Column {
         /** Returns a serialized representation of this boolean column. */
         const char* serialize() {
             StrBuff buff;
+            const char* serial_vector = bools_->serialize();
             buff.c("{type: bool_column, data: ");
-            buff.c(bools_->serialize());
+            buff.c(serial_vector);
             buff.c("}");
-            return buff.get()->c_str();
+            String* serial_str = buff.get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete serial_str;
+            delete[] serial_vector;
+            return copy;
         }
 
         /* Is this column equal to the given object? */
@@ -341,6 +355,12 @@ class FloatColumn : public Column {
         /** Constructs an empty FloatColumn */
         FloatColumn() {
             floats_ = new FloatVector();
+            type_ = 'F';
+        }
+
+        /** Constructs a FloatColumn with the given FloatVector */
+        FloatColumn(FloatVector* floats) {
+            floats_ = floats;
             type_ = 'F';
         }
 
@@ -442,10 +462,17 @@ class FloatColumn : public Column {
         /** Returns a serialized representation of this float column. */
         const char* serialize() {
             StrBuff buff;
+            const char* serial_vector = floats_->serialize();
             buff.c("{type: float_column, data: ");
-            buff.c(floats_->serialize());
+            buff.c(serial_vector);
             buff.c("}");
-            return buff.get()->c_str();
+            String* serial_str = buff.get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete serial_str;
+            delete[] serial_vector;
+            return copy;
         }
 
         /* Is this column equal to the given object? */
@@ -469,6 +496,12 @@ class StringColumn : public Column {
         /** Constructs an empty StringColumn */
         StringColumn() {
             strings_ = new Vector();
+            type_ = 'S';
+        }
+
+        /** Constructs a StringColumn with the given Vector */
+        StringColumn(Vector* strings) {
+            strings_ = strings;
             type_ = 'S';
         }
 
@@ -570,10 +603,17 @@ class StringColumn : public Column {
         /* Returns the serialized representation of this string column. */
         const char* serialize() {
             StrBuff buff;
+            const char* serial_vector = strings_->serialize();
             buff.c("{type: string_column, data: ");
-            buff.c(strings_->serialize());
+            buff.c(serial_vector);
             buff.c("}");
-            return buff.get()->c_str();
+            String* serial_str = buff.get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete serial_str;
+            delete[] serial_vector;
+            return copy;
         }
 
         /* Is this column equal to the given object? */

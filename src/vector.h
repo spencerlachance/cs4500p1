@@ -199,13 +199,9 @@ class Vector : public Object {
             Vector* other = dynamic_cast<Vector*>(o);
             if (other == nullptr) return false;
             if (size_ == 0) return other->size() == 0;
-
             for (int i = 0; i < size_; i++) {
-                String* s = dynamic_cast<String*>(get(i));
-                String* s_other = dynamic_cast<String*>(other->get(i));
-                if (!(s->equals(s))) return false;  // String equality, assuming Vector takes only strings.
+                if (!get(i)->equals(other->get(i))) return false;
             }
-
             return true;
         }
 
@@ -217,13 +213,20 @@ class Vector : public Object {
             buff.c("{type: vector, objects: [");
             // Appending serialized strings in the array to buff
             for (int i = 0; i < size_; i++) {
-                buff.c(get(i)->serialize());
+                const char* serial_obj = get(i)->serialize();
+                buff.c(serial_obj);
+                delete[] serial_obj;
                 if (i < size_ - 1) {
                      buff.c(",");
                 }
             }
             buff.c("]}");
-            return buff.get()->c_str();
+            String* serial_str = buff.get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete serial_str;
+            return copy;
         }
 };
 
@@ -386,9 +389,7 @@ class BoolVector : public Object {
             if (size_ == 0) return other->size() == 0;
 
             for (int i = 0; i < size_; i++) {
-                bool a = get(i);
-                bool b = other->get(i);
-                if (!(a== b)) return false;
+                if (get(i) != other->get(i)) return false;
             }
 
             return true;
@@ -412,7 +413,12 @@ class BoolVector : public Object {
                 }
             }
             buff.c("]}");
-            return buff.get()->c_str();
+            String* serial_str = buff.get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete serial_str;
+            return copy;
         }
 };
 
@@ -590,14 +596,20 @@ class IntVector : public Object {
             StrBuff buff;
             buff.c("{type: int_vector, ints: [");
             for (int i = 0; i < size_; i++) {
-                int x = get(i);
-                buff.c(int_to_char(x));
+                char* int_char = int_to_char(get(i));
+                buff.c(int_char);
+                delete[] int_char;
                 if (i < size_ - 1) {
                      buff.c(",");
                 }
             }
             buff.c("]}");
-            return buff.get()->c_str();
+            String* serial_str = buff.get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete serial_str;
+            return copy;
         }
 
         /** 
@@ -794,15 +806,20 @@ class FloatVector : public Object {
             StrBuff buff;
             buff.c("{type: float_vector, floats: [");
             for (int i = 0; i < size_; i++) {
-                float f = get(i);
-                buff.c(float_to_char(f));
+                char* float_char = float_to_char(get(i));
+                buff.c(float_char);
+                delete[] float_char;
                 if (i < size_ - 1) {
                      buff.c(",");
                 }
             }
             buff.c("]}");
-
-            return buff.get()->c_str();
+            String* serial_str = buff.get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
+            delete serial_str;
+            return copy;
         }
 
         /** 

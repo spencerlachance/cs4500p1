@@ -1,27 +1,8 @@
 // //lang::CwC
 
-#include "../src/vector.h"
+#include <assert.h>
 #include "../src/serial.h"
 #include "../src/dataframe.h"
-#include <assert.h>
-#include "../src/string.h"
-
-void test_object_serialization() {
-    /* Object serialization */
-    Object* o = new Object();
-    const char* serialized_object = o->serialize();
-    assert(strcmp(serialized_object, "{type: object}") == 0);
-
-    /* Object deserialization */
-    Serial* stream = new Serial(serialized_object);
-    Object* deserialized_object = stream->deserialize();
-    assert(deserialized_object != nullptr);
-
-    delete o;
-    // delete serialized_object;
-    delete stream;
-    // delete deserialized_object;
-}
 
 /** Testing BoolVector serialization and deserialization. */
 void test_bool_vector_serialization() {
@@ -34,19 +15,18 @@ void test_bool_vector_serialization() {
 
     // BoolVector serialization
     const char* serialized_bvec = bvec->serialize();
-    // printf("%s\n", serialized_bvec);
     assert(strcmp(serialized_bvec, "{type: bool_vector, bools: [true,false,true,false,true]}") == 0);
     
 
     //BoolVector deserialization
-    Serial* stream = new Serial(serialized_bvec);
-    BoolVector* deserialized_bvec = dynamic_cast<BoolVector*>(stream->deserialize());
+    Deserializer* bvec_ds = new Deserializer(serialized_bvec);
+    BoolVector* deserialized_bvec = dynamic_cast<BoolVector*>(bvec_ds->deserialize());
     assert(deserialized_bvec != nullptr);
     assert(deserialized_bvec->equals(bvec));
 
     delete bvec;
     delete[] serialized_bvec;
-    delete stream;
+    delete bvec_ds;
     delete deserialized_bvec;
 }
 
@@ -61,25 +41,24 @@ void test_int_vector_serialization() {
 
     // IntVector serialization
     const char* serialized_ivec = ivec->serialize();
-    // printf("%s\n", serialized_ivec);
     assert(strcmp(serialized_ivec, "{type: int_vector, ints: [1,2,3,4,5]}") == 0);
     
 
     // IntVector deserialization
-    Serial* stream = new Serial(serialized_ivec);
-    IntVector* deserialized_ivec = dynamic_cast<IntVector*>(stream->deserialize());
+    Deserializer* ivec_ds = new Deserializer(serialized_ivec);
+    IntVector* deserialized_ivec = dynamic_cast<IntVector*>(ivec_ds->deserialize());
     assert(deserialized_ivec != nullptr);
     assert(deserialized_ivec->equals(ivec));
 
     delete ivec;
     delete[] serialized_ivec;
-    delete stream;
+    delete ivec_ds;
     delete deserialized_ivec;
 }
 
 /** Testing FloatVector serialization and deserialization. */
 void test_float_vector_serialization() {
-    // Serial serial;
+    // Deserializer serial;
     FloatVector* fvec = new FloatVector();
     fvec->append(1.1f);
     fvec->append(1.11113f); // 5 decimals
@@ -89,19 +68,18 @@ void test_float_vector_serialization() {
 
     // FloatVector serialization
     const char* serialized_fvec = fvec->serialize();
-    // printf("%s\n", serial_fvec);
     assert(strcmp(serialized_fvec, "{type: float_vector, floats: [1.1000000,1.1111300,1.1111150,1.1111116,1.1111115]}") == 0);
 
     //FloatVector deserialization
-    Serial* stream = new Serial(serialized_fvec);
-    FloatVector* deserialized_fvec = dynamic_cast<FloatVector*>(stream->deserialize());
+    Deserializer* fvec_ds = new Deserializer(serialized_fvec);
+    FloatVector* deserialized_fvec = dynamic_cast<FloatVector*>(fvec_ds->deserialize());
     assert(deserialized_fvec != nullptr);
     assert(deserialized_fvec->equals(fvec));
 
     delete fvec;
     delete[] serialized_fvec;
     delete deserialized_fvec;
-
+    delete fvec_ds;
 }
 
 /* Testings Vector serialization and deserialization */
@@ -113,8 +91,8 @@ void test_string_vector_serialization() {
 
     // String serialization and deserialization 
     const char* serialized_str = s1->serialize();
-    Serial* stream = new Serial(serialized_str);
-    String* deserialized_str = dynamic_cast<String*>(stream->deserialize());
+    Deserializer* string_ds = new Deserializer(serialized_str);
+    String* deserialized_str = dynamic_cast<String*>(string_ds->deserialize());
     assert(deserialized_str != nullptr);
     assert(s1->equals(deserialized_str));
 
@@ -126,96 +104,199 @@ void test_string_vector_serialization() {
 
     /* Vector serialization */
     const char* serialized_vec = vec->serialize();
-    // printf("%s\n", serial_vec);
     assert(strcmp(serialized_vec, "{type: vector, objects: [{type: string, cstr: abc},{type: string, cstr: abcd},{type: string, cstr: abcdefghi},{type: string, cstr: abcdefghij}]}") == 0);
     
     /* Vector desserialization */
-    Serial* stream2 = new Serial(serialized_vec);
-    Vector* deserialized_vec = dynamic_cast<Vector*>(stream2->deserialize());
+    Deserializer* svec_ds = new Deserializer(serialized_vec);
+    Vector* deserialized_vec = dynamic_cast<Vector*>(svec_ds->deserialize());
     assert(deserialized_vec != nullptr);
     assert(deserialized_vec->equals(vec));
 
     
     delete[] serialized_str;
-    delete stream;
-    delete deserialized_str;
-
-    delete vec;
     delete[] serialized_vec;
-    delete stream2;
-    // delete deserialized_vec;
+    delete vec;
+    delete string_ds;
+    delete svec_ds;
+    delete deserialized_str;
+    delete deserialized_vec;
+}
+
+void test_message_serialization() {
+    /* Acknowledge construction */
+    Acknowledge* ack1 = new Acknowledge(1, 2, 3);
+    Acknowledge* ack2 = new Acknowledge(1, 2, 4);
+
+    /* Acknowledge serialization */
+    const char* serialized_ack = ack1->serialize();
+    assert(strcmp(serialized_ack, "{type: ack, sender: 1, target: 2, id: 3}") == 0);
+
+    /* Ackknowledge deserialization */
+    Deserializer* ack_ds = new Deserializer(serialized_ack);
+    Acknowledge* deserialized_ack = dynamic_cast<Acknowledge*>(ack_ds->deserialize());
+    assert(deserialized_ack != nullptr);
+    assert(deserialized_ack->equals(ack1)); // Testing acknowledge equality.
+
+    delete ack1;
+    delete ack2;
+    delete[] serialized_ack;
+    delete deserialized_ack;
+
+    /* Status construction */
+    String* msg = new String("ALERT! PANTS ON FIRE!");
+    Status* status = new Status(1, 2, 3, msg);
+
+    /* Status serialization */
+    const char* serialized_status = status->serialize();
+    assert(strcmp(serialized_status, "{type: status, sender: 1, target: 2, id: 3, msg: ALERT! PANTS ON FIRE!}") == 0);
+
+    /* Status deserialization */
+    Deserializer* status_ds = new Deserializer(serialized_status);
+    Status* deserialized_status = dynamic_cast<Status*>(status_ds->deserialize());
+    assert(deserialized_status != nullptr);
+    assert(deserialized_status->equals(status)); // Testing status equality.
+
+    delete status;
+    delete[] serialized_status;
+    delete deserialized_status;
+
+    /* Directory construction */
+    Directory* dir = new Directory(1, 2, 3, 3);
+    dir->add_adr("0.0.0.0");
+    dir->add_adr("0.1.0.0");
+    dir->add_adr("0.2.0.0");
+    dir->add_adr("0.3.0.0");
+    dir->add_port(8080);
+    dir->add_port(8084);
+    dir->add_port(8081);
+
+    /* Directory serialization */
+    const char* serialized_directory = dir->serialize();
+    assert(strcmp(serialized_directory,"{type: directory, sender: 1, target: 2, id: 3, nodes: 3, ports: [8080,8084,8081], addresses: [0.0.0.0,0.1.0.0,0.2.0.0,0.3.0.0]}") == 0);
+
+    /* Directory deserialization */
+    Deserializer* directory_ds = new Deserializer(serialized_directory);
+    Directory* deserialized_directory = dynamic_cast<Directory*>(directory_ds->deserialize());
+    assert(deserialized_directory != nullptr);
+    assert(deserialized_directory->equals(dir)); // Testing directory equality
+
+    delete dir;
+    delete[] serialized_directory;
+    delete deserialized_directory;
+
+    /* Register construction */
+    struct sockaddr_in node;
+    node.sin_family = AF_INET;
+    node.sin_port = 8080;
+    inet_pton(AF_INET, "127.0.0.3", &(node.sin_addr));
+    Register* reg = new Register(1, 2, 3, node, 8080);
+
+    /* Register serialization */
+    const char* serialized_register = reg->serialize();
+    assert(strcmp(serialized_register, "{type: register, sender: 1, target: 2, id: 3, node: [2,8080,127.0.0.3], port: 8080}") == 0);
+
+    /* Register deserialization */
+    Deserializer* register_ds = new Deserializer(serialized_register);
+    Register* deserialized_register = dynamic_cast<Register*>(register_ds->deserialize());
+    assert(deserialized_register != nullptr);
+    assert(deserialized_register->equals(reg));
+
+    delete reg;
+    delete[] serialized_register;
+    delete deserialized_register;
+    delete ack_ds;
+    delete status_ds;
+    delete directory_ds;
+    delete status_ds;
+}
+
+void test_object_serialization() {
+    Object* o = new Object();
+    const char* serialized_object = o->serialize();
+    assert(strcmp(serialized_object, "{type: object}") == 0);
+
+    Deserializer* object_ds = new Deserializer(serialized_object);
+    Object* deserialized_object = object_ds->deserialize();
+    delete o;
+    delete deserialized_object;
+    delete object_ds;
 }
 
 void test_dataframe_serialization() {
-    BoolColumn* bcol = new BoolColumn(4,true,false,true,false);
-    // IntColumn* icol = new IntColumn(4,1,2,3,4);
-    // FloatColumn* fcol = new FloatColumn(4,1.1f,2.2f,3.3f,4.4f);
-    // String* s1 = new String("hi");
-    // String* s2 = new String("bye");
-    // String* s3 = new String("hi");
-    // String* s4 = new String("bye");
-    // StringColumn* scol = new StringColumn(4,s1,s2,s3,s4);
-
     /* Testing BoolColumn serialization and deserialization. */
+    BoolColumn* bcol = new BoolColumn(4,true,false,true,false);
     const char* serialized_bcol = bcol->serialize();
-    // printf("%s\n", serialized_bcol);
     assert(strcmp(serialized_bcol, 
         "{type: bool_column, data: {type: bool_vector, bools: [true,false,true,false]}}") == 0);
-    Serial* bcol_stream = new Serial(serialized_bcol);
-    BoolColumn* deserialized_bcol = dynamic_cast<BoolColumn*>(bcol_stream->deserialize());
+    Deserializer* bcol_ds = new Deserializer(serialized_bcol);
+    BoolColumn* deserialized_bcol = dynamic_cast<BoolColumn*>(bcol_ds->deserialize());
     assert(deserialized_bcol != nullptr);
     assert(deserialized_bcol->equals(bcol));
 
     /* Testing IntColumn serialization and deserialization. */
-    // const char* serialized_icol = icol->serialize();
-    // printf("%s\n", serialized_icol);
-    // assert(strcmp(serialized_icol, 
-    //     "{type: int_column, data: {type: int_vector, ints: [1,2,3,4]}}") == 0);
-    // Serial* icol_stream = new Serial(serialized_icol);
-    // IntColumn* deserialized_icol = dynamic_cast<IntColumn*>(icol_stream->deserialize());
-    // assert(deserialized_icol != nullptr);
-    // assert(deserialized_icol->equals(icol));
+    IntColumn* icol = new IntColumn(4,1,2,3,4);
+    const char* serialized_icol = icol->serialize();
+    assert(strcmp(serialized_icol, 
+        "{type: int_column, data: {type: int_vector, ints: [1,2,3,4]}}") == 0);
+    Deserializer* icol_ds = new Deserializer(serialized_icol);
+    IntColumn* deserialized_icol = dynamic_cast<IntColumn*>(icol_ds->deserialize());
+    assert(deserialized_icol != nullptr);
+    assert(deserialized_icol->equals(icol));
 
-    // /* Testing FloatColumn serialization and deserialization. */
-    // const char* serial_fcol = fcol->serialize();
-    // assert(strcmp(serial_fcol, 
-    //     "{type: float_column, data: {type: float_vector, floats: [1.1000000,2.2000000,3.3000000,4.4000001]}}") == 0);
-    // Serial* float_stream = new Serial(serial_fcol);
-    // FloatColumn* deserialized_fcol = dynamic_cast<FloatColumn*>(float_stream->deserialize());
+    /* Testing FloatColumn serialization and deserialization. */
+    FloatColumn* fcol = new FloatColumn(4,1.1f,2.2f,3.3f,4.4f);
+    const char* serialized_fcol = fcol->serialize();
+    assert(strcmp(serialized_fcol, 
+        "{type: float_column, data: {type: float_vector, floats: [1.1000000,2.2000000,3.3000000,4.4000001]}}") == 0);
+    Deserializer* fcol_ds = new Deserializer(serialized_fcol);
+    FloatColumn* deserialized_fcol = dynamic_cast<FloatColumn*>(fcol_ds->deserialize());
+    assert(deserialized_fcol != nullptr);
+    assert(deserialized_fcol->equals(fcol));
 
-    // /* Testing StringColumn serialization and deserialization. */
-    // const char* serial_scol = scol->serialize();
-    // assert(strcmp(serial_scol, 
-    //     "{type: string_column, data: {type: vector, objects: [{type: string, cstr: hi},{type: string, cstr: bye},{type: string, cstr: hi},{type: string, cstr: bye}]}}") == 0);
-    // Serial* string_stream = new Serial(serial_scol);
-    // StringColumn* deserialized_scol = dynamic_cast<StringColumn*>(string_stream->deserialize());
+    /* Testing StringColumn serialization and deserialization. */
+    String* s1 = new String("hi");
+    String* s2 = new String("bye");
+    String* s3 = new String("hi");
+    String* s4 = new String("bye");
+    StringColumn* scol = new StringColumn(4,s1,s2,s3,s4);
+    const char* serialized_scol = scol->serialize();
+    assert(strcmp(serialized_scol, 
+        "{type: string_column, data: {type: vector, objects: [{type: string, cstr: hi},{type: string, cstr: bye},{type: string, cstr: hi},{type: string, cstr: bye}]}}") == 0);
+    Deserializer* scol_ds = new Deserializer(serialized_scol);
+    StringColumn* deserialized_scol = dynamic_cast<StringColumn*>(scol_ds->deserialize());
+    assert(deserialized_scol != nullptr);
+    assert(deserialized_scol->equals(scol));
 
-    // DataFrame* df = new DataFrame();
-    // df->add_column(icol);
-    // df->add_column(bcol);
-    // df->add_column(fcol);
-    // df->add_column(scol);
+    /* Testing DataFrame serialization and deserialization. */
+    DataFrame* df = new DataFrame();
+    df->add_column(icol);
+    df->add_column(bcol);
+    df->add_column(fcol);
+    df->add_column(scol);
+    const char* serialized_df = df->serialize();
+    assert(strcmp(serialized_df, 
+        "{type: dataframe, columns: [{type: int_column, data: {type: int_vector, ints: [1,2,3,4]}},{type: bool_column, data: {type: bool_vector, bools: [true,false,true,false]}},{type: float_column, data: {type: float_vector, floats: [1.1000000,2.2000000,3.3000000,4.4000001]}},{type: string_column, data: {type: vector, objects: [{type: string, cstr: hi},{type: string, cstr: bye},{type: string, cstr: hi},{type: string, cstr: bye}]}}]}") == 0);
+    Deserializer* df_ds = new Deserializer(serialized_df);
+    DataFrame* deserialized_df = dynamic_cast<DataFrame*>(df_ds->deserialize());
+    assert(deserialized_df != nullptr);
+    assert(deserialized_df->equals(df));
 
-    
-    // const char* serial_df = df->serialize();
-    // printf("%s\n", serial_df);
-    // Serial s(serial_df);
-    // assert(strcmp(serial_df, 
-    //     "{type: dataframe, columns: [{type: int_column, data: {type: int_vector, ints: [1,2,3,4]}}]}") == 0);
-    //     // ,{type: bool_column, data: {type: bool_vector, bools: [true,false,true,false]}},{type: float_column, data: {type: float_vector, floats: [1.1000000,2.2000000,3.3000000,4.4000001]}},{type: string_column, data: {type: vector, objects: [{type: string, cstr: hi},{type: string, cstr: bye},{type: string, cstr: hi},{type: string, cstr: bye}]}}]}") == 0);
-    // DataFrame* deserialized_df = dynamic_cast<DataFrame*>(s.deserialize(serial_df));
-    // assert(deserialized_df != nullptr);
-    // assert(deserialized_df->equals(df));
-
-    delete bcol;
+    delete df;
+    delete deserialized_df;
+    delete df_ds;
+    delete icol_ds;
+    delete bcol_ds;
+    delete fcol_ds;
+    delete scol_ds;
+    delete deserialized_icol;
+    delete deserialized_bcol;
+    delete deserialized_fcol;
+    delete deserialized_scol;
+    delete[] serialized_icol;
     delete[] serialized_bcol;
-    delete bcol_stream;
-
-    // delete icol;
-    // delete[] serialized_icol;
-    // delete icol_stream;
-
-    // delete fcol;
+    delete[] serialized_fcol;
+    delete[] serialized_scol;
+    delete[] serialized_df;
 }
 
 int main() {
@@ -224,9 +305,8 @@ int main() {
     test_int_vector_serialization();
     test_float_vector_serialization();
     test_string_vector_serialization();
+    test_dataframe_serialization();
     //test_message_serialization();
-    
-    // test_dataframe_serialization();
     printf("All serialization tests passed!\n");
     return 0;
 }

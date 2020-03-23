@@ -88,7 +88,7 @@
 //     DataFrame* get(Key& k) {
 //         String* serialized_df = dynamic_cast<String*>(map_->get(k.get_keystring()));
 //         DataFrame* deserialized_df = 
-//             dynamic_cast<DataFrame*>(Serial::deserialize(serialized_df->c_str()));
+//             dynamic_cast<DataFrame*>(Deserializer::deserialize(serialized_df->c_str()));
 //         assert(deserialized_df != nullptr);
 //         return deserialized_df;
 //     }

@@ -108,15 +108,6 @@ public:
         val_ = new char[capacity_ = 10];
         size_ = 0;
     }
-    ~StrBuff() {
-        delete[] val_;
-    }
-    void clear() {
-        char* oldv = val_;
-        val_ = new char[capacity_ = 10];
-        size_ = 0;
-        delete[] oldv;
-    }
     void grow_by_(size_t step) {
         if (step + size_ < capacity_) return;
         capacity_ *= 2;
