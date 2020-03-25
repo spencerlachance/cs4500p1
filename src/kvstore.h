@@ -111,10 +111,10 @@ class KVStore : public Object {
      * @return The deserialized data
      */
     DataFrame* wait_and_get(Key& k) {
-        bool contains_key = map_->containsKey(&k);
+        bool contains_key = map_->containsKey(k.get_keystring());
         while (!contains_key) {
             sleep(1);
-            contains_key = map_->containsKey(&k);
+            contains_key = map_->containsKey(k.get_keystring());
         }
         return get(k);
     }

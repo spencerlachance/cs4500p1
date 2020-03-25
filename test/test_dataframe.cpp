@@ -75,7 +75,7 @@ class SumRower : public Rower {
  * A Fielder that accepts every int in a row that is above a given threshhold.
  * 
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  */
 class AboveFielder : public Fielder {
     public:
@@ -106,7 +106,7 @@ class AboveFielder : public Fielder {
  * A Rower that accepts every row whose ints are above a given threshhold.
  * 
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  */
 class AboveRower : public Rower {
     public:

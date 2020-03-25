@@ -123,56 +123,34 @@ void test_string_vector_serialization() {
 }
 
 void test_message_serialization() {
-    /* Acknowledge construction */
-    Acknowledge* ack1 = new Acknowledge(1, 2, 3);
-    Acknowledge* ack2 = new Acknowledge(1, 2, 4);
+    /* Ack construction */
+    Ack* ack = new Ack();
 
-    /* Acknowledge serialization */
-    const char* serialized_ack = ack1->serialize();
-    assert(strcmp(serialized_ack, "{type: ack, sender: 1, target: 2, id: 3}") == 0);
+    /* Ack serialization */
+    const char* serialized_ack = ack->serialize();
+    assert(strcmp(serialized_ack, "{type: ack}") == 0);
 
-    /* Ackknowledge deserialization */
+    /* Ack deserialization */
     Deserializer* ack_ds = new Deserializer(serialized_ack);
-    Acknowledge* deserialized_ack = dynamic_cast<Acknowledge*>(ack_ds->deserialize());
+    Ack* deserialized_ack = dynamic_cast<Ack*>(ack_ds->deserialize());
     assert(deserialized_ack != nullptr);
-    assert(deserialized_ack->equals(ack1)); // Testing acknowledge equality.
+    assert(deserialized_ack->equals(ack)); // Testing acknowledge equality.
 
-    delete ack1;
-    delete ack2;
-    delete[] serialized_ack;
+    delete ack;
     delete deserialized_ack;
-
-    /* Status construction */
-    String* msg = new String("ALERT! PANTS ON FIRE!");
-    Status* status = new Status(1, 2, 3, msg);
-
-    /* Status serialization */
-    const char* serialized_status = status->serialize();
-    assert(strcmp(serialized_status, "{type: status, sender: 1, target: 2, id: 3, msg: ALERT! PANTS ON FIRE!}") == 0);
-
-    /* Status deserialization */
-    Deserializer* status_ds = new Deserializer(serialized_status);
-    Status* deserialized_status = dynamic_cast<Status*>(status_ds->deserialize());
-    assert(deserialized_status != nullptr);
-    assert(deserialized_status->equals(status)); // Testing status equality.
-
-    delete status;
-    delete[] serialized_status;
-    delete deserialized_status;
+    delete ack_ds;
 
     /* Directory construction */
-    Directory* dir = new Directory(1, 2, 3, 3);
+    Directory* dir = new Directory();
     dir->add_adr("0.0.0.0");
     dir->add_adr("0.1.0.0");
     dir->add_adr("0.2.0.0");
     dir->add_adr("0.3.0.0");
-    dir->add_port(8080);
-    dir->add_port(8084);
-    dir->add_port(8081);
 
     /* Directory serialization */
     const char* serialized_directory = dir->serialize();
-    assert(strcmp(serialized_directory,"{type: directory, sender: 1, target: 2, id: 3, nodes: 3, ports: [8080,8084,8081], addresses: [0.0.0.0,0.1.0.0,0.2.0.0,0.3.0.0]}") == 0);
+    assert(strcmp(serialized_directory,
+        "{type: directory, addresses: {type: vector, objects: [{type: string, cstr: 0.0.0.0},{type: string, cstr: 0.1.0.0},{type: string, cstr: 0.2.0.0},{type: string, cstr: 0.3.0.0}]}}") == 0);
 
     /* Directory deserialization */
     Deserializer* directory_ds = new Deserializer(serialized_directory);
@@ -183,17 +161,15 @@ void test_message_serialization() {
     delete dir;
     delete[] serialized_directory;
     delete deserialized_directory;
+    delete directory_ds;
 
     /* Register construction */
-    struct sockaddr_in node;
-    node.sin_family = AF_INET;
-    node.sin_port = 8080;
-    inet_pton(AF_INET, "127.0.0.3", &(node.sin_addr));
-    Register* reg = new Register(1, 2, 3, node, 8080);
+    String* ip = new String("127.0.0.3");
+    Register* reg = new Register(ip);
 
     /* Register serialization */
     const char* serialized_register = reg->serialize();
-    assert(strcmp(serialized_register, "{type: register, sender: 1, target: 2, id: 3, node: [2,8080,127.0.0.3], port: 8080}") == 0);
+    assert(strcmp(serialized_register, "{type: register, ip: {type: string, cstr: 127.0.0.3}}") == 0);
 
     /* Register deserialization */
     Deserializer* register_ds = new Deserializer(serialized_register);
@@ -204,10 +180,7 @@ void test_message_serialization() {
     delete reg;
     delete[] serialized_register;
     delete deserialized_register;
-    delete ack_ds;
-    delete status_ds;
-    delete directory_ds;
-    delete status_ds;
+    delete register_ds;
 }
 
 void test_object_serialization() {
@@ -306,7 +279,7 @@ int main() {
     test_float_vector_serialization();
     test_string_vector_serialization();
     test_dataframe_serialization();
-    //test_message_serialization();
+    test_message_serialization();
     printf("All serialization tests passed!\n");
     return 0;
 }

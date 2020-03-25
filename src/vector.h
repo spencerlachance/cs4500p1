@@ -5,7 +5,7 @@
 #include <assert.h>
 
 // The number of chunks held initially in each vector
-#define INITIAL_CHUNK_CAPACITY 32
+#define INITIAL_CHUNK_CAPACITY 1024
 // The number of items that each chunk holds
 #define CHUNK_SIZE 1024
 

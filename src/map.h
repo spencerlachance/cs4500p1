@@ -4,7 +4,7 @@
 
 #include <assert.h>
 
-#include "object.h"
+#include "string.h"
 
 #define INITIAL_MAP_CAPACITY 8
 
@@ -16,7 +16,7 @@
  */
 class Node : public Object {
   public:
-    Object* key_;
+    String* key_;
     Object* val_;
     Node* next_;
 
@@ -26,7 +26,7 @@ class Node : public Object {
      * @param key This Node's key
      * @param val This Node's value
      */
-    Node(Object* key, Object* val) {
+    Node(String* key, Object* val) {
       key_ = key;
       val_ = val;
       next_ = nullptr;
@@ -48,7 +48,7 @@ class Node : public Object {
      * 
      * @return the key
      */
-    Object* get_key() {
+    String* get_key() {
       return key_;
     }
 
@@ -166,34 +166,34 @@ class Node : public Object {
 class Map : public Object {
   public:
     // Internal array of Nodes containing the key value pairs
-    Node** objects_;
+    Node** nodes_;
     int capacity_;
     int size_;
 
     // Constructor
     Map() {
       capacity_ = INITIAL_MAP_CAPACITY;
-      objects_ = new Node*[capacity_];
-      for (int i = 0; i < capacity_; i++) objects_[i] = nullptr;
+      nodes_ = new Node*[capacity_];
+      for (int i = 0; i < capacity_; i++) nodes_[i] = nullptr;
       size_ = 0;
     }
 
     // Constructor with specified inital capacity
     Map(int init_cap) {
       capacity_ = init_cap;
-      objects_ = new Node*[capacity_];
-      for (int i = 0; i < capacity_; i++) objects_[i] = nullptr;
+      nodes_ = new Node*[capacity_];
+      for (int i = 0; i < capacity_; i++) nodes_[i] = nullptr;
       size_ = 0;
     }
 
     // Destructor
     ~Map() {
       for (int i = 0; i < capacity_; i++) {
-        if (objects_[i] != nullptr) {
-          delete objects_[i];
+        if (nodes_[i] != nullptr) {
+          delete nodes_[i];
         }
       }
-      delete[] objects_;
+      delete[] nodes_;
     }
 
     /**
@@ -202,7 +202,7 @@ class Map : public Object {
      * @return the Array
      */
     Node** get_nodes() {
-      return objects_;
+      return nodes_;
     }
 
     /**
@@ -211,7 +211,7 @@ class Map : public Object {
      * @param index The index of the requested Node.
      */
     Node* get_node(int index) {
-      return dynamic_cast<Node*>(objects_[index]);
+      return nodes_[index];
     }
 
     /**
@@ -234,17 +234,17 @@ class Map : public Object {
       }
 
       capacity_ += 8;
-      objects_ = new_map->get_nodes();
+      nodes_ = new_map->get_nodes();
     }
 
     // Add an Object to the map with an Object key
     // Takes ownership of the key and val
-    void put(Object* key, Object* val) {
+    void put(String* key, Object* val) {
       int index = key->hash() % capacity_;
       
       Node* current = get_node(index);
       if (current == nullptr) {
-        objects_[index] = new Node(key, val);
+        nodes_[index] = new Node(key, val);
       } else {
         if (current->length() >= 3) {
           rehash_();
@@ -275,7 +275,7 @@ class Map : public Object {
     }
 
     // Remove the value tied to the key from the map. Removes the key as well.
-    Object* remove(Object* key) {
+    Object* remove(String* key) {
       int index = key->hash() % capacity_;
 
       Node* current = get_node(index);
@@ -284,13 +284,13 @@ class Map : public Object {
       if (current->get_key()->equals(key)) {
         // The matching node is the first one in the linked list
         if (current->has_next()) {
-          objects_[index] = current->get_next();
+          nodes_[index] = current->get_next();
         }
         size_--;
 
         Object* return_me = current->get_value();
         delete current;
-        objects_[index] = nullptr;
+        nodes_[index] = nullptr;
         return return_me;
       } else {
         // Start traversing the linked list
@@ -318,7 +318,7 @@ class Map : public Object {
     }
 
     // Gets the value associated with the key
-    Object* get(Object* key) {
+    Object* get(String* key) {
       int index = key->hash() % capacity_;
 
       Node* current = get_node(index);
@@ -354,13 +354,13 @@ class Map : public Object {
           }
           delete current;
           size_--;
-          objects_[i] = nullptr;
+          nodes_[i] = nullptr;
         }
       }
     }
 
     // Is the key in the map?
-    bool containsKey(Object* key) {
+    bool containsKey(String* key) {
       return get(key) != nullptr;
     }
 

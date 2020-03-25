@@ -10,7 +10,7 @@
 /**
  * Helper class that handles deserializing objects of various types.
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class Deserializer : public Object {
@@ -72,10 +72,7 @@ class Deserializer : public Object {
                 return new Object();
             } else if (strcmp(type, "ack") == 0) {
                 delete type_str;
-                return deserialize_acknowledge();
-            } else if (strcmp(type, "status") == 0) {
-                delete type_str;
-                return deserialize_status();
+                return new Ack();
             } else if (strcmp(type, "directory") == 0) {
                 delete type_str;
                 return desrialize_directory();
@@ -117,217 +114,23 @@ class Deserializer : public Object {
             }
         }
 
-        /** Returns an IntVector containing the fields of a Message from the given bytestream. */
-        IntVector* deserialize_message() {
-            StrBuff* buff = new StrBuff();
-            assert(step() == ' ');
-            assert(step() == 's');
-            assert(step() == 'e');
-            assert(step() == 'n');
-            assert(step() == 'd');
-            assert(step() == 'e');
-            assert(step() == 'r');
-            assert(step() == ':');
-            assert(step() == ' ');
-            while (current() != ',') {
-                *x_ = step();
-                buff->c(x_);
-            }
-            // deserializing sender to a size_t.
-            String* sender_str = buff->get();
-            size_t sender = atoi(sender_str->c_str());
-            delete buff;
-
-            buff = new StrBuff();
-            // Selecting the target field from the bytestream.
-            assert(step() == ' ');
-            assert(step() == 't');
-            assert(step() == 'a');
-            assert(step() == 'r');
-            assert(step() == 'g');
-            assert(step() == 'e');
-            assert(step() == 't');
-            assert(step() == ':');
-            assert(step() == ' ');
-            while (current() != ',') {
-                *x_ = step();
-                buff->c(x_);
-            }
-            // deserializing target field value to a size_t.
-            String* target_str = buff->get();
-            size_t target = atoi(target_str->c_str());
-            delete buff;
-
-            buff = new StrBuff();
-            // Selecting the id fields from the bytestream.
-            assert(step() == ' ');
-            assert(step() == 'i');
-            assert(step() == 'd');
-            assert(step() == ':');
-            assert(step() == ' ');
-            while (current() != ',') {
-                *x_ = step();
-                buff->c(x_);
-            }
-            // deserializing it to a size_t.
-            String* id_str = buff->get();
-            int id = atoi(id_str->c_str());
-
-            // Appending sender, target and id to the return vector
-            IntVector* return_arr = new IntVector();
-            return_arr->append(sender);
-            return_arr->append(target);
-            return_arr->append(id);
-
-            delete sender_str;
-            delete target_str;
-            delete id_str;
-            delete buff;
-
-            return return_arr;
-        }
-
         /* Builds and returns a Register from the given bytesetram. */
         Register* deserialize_register() {
-            IntVector* msg_fields = deserialize_message();
-            StrBuff* buff = new StrBuff();
             
             // Selecting the sin_family, sin_port and sin_addr fields from the bytestream.
-            assert(step() == ' ');
-            assert(step() == 'n');
-            assert(step() == 'o');
-            assert(step() == 'd');
-            assert(step() == 'e');
-            assert(step() == ':');
-            assert(step() == ' ');
-            assert(step() == '[');
-            struct sockaddr_in sa; // this sockaddr_in struct will be the node field in the register.
-            int count = 0;
-            while (current() != ']') {
-                while (current() != ',' && current() != ']') {
-                    *x_ = step();
-                    buff->c(x_);
-                }
-                count++;
-                String* addr_str = buff->get();
-                if (count == 1) {
-                    sa.sin_family = atoi(addr_str->c_str()); // Setting the sin_family field.
-                } else if (count == 2) {
-                    sa.sin_port = atoi(addr_str->c_str()); // Setting the sin_port field.
-                } else if (count == 3) {
-                    inet_pton(AF_INET, addr_str->c_str(), &(sa.sin_addr)); // Setting the sin_addr field.
-                }
-                delete buff;
-                delete addr_str;
-                buff = new StrBuff();
-            }
-
-            // Selecting the port field from the bytestream and deserializing it to size_t.
             assert(step() == ',');
             assert(step() == ' ');
+            assert(step() == 'i');
             assert(step() == 'p');
-            assert(step() == 'o');
-            assert(step() == 'r');
-            assert(step() == 't');
             assert(step() == ':');
             assert(step() == ' ');
-            while (current() != '}') {
-                *x_ = step();
-                buff->c(x_);
-            }
-            String* port_str = buff->get();
-            size_t port = atoi(port_str->c_str());
-            Register* ret = new Register(msg_fields->get(0), msg_fields->get(1), msg_fields->get(2),
-                sa, port);
-
-            delete buff;
-            delete port_str; 
-            delete msg_fields;
-            return ret;
-        }
-
-        /** Builds and returns an Acknowledge from the given bytestream. */
-        Acknowledge* deserialize_acknowledge() {
-            IntVector* msg_fields = deserialize_message();
-            Acknowledge* ret = new Acknowledge(msg_fields->get(0), msg_fields->get(1),
-                msg_fields->get(2));
-            delete msg_fields;
-            return ret;
-        }
-
-        /* Builds and returns a Status from the given bytestream. */
-        Status* deserialize_status() {
-            IntVector* msg_fields = deserialize_message();
-            StrBuff* buff = new StrBuff();
-
-            // Selecting the message field from the bytestream.
-            assert(step() == ' ');
-            assert(step() == 'm');
-            assert(step() == 's');
-            assert(step() == 'g');
-            assert(step() == ':');
-            assert(step() == ' ');
-            while (current() != '}') {
-                *x_ = step();
-                buff->c(x_);
-            }
-            String* deserial_msg = buff->get();
-            Status* ret = new Status(msg_fields->get(0), msg_fields->get(1), msg_fields->get(2),
-                deserial_msg);
-
-            delete buff;
-            delete msg_fields;
-            return ret;
+            String* ip = dynamic_cast<String*>(deserialize());
+            assert(ip != nullptr);
+            return new Register(ip);
         }
 
         /* Builds and returns a Directory from the given bytestream. */
         Directory* desrialize_directory() {
-            IntVector* msg_fields = deserialize_message();
-            StrBuff* buff = new StrBuff();
-             
-            // Selecting the nodes field from the bytestream and deserializing it to size_t.
-            assert(step() == ' ');
-            assert(step() == 'n');
-            assert(step() == 'o');
-            assert(step() == 'd');
-            assert(step() == 'e');
-            assert(step() == 's');
-            assert(step() == ':');
-            assert(step() == ' ');
-            while (current() != ',') {
-                *x_ = step();
-                buff->c(x_);
-            }
-            String* nodes_str = buff->get();
-            size_t nodes = atoi(nodes_str->c_str());
-            delete buff;
-
-            buff = new StrBuff();
-            // Selecting the ports fields from the bytestream and deserializing them into an IntVector.
-            assert(step() == ' ');
-            assert(step() == 'p');
-            assert(step() == 'o');
-            assert(step() == 'r');
-            assert(step() == 't');
-            assert(step() == 's');
-            assert(step() == ':');
-            assert(step() == ' ');
-            assert(step() == '[');
-            IntVector* ports = new IntVector();
-            while (current() != ']') {
-                while (current() != ',' && current() != ']') {
-                    *x_ = step();
-                    buff->c(x_);
-                }
-                String* port_str = buff->get();
-                size_t port = atoi(port_str->c_str());
-                ports->append(port);
-                delete port_str;
-                delete buff;
-                buff = new StrBuff();
-            }
-
-            // Selecting the addresses fields from the bytestream and deserializing them into size_t.
             assert(step() == ',');
             assert(step() == ' ');
             assert(step() == 'a');
@@ -341,25 +144,9 @@ class Deserializer : public Object {
             assert(step() == 's');
             assert(step() == ':');
             assert(step() == ' ');
-            assert(step() == '[');
-            Vector* addresses = new Vector();
-            while (current() != ']') {
-                while (current() != ',' && current() != ']') {
-                    *x_ = step();
-                    buff->c(x_);
-                }
-                String* address = buff->get();
-                addresses->append(address);
-                delete buff;
-                buff = new StrBuff();
-            }
-            Directory* ret = new Directory(msg_fields->get(0), msg_fields->get(1), 
-                msg_fields->get(2), nodes, ports, addresses);
-
-            delete nodes_str;
-            delete msg_fields;
-
-            return ret;
+            Vector* addresses = dynamic_cast<Vector*>(deserialize());
+            assert(addresses != nullptr);
+            return new Directory(addresses);
         }
 
         /* Builds and returns a String from the given bytestream. */
