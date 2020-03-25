@@ -4,8 +4,10 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#define INITIAL_CHUNK_CAPACITY 16
-#define CHUNK_SIZE 8
+// The number of chunks held initially in each vector
+#define INITIAL_CHUNK_CAPACITY 32
+// The number of items that each chunk holds
+#define CHUNK_SIZE 1024
 
 /**
  * Represents an vector (Java: ArrayList) of objects.
@@ -69,8 +71,7 @@ class Vector : public Object {
          * once it fills up.
          */
         void reallocate_() {
-            Object*** new_outer_arr = new Object**[chunk_capacity_ + 
-                INITIAL_CHUNK_CAPACITY];
+            Object*** new_outer_arr = new Object**[chunk_capacity_ * 2];
 
             Object*** old_outer_arr = objects_;
             for (int i = 0; i < chunk_count_; i++) {
@@ -79,7 +80,7 @@ class Vector : public Object {
             delete[] old_outer_arr;
             objects_ = new_outer_arr;
 
-            chunk_capacity_ += INITIAL_CHUNK_CAPACITY;
+            chunk_capacity_ *= 2;
             // Initialize all other uninitialized chunks to default value nullptr
             for (int i = chunk_count_; i < chunk_capacity_; i++) {
                 objects_[i] = nullptr;
@@ -283,8 +284,7 @@ class BoolVector : public Object {
          * once it fills up.
          */
         void reallocate_() {
-            bool** new_outer_arr = new bool*[chunk_capacity_ + 
-                INITIAL_CHUNK_CAPACITY];
+            bool** new_outer_arr = new bool*[chunk_capacity_ * 2];
 
             bool** old_outer_arr = bools_;
             for (int i = 0; i < chunk_count_; i++) {
@@ -293,7 +293,7 @@ class BoolVector : public Object {
             delete[] old_outer_arr;
             bools_ = new_outer_arr;
 
-            chunk_capacity_ += INITIAL_CHUNK_CAPACITY;
+            chunk_capacity_ *= 2;
             // Initialize all other uninitialized chunks to default value nullptr
             for (int i = chunk_count_; i < chunk_capacity_; i++) {
                 bools_[i] = nullptr;
@@ -475,8 +475,7 @@ class IntVector : public Object {
          * once it fills up.
          */
         void reallocate_() {
-            int** new_outer_arr = new int*[chunk_capacity_ + 
-                INITIAL_CHUNK_CAPACITY]; 
+            int** new_outer_arr = new int*[chunk_capacity_ * 2]; 
 
             int** old_outer_arr = ints_;
             for (int i = 0; i < chunk_count_; i++) {
@@ -485,7 +484,7 @@ class IntVector : public Object {
             delete[] old_outer_arr;
             ints_ = new_outer_arr;
 
-            chunk_capacity_ += INITIAL_CHUNK_CAPACITY;
+            chunk_capacity_ *= 2;
             // Initialize all other uninitialized chunks to default value nullptr
             for (int i = chunk_count_; i < chunk_capacity_; i++) {
                 ints_[i] = nullptr;
@@ -687,7 +686,7 @@ class FloatVector : public Object {
          * once it fills up.
          */
         void reallocate_() {
-            float** new_outer_arr = new float*[chunk_capacity_ + INITIAL_CHUNK_CAPACITY];
+            float** new_outer_arr = new float*[chunk_capacity_ * 2];
 
             float** old_outer_arr = floats_;
             for (int i = 0; i < chunk_count_; i++) {
@@ -696,7 +695,7 @@ class FloatVector : public Object {
             delete[] old_outer_arr;
             floats_ = new_outer_arr;
 
-            chunk_capacity_ += INITIAL_CHUNK_CAPACITY;
+            chunk_capacity_ *= 2;
             // Initialize all other uninitialized chunks to default value nullptr
             for (int i = chunk_count_; i < chunk_capacity_; i++) {
                 floats_[i] = nullptr;
