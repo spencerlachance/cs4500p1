@@ -73,12 +73,24 @@ class Deserializer : public Object {
             } else if (strcmp(type, "ack") == 0) {
                 delete type_str;
                 return new Ack();
+            } else if (strcmp(type, "key") == 0) {
+                delete type_str;
+                return deserialize_key();
             } else if (strcmp(type, "directory") == 0) {
                 delete type_str;
                 return desrialize_directory();
             } else if (strcmp(type, "register") == 0) {
                 delete type_str;
                 return deserialize_register();
+            } else if (strcmp(type, "put") == 0) {
+                delete type_str;
+                return deserialize_put();
+            } else if ((strcmp(type, "get") == 0)) {
+                delete type_str;
+                return deserialize_get();
+            } else if (strcmp(type, "wait_get") == 0) {
+                delete type_str;
+                return deserialize_wait_get();
             } else if (strcmp(type, "string") == 0) {
                 delete type_str;
                 return deserialize_string();
@@ -114,7 +126,82 @@ class Deserializer : public Object {
             }
         }
 
-        /* Builds and returns a Register from the given bytesetram. */
+        /* Builds and returns a Key from the given bytestream. */
+        // {type: key, key: {type: string, cstr: foo}, idx: 0}
+        Key* deserialize_key() {
+            assert(step() == ',');
+            assert(step() == ' ');
+            assert(step() == 'k');
+            assert(step() == 'e');
+            assert(step() == 'y');
+            assert(step() == ':');
+            assert(step() == ' ');
+            String* key_str = dynamic_cast<String*>(deserialize());
+            assert(key_str != nullptr);
+            assert(step() == ',');
+            assert(step() == ' ');
+            assert(step() == 'i');
+            assert(step() == 'd');
+            assert(step() == 'x');
+            assert(step() == ':');
+            assert(step() == ' ');
+
+            // Fill a buffer with 
+            StrBuff buff;
+            while (current() != ',' && current() != '}') {
+                *x_ = step();
+                buff.c(x_);
+            }
+            assert(step() == '}');
+
+            String* idx_str = buff.get();
+            int idx = atoi(idx_str->c_str());
+            const char* key = key_str->c_str();
+            Key* rtrn = new Key(key, idx);
+
+            delete idx_str;
+            delete key_str;
+            return rtrn;
+        }        
+
+        /* Builds and returns a Directory from the given bytestream. */
+        Directory* desrialize_directory() {
+            assert(step() == ',');
+            assert(step() == ' ');
+            assert(step() == 'a');
+            assert(step() == 'd');
+            assert(step() == 'd');
+            assert(step() == 'r');
+            assert(step() == 'e');
+            assert(step() == 's');
+            assert(step() == 's');
+            assert(step() == 'e');
+            assert(step() == 's');
+            assert(step() == ':');
+            assert(step() == ' ');
+            Vector* addresses = dynamic_cast<Vector*>(deserialize());
+            assert(addresses != nullptr);
+
+            assert(step() == ']');
+            assert(step() == '}');
+            assert(step() == ',');
+            assert(step() == ' ');
+            assert(step() == 'i');
+            assert(step() == 'n');
+            assert(step() == 'd');
+            assert(step() == 'i');
+            assert(step() == 'c');
+            assert(step() == 'e');
+            assert(step() == 's');
+            assert(step() == ':');
+            assert(step() == ' ');
+            IntVector* indices = dynamic_cast<IntVector*>(deserialize());
+            assert(indices != nullptr);
+
+            return new Directory(addresses, indices);
+        }
+
+        /* Builds and returns a Register from the given bytestream. */
         Register* deserialize_register() {
             
             // Selecting the sin_family, sin_port and sin_addr fields from the bytestream.
@@ -148,39 +235,71 @@ class Deserializer : public Object {
             return new Register(ip, sender);
         }
 
-        /* Builds and returns a Directory from the given bytestream. */
-        Directory* desrialize_directory() {
+        /* Builds and returns a Put message from the given bytestream. */
+        Put* deserialize_put() {
             assert(step() == ',');
             assert(step() == ' ');
+            assert(step() == 'k');
+            assert(step() == 'e');
+            assert(step() == 'y');
+            assert(step() == ':');
+            assert(step() == ' ');
+            Key* k = dynamic_cast<Key*>(deserialize());
+            assert(k != nullptr);
+            assert(step() == ',');
+            assert(step() == ' ');
+            assert(step() == 'v');
             assert(step() == 'a');
-            assert(step() == 'd');
-            assert(step() == 'd');
-            assert(step() == 'r');
+            assert(step() == 'l');
+            assert(step() == 'u');
             assert(step() == 'e');
-            assert(step() == 's');
-            assert(step() == 's');
-            assert(step() == 'e');
-            assert(step() == 's');
             assert(step() == ':');
             assert(step() == ' ');
-            Vector* addresses = dynamic_cast<Vector*>(deserialize());
-            assert(addresses != nullptr);
+            DataFrame* v = dynamic_cast<DataFrame*>(deserialize());
+            assert(v != nullptr);
+            assert(step() == ']');
+            assert(step() == '}');
+            assert(step() == '}');
 
+            Put* rtrn = new Put(k, v);
+            
+            return rtrn;
+        }
+
+        /* BUilds and returns a Get message from the given bytestream. */
+        //e.g.: {type: get, key: {type: key, key: {type: string, cstr: foo}, idx: 0}}
+        Get* deserialize_get() {
             assert(step() == ',');
             assert(step() == ' ');
-            assert(step() == 'i');
-            assert(step() == 'n');
-            assert(step() == 'd');
-            assert(step() == 'i');
-            assert(step() == 'c');
+            assert(step() == 'k');
             assert(step() == 'e');
-            assert(step() == 's');
+            assert(step() == 'y');
             assert(step() == ':');
             assert(step() == ' ');
-            IntVector* indices = dynamic_cast<IntVector*>(deserialize());
-            assert(indices != nullptr);
+            Key* k = dynamic_cast<Key*>(deserialize());
+            assert(k != nullptr);
+            assert(step() == '}');
+            
+            Get* rtrn = new Get(k);
+            return rtrn;
+        }
 
-            return new Directory(addresses, indices);
+        /* BUilds and returns a WaitAndGet message from the given bytestream. */
+        //e.g.: {type: wait_get, key: {type: key, key: {type: string, cstr: foo}, idx: 0}}
+        WaitAndGet* deserialize_wait_get() {
+            assert(step() == ',');
+            assert(step() == ' ');
+            assert(step() == 'k');
+            assert(step() == 'e');
+            assert(step() == 'y');
+            assert(step() == ':');
+            assert(step() == ' ');
+            Key* k = dynamic_cast<Key*>(deserialize());
+            assert(k != nullptr);
+            assert(step() == '}');
+            
+            WaitAndGet* rtrn = new WaitAndGet(k);
+            return rtrn;
         }
 
         /* Builds and returns a String from the given bytestream. */
@@ -200,6 +319,7 @@ class Deserializer : public Object {
                 *x_ = step();
                 buff->c(x_);
             }
+            assert(step() == '}');
 
             String* deserial_str = buff->get();
             delete buff;
@@ -232,7 +352,6 @@ class Deserializer : public Object {
             while (current() != ']') {
                 String* element = dynamic_cast<String*>(deserialize());
                 vec->append(element);
-                assert(step() == '}'); 
                 if (current() == ',') { step(); } // Step over the ','
             }
             return vec;

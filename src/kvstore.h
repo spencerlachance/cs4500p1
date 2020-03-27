@@ -3,49 +3,8 @@
 #include <unistd.h>
 
 #include "map.h"
-#include "dataframe.h"
+// #include "dataframe.h"
 #include "serial.h"
-
-/**
- * An Object subclass representing a key that corresponds to data value in a KVStore on some node.
- * 
- * @author Spencer LaChance <lachance.s@northeastern.edu>
- * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- */
-class Key : public Object {
-    public:
-    // The string key that the data will be stored at within the map
-    String* key_;
-    // The index of the node on which the data is stored
-    size_t idx_;
-
-    /**
-     * Constructor
-     */
-    Key(const char* key, size_t idx) {
-        key_ = new String(key);
-        idx_ = idx;
-    }
-
-    /**
-     * Destructor
-     */
-    ~Key() { }
-
-    /**
-     * Getter for the key string.
-     */
-    String* get_keystring() {
-        return key_;
-    }
-
-    /**
-     * Getter for the home node index.
-     */
-    size_t get_home_node() {
-        return idx_;
-    }
-};
 
 /**
  * A class describing an implementation of a key/value store.
