@@ -2,7 +2,26 @@
 
 #include <assert.h>
 #include "../src/serial.h"
-#include "../src/dataframe.h"
+// #include "../src/dataframe.h"
+
+DataFrame* construct_test_df() {
+    BoolColumn* bcol = new BoolColumn(4,true,false,true,false);
+    IntColumn* icol = new IntColumn(4,1,2,3,4);
+    FloatColumn* fcol = new FloatColumn(4,1.1f,2.2f,3.3f,4.4f);
+    String* s1 = new String("hi");
+    String* s2 = new String("bye");
+    String* s3 = new String("hi");
+    String* s4 = new String("bye");
+    StringColumn* scol = new StringColumn(4,s1,s2,s3,s4);
+
+    DataFrame* df = new DataFrame();
+    df->add_column(icol);
+    df->add_column(bcol);
+    df->add_column(fcol);
+    df->add_column(scol);
+
+    return df;
+}
 
 /** Testing BoolVector serialization and deserialization. */
 void test_bool_vector_serialization() {
@@ -181,6 +200,44 @@ void test_message_serialization() {
     delete[] serialized_register;
     delete deserialized_register;
     delete register_ds;
+
+    /* Put construction */
+    DataFrame* df = construct_test_df();
+    Key* key = new Key("foo",0);
+    Put* put = new Put(key, df);
+
+    /* Put serialization */
+    const char* serialized_put = put->serialize();
+    assert(strcmp(serialized_put, "{type: put, key: {type: key, key: {type: string, cstr: foo}, idx: 0}, value: {type: dataframe, columns: [{type: int_column, data: {type: int_vector, ints: [1,2,3,4]}},{type: bool_column, data: {type: bool_vector, bools: [true,false,true,false]}},{type: float_column, data: {type: float_vector, floats: [1.1000000,2.2000000,3.3000000,4.4000001]}},{type: string_column, data: {type: vector, objects: [{type: string, cstr: hi},{type: string, cstr: bye},{type: string, cstr: hi},{type: string, cstr: bye}]}}]}}") == 0);
+
+    /* Put deserialization */
+    Deserializer* put_deserializer = new Deserializer(serialized_put);
+    Put* deserialized_put = dynamic_cast<Put*>(put_deserializer->deserialize());
+    assert(deserialized_put != nullptr);
+    assert(deserialized_put->equals(put));
+
+    delete put;
+    delete[] serialized_put;
+    delete put_deserializer;
+    delete deserialized_put;
+
+    /* Get construction */
+
+    /* Get serialization */
+
+    /* Get deserialization */
+
+    /* WaitAndGet construction */
+
+    /* WaitAndGet serialization */
+
+    /* WaitAndGet deserialization */
+
+    /* Reply construction */
+
+    /* Reply serialization */
+
+    /* Reply deserialization */
 }
 
 void test_object_serialization() {
@@ -272,6 +329,28 @@ void test_dataframe_serialization() {
     delete[] serialized_df;
 }
 
+void test_key_serialization() {
+    /* Construct a key */
+    Key* k = new Key("Key 1", 0);
+
+    /* Key serialization */
+    const char* serialized_key = k->serialize();
+    // printf("%s\n", serialized_key);
+    assert(strcmp(serialized_key, "{type: key, key: {type: string, cstr: Key 1}, idx: 0}") == 0);
+
+    /* Key deserialization */
+    Deserializer* key_deserializer = new Deserializer(serialized_key);
+    Key* deserialized_key = dynamic_cast<Key*>(key_deserializer->deserialize());
+    assert(deserialized_key != nullptr);
+    assert(deserialized_key->equals(k));
+
+    delete k;
+    delete[] serialized_key;
+    delete key_deserializer;
+    delete deserialized_key;
+    
+}
+
 int main() {
     test_object_serialization();
     test_bool_vector_serialization();
@@ -280,6 +359,7 @@ int main() {
     test_string_vector_serialization();
     test_dataframe_serialization();
     test_message_serialization();
+    test_key_serialization();
     printf("All serialization tests passed!\n");
     return 0;
 }
