@@ -142,15 +142,15 @@ void test_message_serialization() {
 
     /* Directory construction */
     Directory* dir = new Directory();
-    dir->add_adr("0.0.0.0");
-    dir->add_adr("0.1.0.0");
-    dir->add_adr("0.2.0.0");
-    dir->add_adr("0.3.0.0");
+    dir->add_client("0.0.0.0", 0);
+    dir->add_client("0.1.0.0", 1);
+    dir->add_client("0.2.0.0", 2);
+    dir->add_client("0.3.0.0", 3);
 
     /* Directory serialization */
     const char* serialized_directory = dir->serialize();
     assert(strcmp(serialized_directory,
-        "{type: directory, addresses: {type: vector, objects: [{type: string, cstr: 0.0.0.0},{type: string, cstr: 0.1.0.0},{type: string, cstr: 0.2.0.0},{type: string, cstr: 0.3.0.0}]}}") == 0);
+        "{type: directory, addresses: {type: vector, objects: [{type: string, cstr: 0.0.0.0},{type: string, cstr: 0.1.0.0},{type: string, cstr: 0.2.0.0},{type: string, cstr: 0.3.0.0}]}, indices: {type: int_vector, ints: [0,1,2,3]}}") == 0);
 
     /* Directory deserialization */
     Deserializer* directory_ds = new Deserializer(serialized_directory);
@@ -165,11 +165,11 @@ void test_message_serialization() {
 
     /* Register construction */
     String* ip = new String("127.0.0.3");
-    Register* reg = new Register(ip);
+    Register* reg = new Register(ip, 1);
 
     /* Register serialization */
     const char* serialized_register = reg->serialize();
-    assert(strcmp(serialized_register, "{type: register, ip: {type: string, cstr: 127.0.0.3}}") == 0);
+    assert(strcmp(serialized_register, "{type: register, ip: {type: string, cstr: 127.0.0.3}, sender: 1}") == 0);
 
     /* Register deserialization */
     Deserializer* register_ds = new Deserializer(serialized_register);

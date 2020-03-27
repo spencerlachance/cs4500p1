@@ -54,12 +54,14 @@ class Ack : public Message {
  
 class Register : public Message {
     public:
+        // The IP address of the node that sent this message
         String* ip_;
+        // The index of the node that sent this message
+        size_t sender_;
 
         /* Constructor */
-        Register(String* ip) {
+        Register(String* ip, size_t sender) : ip_(ip), sender_(sender) {
             kind_ = MsgKind::Register;
-            ip_ = ip;
         }
 
         /* Destructor */
@@ -70,18 +72,24 @@ class Register : public Message {
         bool equals(Object* other) {
             Register* o = dynamic_cast<Register*>(other);
             if (o == nullptr) return false;
-            return o->get_ip()->equals(ip_) && o->kind() == kind_;
+            return o->get_ip()->equals(ip_) && o->kind() == kind_ && o->get_sender() == sender_;
         }
 
         /* Returns this register's ip */
         String* get_ip() { return ip_; }
 
+        /* Returns this register's sender idx */
+        size_t get_sender() { return sender_; }
+
         /* Returns a serial representation of this register. */
         const char* serialize() {
             StrBuff* buff = new StrBuff();
             const char* serial_ip = ip_->serialize();
+
             buff->c("{type: register, ip: ");
             buff->c(serial_ip);
+            buff->c(", sender: ");
+            buff->c(sender_);
             buff->c("}");
 
             String* serial_str = buff->get();
@@ -97,48 +105,66 @@ class Register : public Message {
  
 class Directory : public Message {
    public:
+        // Clients' IP addresses
         Vector* addresses_; //owned
+        // Clients' node indices
+        IntVector* indices_;
         
         /* Constructor */
-        Directory(Vector* addresses) {
+        Directory(Vector* addresses, IntVector* indices) : 
+            addresses_(addresses), indices_(indices) {
             kind_ = MsgKind::Directory;
-            addresses_ = addresses;
         }
 
         /* Constructor that assigns empty array for ports and addresses */
         Directory() {
             kind_ = MsgKind::Directory;
             addresses_ = new Vector();
+            indices_ = new IntVector();
         }
 
         /* Destructor */
         ~Directory() {
             delete addresses_;
+            delete indices_;
         }
 
-        /* Adds an address to the array of addresses */
-        void add_adr(const char* adr) {
+        /**
+         * Adds a client to the directory.
+         * 
+         * @param adr The client's IP address
+         * @param idx The client's node index
+         */
+        void add_client(const char* adr, size_t idx) {
             String* s = new String(adr);
             addresses_->append(s);
+            indices_->append(idx);
         }
 
         /* Is this directory equal to the given object? */
         bool equals(Object* other) {
             Directory* o = dynamic_cast<Directory*>(other);
             if (o == nullptr) return false;
-            return (o->get_addresses()->equals(addresses_)) && (o->kind() == kind_);
+            return o->get_addresses()->equals(addresses_) && o->kind() == kind_ &&
+                o->get_indices()->equals(indices_);
         }
 
         /* Returns this directory's addresses field */
         Vector* get_addresses() { return addresses_; }
 
+        /* Returns this directory's indices field */
+        IntVector* get_indices() { return indices_; }
+
         /* Returns a serialized representation of this directory message */
         const char* serialize() {
             StrBuff* buff = new StrBuff(); // Use this buffer to build serial representation
             const char* serial_vec = addresses_->serialize();
+            const char* serial_ivec = indices_->serialize();
 
             buff->c("{type: directory, addresses: ");
             buff->c(serial_vec);
+            buff->c(", indices: ");
+            buff->c(serial_ivec);
             buff->c("}");
 
             String* serial_str = buff->get();
@@ -156,7 +182,9 @@ class Directory : public Message {
          */
         void clear() {
             delete addresses_;
+            delete indices_;
             addresses_ = new Vector();
+            indices_ = new IntVector();
         }
 };
 

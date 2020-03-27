@@ -126,7 +126,26 @@ class Deserializer : public Object {
             assert(step() == ' ');
             String* ip = dynamic_cast<String*>(deserialize());
             assert(ip != nullptr);
-            return new Register(ip);
+            
+            assert(step() == ',');
+            assert(step() == ' ');
+            assert(step() == 's');
+            assert(step() == 'e');
+            assert(step() == 'n');
+            assert(step() == 'd');
+            assert(step() == 'e');
+            assert(step() == 'r');
+            assert(step() == ':');
+            assert(step() == ' ');
+            StrBuff buff;
+            while (current() != '}') {
+                *x_ = step();
+                buff.c(x_);
+            }
+            String* sender_str = buff.get();
+            size_t sender = atoi(sender_str->c_str());
+            delete sender_str;
+            return new Register(ip, sender);
         }
 
         /* Builds and returns a Directory from the given bytestream. */
@@ -146,7 +165,22 @@ class Deserializer : public Object {
             assert(step() == ' ');
             Vector* addresses = dynamic_cast<Vector*>(deserialize());
             assert(addresses != nullptr);
-            return new Directory(addresses);
+
+            assert(step() == ',');
+            assert(step() == ' ');
+            assert(step() == 'i');
+            assert(step() == 'n');
+            assert(step() == 'd');
+            assert(step() == 'i');
+            assert(step() == 'c');
+            assert(step() == 'e');
+            assert(step() == 's');
+            assert(step() == ':');
+            assert(step() == ' ');
+            IntVector* indices = dynamic_cast<IntVector*>(deserialize());
+            assert(indices != nullptr);
+
+            return new Directory(addresses, indices);
         }
 
         /* Builds and returns a String from the given bytestream. */
