@@ -91,6 +91,9 @@ class Deserializer : public Object {
             } else if (strcmp(type, "wait_get") == 0) {
                 delete type_str;
                 return deserialize_wait_get();
+            } else if (strcmp(type, "reply") == 0) {
+                delete type_str;
+                return deserialize_reply();
             } else if (strcmp(type, "string") == 0) {
                 delete type_str;
                 return deserialize_string();
@@ -263,6 +266,28 @@ class Deserializer : public Object {
             assert(step() == '}');
             
             WaitAndGet* rtrn = new WaitAndGet(k);
+            return rtrn;
+        }
+
+        /* Builds and returns a Reply message from the given bytestream. */
+        Reply* deserialize_reply() {
+            assert(step() == ',');
+            assert(step() == ' ');
+            assert(step() == 'v');
+            assert(step() == 'a');
+            assert(step() == 'l');
+            assert(step() == 'u');
+            assert(step() == 'e');
+            assert(step() == ':');
+            assert(step() == ' ');
+            DataFrame* df = dynamic_cast<DataFrame*>(deserialize());
+            assert(df != nullptr);
+            assert(step() == ']');
+            assert(step() == '}');
+            assert(step() == '}');
+
+            Reply* rtrn = new Reply(df);
+            
             return rtrn;
         }
 
@@ -516,6 +541,7 @@ class Deserializer : public Object {
                 assert(step() == '}');
                 if (current() == ',') step(); // Skip the ','
             }
+
             return rtrn_df;
         }
 };

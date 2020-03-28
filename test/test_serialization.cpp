@@ -4,6 +4,7 @@
 #include "../src/serial.h"
 // #include "../src/dataframe.h"
 
+/* Utility method for creating a DataFrame with foo values. */
 DataFrame* df_() {
     BoolColumn* bcol = new BoolColumn(4,true,false,true,false);
     IntColumn* icol = new IntColumn(4,1,2,3,4);
