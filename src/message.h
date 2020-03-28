@@ -571,15 +571,22 @@ class Reply : public Message {
 public:
     DataFrame* v_;
 
-    /* Constructor, takes ownership over v */
+    /* Constructor, DOES NOT take ownership over v */
     Reply(DataFrame* v) {
         kind_ = MsgKind::Reply;
         v_ = v;
     } 
 
+    /* Destructor */
     ~Reply() {
         delete v_;
     }
+
+    /* Return this reply's v_ field */
+    DataFrame* get_value() {
+        return v_;
+    }
+
 
     /* Returns a serialized representation of this reply message */
     const char* serialize() {
@@ -596,11 +603,6 @@ public:
         delete[] serialized_v;
         delete serial_str;
         return copy;
-    }
-
-    /* Return this reply's v_ field */
-    DataFrame* get_value() {
-        return v_;
     }
 
     /* Checks if this reply equals to the given object */
