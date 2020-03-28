@@ -5,7 +5,7 @@
 /**
  * Abstract class outlining an application that uses the eau2 system.
  * 
- * @author Spencer LaChance <lachance.s@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class Application : public Object {
@@ -15,9 +15,10 @@ class Application : public Object {
     // The current node's Key/Value store
     KVStore kv_;
 
-    Application(size_t idx) {
-        idx_ = idx;
-    }
+    /**
+     * Constructor
+     */
+    Application(size_t idx) : idx_(idx), kv_(idx) { }
 
     /**
      * Runs the application on the current node.

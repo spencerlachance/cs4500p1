@@ -78,7 +78,7 @@ class Deserializer : public Object {
                 return deserialize_key();
             } else if (strcmp(type, "directory") == 0) {
                 delete type_str;
-                return desrialize_directory();
+                return deserialize_directory();
             } else if (strcmp(type, "register") == 0) {
                 delete type_str;
                 return deserialize_register();
@@ -165,7 +165,7 @@ class Deserializer : public Object {
         }        
 
         /* Builds and returns a Directory from the given bytestream. */
-        Directory* desrialize_directory() {
+        Directory* deserialize_directory() {
             assert(step() == ',');
             assert(step() == ' ');
             assert(step() == 'a');

@@ -36,6 +36,16 @@ class Message : public Object {
 
         /* Returns this message's kind */
         MsgKind kind() { return kind_; }
+
+        /** Type converters: Return same column under its actual type, or
+         *  nullptr if of the wrong type.  */
+        virtual Ack* as_ack() = 0;
+        virtual Register* as_register() = 0;
+        virtual Directory* as_directory() = 0;
+        virtual Reply* as_reply() = 0;
+        virtual Put* as_put() = 0;
+        virtual Get* as_get() = 0;
+        virtual WaitAndGet* as_wait_and_get() = 0;
 };
  
 
@@ -51,8 +61,47 @@ class Ack : public Message {
         const char* serialize() {
             return "{type: ack}";
         }
+
+        /* Returns this Ack */
+        Ack* as_ack() {
+            return this;
+        }
+
+        /* Returns nullptr because this is not a Register */
+        Register* as_register() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Directory */
+        Directory* as_directory() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Reply */
+        Reply* as_reply() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Put */
+        Put* as_put() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Get */
+        Get* as_get() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a WaitAndGet */
+        WaitAndGet* as_wait_and_get() {
+            return nullptr;
+        }
 };
- 
+
+/**
+ * This Message is sent when clients want to register with the server and when clients initially
+ * connect with each other.
+ */
 class Register : public Message {
     public:
         // The IP address of the node that sent this message
@@ -101,6 +150,41 @@ class Register : public Message {
             delete serial_str;
             delete[] serial_ip;
             return copy;
+        }
+
+        /* Returns nullptr because this is not an Ack */
+        Ack* as_ack() {
+            return nullptr;
+        }
+
+        /* Returns this Register */
+        Register* as_register() {
+            return this;
+        }
+
+        /* Returns nullptr because this is not a Directory */
+        Directory* as_directory() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Reply */
+        Reply* as_reply() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Put */
+        Put* as_put() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Get */
+        Get* as_get() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a WaitAndGet */
+        WaitAndGet* as_wait_and_get() {
+            return nullptr;
         }
 };
  
@@ -175,6 +259,7 @@ class Directory : public Message {
             
             delete serial_str;
             delete[] serial_vec;
+            delete[] serial_ivec;
             return copy;
         }
 
@@ -186,6 +271,41 @@ class Directory : public Message {
             delete indices_;
             addresses_ = new Vector();
             indices_ = new IntVector();
+        }
+
+        /* Returns nullptr because this is not an Ack */
+        Ack* as_ack() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Register */
+        Register* as_register() {
+            return nullptr;
+        }
+
+        /* Returns this Directory */
+        Directory* as_directory() {
+            return this;
+        }
+
+        /* Returns nullptr because this is not a Reply */
+        Reply* as_reply() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Put */
+        Put* as_put() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Get */
+        Get* as_get() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a WaitAndGet */
+        WaitAndGet* as_wait_and_get() {
+            return nullptr;
         }
 };
 
@@ -241,6 +361,41 @@ class Put : public Message {
             if (other == nullptr) return false;
             return (other->get_key()->equals(k_)) && (other->get_value()->equals(v_));
         }
+
+        /* Returns nullptr because this is not an Ack */
+        Ack* as_ack() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Register */
+        Register* as_register() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Directory */
+        Directory* as_directory() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Reply */
+        Reply* as_reply() {
+            return nullptr;
+        }
+
+        /* Returns this Put */
+        Put* as_put() {
+            return this;
+        }
+
+        /* Returns nullptr because this is not a Get */
+        Get* as_get() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a WaitAndGet */
+        WaitAndGet* as_wait_and_get() {
+            return nullptr;
+        }
 };
 
 /**
@@ -288,6 +443,41 @@ class Get : public Message {
             Get* other = dynamic_cast<Get*>(o);
             if (other == nullptr) return false;
             return (other->get_key()->equals(k_));
+        }
+
+        /* Returns nullptr because this is not an Ack */
+        Ack* as_ack() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Register */
+        Register* as_register() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Directory */
+        Directory* as_directory() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Reply */
+        Reply* as_reply() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Put */
+        Put* as_put() {
+            return nullptr;
+        }
+
+        /* Returns this Get */
+        Get* as_get() {
+            return this;
+        }
+
+        /* Returns nullptr because this is not a WaitAndGet */
+        WaitAndGet* as_wait_and_get() {
+            return nullptr;
         }
 };
 
@@ -337,7 +527,41 @@ class WaitAndGet : public Message {
             if (other == nullptr) return false;
             return (other->get_key()->equals(k_));
         }
-    
+
+        /* Returns nullptr because this is not an Ack */
+        Ack* as_ack() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Register */
+        Register* as_register() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Directory */
+        Directory* as_directory() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Reply */
+        Reply* as_reply() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Put */
+        Put* as_put() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Get */
+        Get* as_get() {
+            return nullptr;
+        }
+
+        /* Returns this WaitAndGet */
+        WaitAndGet* as_wait_and_get() {
+            return this;
+        }
 };
 
 /**
@@ -385,4 +609,39 @@ public:
         if (other == nullptr) return false;
         return other->get_value()->equals(get_value());
     }
+
+        /* Returns nullptr because this is not an Ack */
+        Ack* as_ack() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Register */
+        Register* as_register() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Directory */
+        Directory* as_directory() {
+            return nullptr;
+        }
+
+        /* Returns this Reply */
+        Reply* as_reply() {
+            return this;
+        }
+
+        /* Returns nullptr because this is not a Put */
+        Put* as_put() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a Get */
+        Get* as_get() {
+            return nullptr;
+        }
+
+        /* Returns nullptr because this is not a WaitAndGet */
+        WaitAndGet* as_wait_and_get() {
+            return nullptr;
+        }
 };
