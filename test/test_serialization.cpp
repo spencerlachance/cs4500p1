@@ -260,22 +260,23 @@ void test_message_serialization() {
     // delete deserialized_w_get;
 
     /* Reply construction */
-    // DataFrame* df2 = df_();
-    // Reply* reply = new Reply(df);
+    DataFrame* df2 = df_();
+    Reply* rep = new Reply(df2);
 
     /* Reply serialization */
-    // const char* serialized_reply = reply->serialize();
-    // assert(strcmp(serialized_reply, "{type: reply, value: {type: dataframe, columns: [{type: int_column, data: {type: int_vector, ints: [1,2,3,4]}},{type: bool_column, data: {type: bool_vector, bools: [true,false,true,false]}},{type: float_column, data: {type: float_vector, floats: [1.1000000,2.2000000,3.3000000,4.4000001]}},{type: string_column, data: {type: vector, objects: [{type: string, cstr: hi},{type: string, cstr: bye},{type: string, cstr: hi},{type: string, cstr: bye}]}}]}}") == 0);
+    const char* serialized_reply = rep->serialize();
+    assert(strcmp(serialized_reply, "{type: reply, value: {type: dataframe, columns: [{type: int_column, data: {type: int_vector, ints: [1,2,3,4]}},{type: bool_column, data: {type: bool_vector, bools: [true,false,true,false]}},{type: float_column, data: {type: float_vector, floats: [1.1000000,2.2000000,3.3000000,4.4000001]}},{type: string_column, data: {type: vector, objects: [{type: string, cstr: hi},{type: string, cstr: bye},{type: string, cstr: hi},{type: string, cstr: bye}]}}]}}") == 0);
 
     /* Reply deserialization */
-    // Deserializer* reply_deserializer = new Deserializer(serialized_reply);
-    // Reply* deserialized_reply = dynamic_cast<Reply*>(reply_deserializer->deserialize());
-    // assert(deserialized_reply != nullptr);
-    // assert(deserialized_reply->equals(reply));
+    Deserializer* reply_deserializer = new Deserializer(serialized_reply);
+    Reply* deserialized_reply = dynamic_cast<Reply*>(reply_deserializer->deserialize());
+    assert(deserialized_reply != nullptr);
+    assert(deserialized_reply->equals(rep));
 
-    // delete reply;
-    // delete[] serialized_reply;
-
+    delete rep;
+    delete[] serialized_reply;
+    delete reply_deserializer;
+    delete deserialized_reply;
 }
 
 void test_object_serialization() {
