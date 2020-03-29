@@ -345,9 +345,9 @@ public:
         } else {
             close(servfd_);
         }
-        FD_ZERO(&master_);
         clear_map_();
         close(fd_);
+        delete[] ip_;
         delete[] buffer_;
         delete[] nodes_;
     }
@@ -397,6 +397,10 @@ public:
         int nbytes;
         // The number of nodes on the network
         int num_nodes = 1;
+        // The timeout argument for select()
+        struct timeval tv;
+        tv.tv_sec = 3;
+        tv.tv_usec = 0;
         // Clear the two fd lists
         FD_ZERO(&master_);
         FD_ZERO(&read_fds_);
@@ -415,8 +419,7 @@ public:
         for (;;) {
             read_fds_ = master_; // Copy the master list
             // Select the existing socket connections and iterate through them
-            exit_if_not(select(fdmax_ + 1, &read_fds_, NULL, NULL, NULL) > 0,
-                "Call to select() failed");
+            if (select(fdmax_ + 1, &read_fds_, NULL, NULL, &tv) < 0) return;
             for (int i = 0; i <= fdmax_; i++) {
                 // In case shutdown() was called from the other thread
                 if (has_shutdown) return;
@@ -433,8 +436,7 @@ public:
                         // The node is receiving a new connection from another one
                         addrlen = sizeof(their_addr_);
                         // Accept the connection and add the new socket fd to the master list
-                        their_fd_ = accept(fd_, (struct sockaddr*)&their_addr_, &addrlen);
-                        if (their_fd_ < 0) break;
+                        exit_if_not((their_fd_ = accept(fd_, (struct sockaddr*)&their_addr_, &addrlen)) >= 0, "Call to accept() failed");
                         FD_SET(their_fd_, &master_);
                         // Update the max fd value
                         if (their_fd_ > fdmax_) {
