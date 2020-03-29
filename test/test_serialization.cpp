@@ -202,71 +202,71 @@ void test_message_serialization() {
     delete deserialized_register;
     delete register_ds;
 
-    // /* Put construction */
-    // DataFrame* df = df_();
-    // Key* key1 = new Key("foo",0);
-    // Put* put = new Put(key1, df);
+    /* Put construction */
+    DataFrame* df = df_();
+    Key* key1 = new Key("foo",0);
+    Put* put = new Put(key1, df);
 
-    // /* Put serialization */
-    // const char* serialized_put = put->serialize();
-    // assert(strcmp(serialized_put, "{type: put, key: {type: key, key: {type: string, cstr: foo}, idx: 0}, value: {type: dataframe, columns: [{type: int_column, data: {type: int_vector, ints: [1,2,3,4]}},{type: bool_column, data: {type: bool_vector, bools: [true,false,true,false]}},{type: float_column, data: {type: float_vector, floats: [1.1000000,2.2000000,3.3000000,4.4000001]}},{type: string_column, data: {type: vector, objects: [{type: string, cstr: hi},{type: string, cstr: bye},{type: string, cstr: hi},{type: string, cstr: bye}]}}]}}") == 0);
+    /* Put serialization */
+    const char* serialized_put = put->serialize();
+    assert(strcmp(serialized_put, "{type: put, key: {type: key, key: {type: string, cstr: foo}, idx: 0}, value: {type: dataframe, columns: [{type: int_column, data: {type: int_vector, ints: [1,2,3,4]}},{type: bool_column, data: {type: bool_vector, bools: [true,false,true,false]}},{type: float_column, data: {type: float_vector, floats: [1.1000000,2.2000000,3.3000000,4.4000001]}},{type: string_column, data: {type: vector, objects: [{type: string, cstr: hi},{type: string, cstr: bye},{type: string, cstr: hi},{type: string, cstr: bye}]}}]}}") == 0);
 
-    // /* Put deserialization */
-    // Deserializer* put_deserializer = new Deserializer(serialized_put);
-    // Put* deserialized_put = dynamic_cast<Put*>(put_deserializer->deserialize());
-    // assert(deserialized_put != nullptr);
-    // assert(deserialized_put->equals(put));
+    /* Put deserialization */
+    Deserializer* put_deserializer = new Deserializer(serialized_put);
+    Put* deserialized_put = dynamic_cast<Put*>(put_deserializer->deserialize());
+    assert(deserialized_put != nullptr);
+    assert(deserialized_put->equals(put));
 
-    // delete put;
-    // delete[] serialized_put;
-    // delete put_deserializer;
-    // delete deserialized_put;
+    delete put;
+    delete[] serialized_put;
+    delete put_deserializer;
+    delete deserialized_put;
 
-    // /* Get construction */
-    // Key* key2 = new Key("foo", 0);
-    // Get* get = new Get(key2);
+    /* Get construction */
+    Key* key2 = new Key("foo", 0);
+    Get* get = new Get(key2);
 
-    // /* Get serialization */
-    // const char* serialized_get = get->serialize();
-    // assert(strcmp(serialized_get, "{type: get, key: {type: key, key: {type: string, cstr: foo}, idx: 0}}") == 0);
+    /* Get serialization */
+    const char* serialized_get = get->serialize();
+    assert(strcmp(serialized_get, "{type: get, key: {type: key, key: {type: string, cstr: foo}, idx: 0}}") == 0);
 
-    // /* Get deserialization */
-    // Deserializer* get_deserializer = new Deserializer(serialized_get);
-    // Get* deserialized_get = dynamic_cast<Get*>(get_deserializer->deserialize());
-    // assert(deserialized_get != nullptr);
-    // assert(deserialized_get->equals(get));
+    /* Get deserialization */
+    Deserializer* get_deserializer = new Deserializer(serialized_get);
+    Get* deserialized_get = dynamic_cast<Get*>(get_deserializer->deserialize());
+    assert(deserialized_get != nullptr);
+    assert(deserialized_get->equals(get));
 
-    // delete get;
-    // delete[] serialized_get;
-    // delete get_deserializer;
-    // delete deserialized_get;
+    delete get;
+    delete[] serialized_get;
+    delete get_deserializer;
+    delete deserialized_get;
 
-    // /* WaitAndGet construction */
-    // Key* key3 = new Key("foo", 0);
-    // WaitAndGet* w_get = new WaitAndGet(key3);
+    /* WaitAndGet construction */
+    Key* key3 = new Key("foo", 0);
+    WaitAndGet* w_get = new WaitAndGet(key3);
 
-    // /* WaitAndGet serialization */
-    // const char* serialized_w_get = w_get->serialize();
-    // assert(strcmp(serialized_w_get, "{type: wait_get, key: {type: key, key: {type: string, cstr: foo}, idx: 0}}") == 0);
+    /* WaitAndGet serialization */
+    const char* serialized_w_get = w_get->serialize();
+    assert(strcmp(serialized_w_get, "{type: wait_get, key: {type: key, key: {type: string, cstr: foo}, idx: 0}}") == 0);
 
-    // /* WaitAndGet deserialization */
-    // Deserializer* w_get_deserializer = new Deserializer(serialized_w_get);
-    // WaitAndGet* deserialized_w_get = dynamic_cast<WaitAndGet*>(w_get_deserializer->deserialize());
-    // assert(deserialized_w_get != nullptr);
-    // assert(deserialized_w_get->equals(w_get));
+    /* WaitAndGet deserialization */
+    Deserializer* w_get_deserializer = new Deserializer(serialized_w_get);
+    WaitAndGet* deserialized_w_get = dynamic_cast<WaitAndGet*>(w_get_deserializer->deserialize());
+    assert(deserialized_w_get != nullptr);
+    assert(deserialized_w_get->equals(w_get));
 
-    // delete w_get;
-    // delete[] serialized_w_get;
-    // delete w_get_deserializer;
-    // delete deserialized_w_get;
+    delete w_get;
+    delete[] serialized_w_get;
+    delete w_get_deserializer;
+    delete deserialized_w_get;
 
     /* Reply construction */
     DataFrame* df2 = df_();
-    Reply* rep = new Reply(df2);
+    Reply* rep = new Reply(df2, MsgKind::Get);
 
     /* Reply serialization */
     const char* serialized_reply = rep->serialize();
-    assert(strcmp(serialized_reply, "{type: reply, value: {type: dataframe, columns: [{type: int_column, data: {type: int_vector, ints: [1,2,3,4]}},{type: bool_column, data: {type: bool_vector, bools: [true,false,true,false]}},{type: float_column, data: {type: float_vector, floats: [1.1000000,2.2000000,3.3000000,4.4000001]}},{type: string_column, data: {type: vector, objects: [{type: string, cstr: hi},{type: string, cstr: bye},{type: string, cstr: hi},{type: string, cstr: bye}]}}]}}") == 0);
+    assert(strcmp(serialized_reply, "{type: reply, value: {type: dataframe, columns: [{type: int_column, data: {type: int_vector, ints: [1,2,3,4]}},{type: bool_column, data: {type: bool_vector, bools: [true,false,true,false]}},{type: float_column, data: {type: float_vector, floats: [1.1000000,2.2000000,3.3000000,4.4000001]}},{type: string_column, data: {type: vector, objects: [{type: string, cstr: hi},{type: string, cstr: bye},{type: string, cstr: hi},{type: string, cstr: bye}]}}]}, request: 3}") == 0);
 
     /* Reply deserialization */
     Deserializer* reply_deserializer = new Deserializer(serialized_reply);

@@ -1,5 +1,7 @@
 //lang::CwC
 
+#pragma once
+
 #include "kvstore.h"
 
 /**
@@ -30,5 +32,12 @@ class Application : public Object {
      */
     size_t this_node() {
         return idx_;
+    }
+
+    /**
+     * Called when the application has finished its execution.
+     */
+    void done() {
+        kv_.shutdown();
     }
 };

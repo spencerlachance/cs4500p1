@@ -244,7 +244,7 @@ class Map : public Object {
       
       Node* current = get_node(index);
       if (current == nullptr) {
-        nodes_[index] = new Node(key, val);
+        nodes_[index] = new Node(key->clone(), val);
       } else {
         if (current->length() >= 3) {
           rehash_();
@@ -268,7 +268,7 @@ class Map : public Object {
               return;
             }
           }
-          current->set_next(new Node(key, val));
+          current->set_next(new Node(key->clone(), val));
         }
       }
       size_++;

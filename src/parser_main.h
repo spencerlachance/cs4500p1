@@ -1,5 +1,7 @@
 // Lang::CwC
 
+#pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "dataframe.h"

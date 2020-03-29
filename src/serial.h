@@ -307,6 +307,7 @@ class Deserializer : public Object {
 
         /* Builds and returns a Reply message from the given bytestream. */
         Reply* deserialize_reply() {
+            StrBuff buff;
             assert(step() == ',');
             assert(step() == ' ');
             assert(step() == 'v');
@@ -320,11 +321,25 @@ class Deserializer : public Object {
             assert(df != nullptr);
             assert(step() == ']');
             assert(step() == '}');
-            assert(step() == '}');
+            assert(step() == ',');
+            assert(step() == ' ');
+            assert(step() == 'r');
+            assert(step() == 'e');
+            assert(step() == 'q');
+            assert(step() == 'u');
+            assert(step() == 'e');
+            assert(step() == 's');
+            assert(step() == 't');
+            assert(step() == ':');
+            assert(step() == ' ');
+            while (current() != '}') {
+                *x_ = step();
+                buff.c(x_);
+            }
+            String* req_str = buff.get();
+            MsgKind req = (MsgKind)atoi(req_str->c_str());
 
-            Reply* rtrn = new Reply(df);
-            
-            return rtrn;
+            return new Reply(df, req);
         }
 
         /* Builds and returns a String from the given bytestream. */
