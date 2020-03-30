@@ -338,6 +338,7 @@ class Deserializer : public Object {
             }
             String* req_str = buff.get();
             MsgKind req = (MsgKind)atoi(req_str->c_str());
+            delete req_str;
 
             return new Reply(df, req);
         }

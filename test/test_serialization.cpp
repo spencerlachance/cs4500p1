@@ -217,9 +217,13 @@ void test_message_serialization() {
     assert(deserialized_put != nullptr);
     assert(deserialized_put->equals(put));
 
+    delete df;
+    delete key1;
     delete put;
     delete[] serialized_put;
     delete put_deserializer;
+    delete deserialized_put->get_value();
+    delete deserialized_put->get_key();
     delete deserialized_put;
 
     /* Get construction */
@@ -236,9 +240,11 @@ void test_message_serialization() {
     assert(deserialized_get != nullptr);
     assert(deserialized_get->equals(get));
 
+    delete key2;
     delete get;
     delete[] serialized_get;
     delete get_deserializer;
+    delete deserialized_get->get_key();
     delete deserialized_get;
 
     /* WaitAndGet construction */
@@ -255,9 +261,11 @@ void test_message_serialization() {
     assert(deserialized_w_get != nullptr);
     assert(deserialized_w_get->equals(w_get));
 
+    delete key3;
     delete w_get;
     delete[] serialized_w_get;
     delete w_get_deserializer;
+    delete deserialized_w_get->get_key();
     delete deserialized_w_get;
 
     /* Reply construction */
@@ -274,9 +282,11 @@ void test_message_serialization() {
     assert(deserialized_reply != nullptr);
     assert(deserialized_reply->equals(rep));
 
+    delete df2;
     delete rep;
     delete[] serialized_reply;
     delete reply_deserializer;
+    delete deserialized_reply->get_value();
     delete deserialized_reply;
 }
 

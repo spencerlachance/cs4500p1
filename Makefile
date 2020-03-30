@@ -19,7 +19,7 @@ run:
 valgrind:
 	valgrind --leak-check=full ./dataf -f data/datafile.txt -len 1000000
 	valgrind --leak-check=full ./serial
-	valgrind --leak-check=full ./trivial
+	valgrind --leak-check=full ./trivial -v
 
 clean:
 	rm dataf serial trivial demo

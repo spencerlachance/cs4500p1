@@ -3,6 +3,11 @@
 #include "../src/application.h"
 #include "../src/dataframe.h"
 
+bool valgrind = false;
+
+size_t size = 1000*1000;
+size_t valgrind_size = 1000;
+
 /**
  * Simple eau2 application that builds a DataFrame containing floats 0-999,999 keeps track of the
  * floats' sum, puts the DataFrame into a KVStore, gets it back from the store, and verifies that
@@ -14,7 +19,7 @@ class Trivial : public Application {
         run_();
     }
     void run_() {
-        size_t SZ = 1000*1000;
+        size_t SZ = valgrind ? valgrind_size : size;
         float* vals = new float[SZ];
         double sum = 0;
         for (size_t i = 0; i < SZ; ++i) sum += vals[i] = i;
@@ -30,7 +35,8 @@ class Trivial : public Application {
     }
 };
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc > 1 && strcmp(argv[1], "-v") == 0) valgrind = true;
     Trivial t(0);
     return 0;
 }

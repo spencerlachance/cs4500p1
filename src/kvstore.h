@@ -77,6 +77,7 @@ public:
                 th.join();
             }
         }
+        delete threads_;
         delete map_;
     }
 
