@@ -51,6 +51,8 @@ public:
     // WaitAndGet gets its own variable so that there is no confusion between threads running both
     // get operations
     DataFrame* wag_reply_data_;
+    // The thread that runs the select() loop
+    std::thread* t_;
     // Vector of threads that process messages
     std::vector<std::thread>* threads_;
     // The lock that prevents data races
@@ -72,11 +74,13 @@ public:
      * Destructor
      */
     ~KVStore() {
+        t_->join();
         for (std::thread& th : *threads_) {
             if (th.joinable()) {
                 th.join();
             }
         }
+        delete t_;
         delete threads_;
         delete map_;
     }
@@ -102,12 +106,14 @@ public:
             // If not, send a Put message to the correct node
             Put p(&k, &v);
             // printf("\033[1;3%zumNode %zu: Sending Put\033[0m\n", idx_, idx_);
-            send_to_node(p.serialize(), dst_node);
+            const char* msg = p.serialize();
+            send_to_node(msg, dst_node);
             // Wait for an Ack confirming that the data was stored successfully
             // printf("\033[1;3%zumNode %zu: Waiting for Ack\033[0m\n", idx_, idx_);
             while (!ack_recvd_) sleep(1);
             // printf("\033[1;3%zumNode %zu: Done waiting for Ack\033[0m\n", idx_, idx_);
             ack_recvd_ = false;
+            delete[] msg;
         }
     }
 
@@ -136,13 +142,15 @@ public:
             // If not, send a Get message to the correct node
             Get g(&k);
             // printf("\033[1;3%zumNode %zu: Sending Get\033[0m\n", idx_, idx_);
-            send_to_node(g.serialize(), dst_node);
+            const char* msg = g.serialize();
+            send_to_node(msg, dst_node);
             // Wait for a reply with the desired data
             // printf("\033[1;3%zumNode %zu: Waiting for Reply\033[0m\n", idx_, idx_);
             while (reply_data_ == nullptr) sleep(1);
             // printf("\033[1;3%zumNode %zu: Done waiting for Reply\033[0m\n", idx_, idx_);
             res = reply_data_;
             reply_data_ = nullptr;
+            delete[] msg;
         }
         return res;
     }
@@ -173,13 +181,15 @@ public:
             // If not, send a WaitAndGet message to the correct node
             WaitAndGet wag(&k);
             // printf("\033[1;3%zumNode %zu: Sending WaitAndGet\033[0m\n", idx_, idx_);
-            send_to_node(wag.serialize(), dst_node);
+            const char* msg = wag.serialize();
+            send_to_node(msg, dst_node);
             // Wait for a reply with the desired data
             // printf("\033[1;3%zumNode %zu: Waiting for Reply\033[0m\n", idx_, idx_);
             while (wag_reply_data_ == nullptr) sleep(1);
             // printf("\033[1;3%zumNode %zu: Done waiting for Reply\033[0m\n", idx_, idx_);
             DataFrame* ret = wag_reply_data_;
             wag_reply_data_ = nullptr;
+            delete[] msg;
             return ret;
         }
     }
@@ -260,12 +270,12 @@ public:
             // Calculate the server's IP using its node index (always 0) and use that to generate 
             // another struct
             struct addrinfo *servinfo;
-            exit_if_not(getaddrinfo(idx_to_ip_(0), PORT, &hints_, &servinfo) == 0,
+            char* serv_ip = idx_to_ip_(0);
+            exit_if_not(getaddrinfo(serv_ip, PORT, &hints_, &servinfo) == 0,
                 "Call to getaddrinfo() failed");
             // Create the socket to the Server
             exit_if_not((servfd_ = socket(servinfo->ai_family, servinfo->ai_socktype, 
                 servinfo->ai_protocol)) >= 0, "Call to socket() failed");
-            freeaddrinfo(info);
             // Connect to the Server
             exit_if_not(connect(servfd_, servinfo->ai_addr, servinfo->ai_addrlen) >= 0, 
                 "Call to connect() failed");
@@ -277,9 +287,10 @@ public:
             const char* msg = reg.serialize();
             // printf("\033[1;3%zumNode %zu: Sending my IP \"%s\" to the server for registration.\033[0m\n", idx_, idx_, ip_);
             exit_if_not(send(servfd_, msg, strlen(msg) + 1, 0) > 0, "Sending IP to server failed");
+            delete[] msg; delete[] serv_ip;
         }
         // Start listening for incoming messages
-        threads_->push_back(std::thread(&KVStore::monitor_sockets_, this));
+        t_ = new std::thread(&KVStore::monitor_sockets_, this);
     }
 
     /**
@@ -448,42 +459,47 @@ public:
                     nodes_[new_idx] = fd;
                 }
                 // print_map_();
+                delete r;
                 break;
             }
             case MsgKind::Ack: {
                 // printf("\033[1;3%zumNode %zu: Received Ack\033[0m\n", idx_, idx_);
                 // Set the value that put() is waiting for above
                 ack_recvd_ = true;
+                delete m;
                 break;
             }
             case MsgKind::Reply: {
                 // printf("\033[1;3%zumNode %zu: Received Reply\033[0m\n", idx_, idx_);
                 Reply* rep = m->as_reply();
                 MsgKind req = rep->get_request();
+                DataFrame* v = rep->get_value();
                 // Set the value that get() and wait_and_get() wait for above
                 if (req == MsgKind::WaitAndGet) {
-                    wag_reply_data_ = rep->get_value();
+                    wag_reply_data_ = v;
                 } else {
-                    reply_data_ = rep->get_value();
+                    reply_data_ = v;
                 }
+                delete rep;
                 break;
             }
             case MsgKind::Put: {
                 threads_->push_back(
-                    std::thread(&KVStore::process_put_, this, m->as_put(), std::ref(fd)));
+                    std::thread(&KVStore::process_put_, this, m->as_put(), fd));
                 break;
             }
             case MsgKind::Get: {
                 threads_->push_back(
-                    std::thread(&KVStore::process_get_, this, m->as_get(), std::ref(fd)));
+                    std::thread(&KVStore::process_get_, this, m->as_get(), fd));
                 break;
             }
             case MsgKind::WaitAndGet: {
                 threads_->push_back(
-                    std::thread(&KVStore::process_wag_, this, m->as_wait_and_get(), std::ref(fd)));
+                    std::thread(&KVStore::process_wag_, this, m->as_wait_and_get(), fd));
                 // printf("\033[1;3%zumNode %zu: Continuing\033[0m\n", idx_, idx_);
                 break;
             }
+            default: shutdown();
         }
     }
 
@@ -500,6 +516,7 @@ public:
             char* ip = ips->get(i)->c_str();
             if (strcmp(ip, ip_) != 0) connect_to_client_(ip, indices->get(i));
         }
+        delete directory;
     }
 
     /**
@@ -511,14 +528,16 @@ public:
     void process_put_(Put* p, int fd) {
         // printf("\033[1;3%zumNode %zu: Received Put\033[0m\n", idx_, idx_);
         // Ensure that this message was sent to the right node
-        exit_if_not(p->get_key()->get_home_node() == idx_, "Put was sent to incorrect node");
-        put(*(p->get_key()), *(p->get_value()));
+        Key* k = p->get_key();
+        DataFrame* v = p->get_value();
+        exit_if_not(k->get_home_node() == idx_, "Put was sent to incorrect node");
+        put(*k, *v);
 
         // Reply with an Ack confirming that the put operation was successful
         Ack* a = new Ack();
         const char* msg = a->serialize();
         exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, "Call to send() failed");
-        delete a;
+        delete p; delete k; delete v; delete a;
     }
 
     /**
@@ -527,14 +546,15 @@ public:
     void process_get_(Get* g, int fd) {
         // printf("\033[1;3%zumNode %zu: Received Get\033[0m\n", idx_, idx_);
         // Ensure that this message was sent to the right node
-        exit_if_not(g->get_key()->get_home_node() == idx_, "Put was sent to incorrect node");
-        DataFrame* res = get(*(g->get_key()));
+        Key* k = g->get_key();
+        exit_if_not(k->get_home_node() == idx_, "Put was sent to incorrect node");
+        DataFrame* res = get(*k);
 
         // Send back a Reply with the data
         Reply r(res, MsgKind::Get);
         const char* msg = r.serialize();
         exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, "Call to send() failed");
-        delete[] msg;
+        delete g; delete k; delete res; delete[] msg;
     }
 
     /**
@@ -543,14 +563,15 @@ public:
     void process_wag_(WaitAndGet* wag, int fd) {
         // printf("\033[1;3%zumNode %zu: Received WaitAndGet\033[0m\n", idx_, idx_);
         // Ensure that this message was sent to the right node
-        exit_if_not(wag->get_key()->get_home_node() == idx_, "Put was sent to incorrect node");
-        DataFrame* res = wait_and_get(*(wag->get_key()));
+        Key* k = wag->get_key();
+        exit_if_not(k->get_home_node() == idx_, "Put was sent to incorrect node");
+        DataFrame* res = wait_and_get(*k);
 
         // Send back a Reply with the data
         Reply r(res, MsgKind::WaitAndGet);
         const char* msg = r.serialize();
         exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, "Call to send() failed");
-        delete[] msg;
+        delete wag; delete k; delete res; delete[] msg;
     }
 
     /**
@@ -588,6 +609,7 @@ public:
         // Keep track of the client's fd and node index
         nodes_[idx] = client_fd;
         // print_map_();
+        delete[] msg;
     }
 
     /**
@@ -719,7 +741,7 @@ DataFrame* DataFrame::fromBoolScalar(Key* k, KVStore* kv, bool val) {
  * Builds a DataFrame with one column containing the single given float, adds the DataFrame
  * to the given KVStore at the given Key, and then returns the DataFrame.
  */
-DataFrame* DataFrame::fromIntScalar(Key* k, KVStore* kv, float val) {
+DataFrame* DataFrame::fromFloatScalar(Key* k, KVStore* kv, float val) {
     Column* col = new FloatColumn();
     col->push_back(val);
     DataFrame* res = new DataFrame();

@@ -22,25 +22,28 @@ public:
     void producer() {
         size_t SZ = 1000;
         float* vals = new float[SZ];
-        int sum = 0;
+        float sum = 0;
         for (size_t i = 0; i < SZ; ++i) sum += vals[i] = i;
-        DataFrame::fromFloatArray(&main, &kv_, SZ, vals);
-        DataFrame::fromIntScalar(&check, &kv_, sum);
+        delete DataFrame::fromFloatArray(&main, &kv_, SZ, vals);
+        delete DataFrame::fromFloatScalar(&check, &kv_, sum);
+        delete[] vals;
     }
 
     void counter() {
         DataFrame* v = kv_.wait_and_get(main);
-        int sum = 0;
+        float sum = 0;
         for (size_t i = 0; i < 1000; ++i) sum += v->get_float(0,i);
         p("The sum is ").pln(sum);
-        DataFrame::fromIntScalar(&verify, &kv_, sum);
+        delete DataFrame::fromFloatScalar(&verify, &kv_, sum);
+        delete v;
     }
 
     void summarizer() {
         DataFrame* result = kv_.wait_and_get(verify);
         DataFrame* expected = kv_.wait_and_get(check);
-        pln(expected->get_int(0,0)==result->get_int(0,0) ? "SUCCESS":"FAILURE");
+        pln(expected->get_float(0,0)==result->get_float(0,0) ? "SUCCESS":"FAILURE");
         done();
+        delete result; delete expected;
     }
 };
 

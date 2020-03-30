@@ -12,14 +12,18 @@ run:
 	./dataf -f data/datafile.txt -len 10000000
 	./serial
 	./trivial
-	./demo -idx 0 &
 	./demo -idx 1 &
-	./demo -idx 2
+	./demo -idx 2 &
+	./demo -idx 0
 
 valgrind:
 	valgrind --leak-check=full ./dataf -f data/datafile.txt -len 1000000
 	valgrind --leak-check=full ./serial
 	valgrind --leak-check=full ./trivial -v
+	# Sleeping to give the lead node enough time to start up with valgrind running
+	sleep 2 && ./demo -idx 1 &
+	sleep 2 && ./demo -idx 2 &
+	valgrind --leak-check=full ./demo -idx 0
 
 clean:
 	rm dataf serial trivial demo

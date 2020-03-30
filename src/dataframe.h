@@ -440,7 +440,7 @@ class DataFrame : public Object {
          * Builds a DataFrame with one column containing the single given float, adds the DataFrame
          * to the given KVStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromIntScalar(Key* k, KVStore* kv, float val);
+        static DataFrame* fromFloatScalar(Key* k, KVStore* kv, float val);
 
         /**
          * Builds a DataFrame with one column containing the single given string, adds the DataFrame
