@@ -8,24 +8,31 @@ eau2 is a program with three layers. The bottom layer is a network of KVStores r
 ^`type` is one of `(String*, int, bool, float)`.
 
 ## KVStore
-Subclass of Client. This class receives keys from the layer above and either serializes data and puts it in the store or deserializes it and returns it. If the key corresponds to data from another KVStore then it will talk to that KVStore and retrieve the data. Upon request, the KVStore class also sends its own serialized data blobs to other KVStores. Upon start up, one of the KVStores becomes a primary node that maintains new node registration to the network.
+This class receives keys from the layer above and either serializes data and puts it in its map (from string keys to deserialized data) or retrieves data from the map, serializes it, and returns it. If the key corresponds to data from another KVStore then it will ask that KVStore for the data. The KVStore class also sends its own serialized data blobs to other KVStores upon request. Upon start up, one of the KVStores acts as a server that maintains new node registration on the network. All other nodes are clients.
 
 **fields**:
-* Map from other node indicies to their IP addresses
+* `size_t idx_` - The index of the node running this KVStore.
 * `Map* map_` - A Map object that can map objects to objects. In this case, it will be used to map String containing keys to Strings containing serialized data.
+* `int* nodes_` - An array of socket file descriptors where the array indices are the indices of the nodes that the sockets are connected to.
 
 **methods**:
-* `void put(Key* k, type* v)` - Reads the node index from `k`, sends the string from `k` to the corresponding KVStore and a serialized version of `v`, and tells it to store `v` at that key.
-* `type* get(Key* k)` - Reads the node index from `k`, sends the string from `k` to the corresponding KVStore, and tells it to retrieve the value at that key.
-* `type* getAndWait(Key* k)` - Reads the node index from `k`, sends the string from `k` to the corresponding KVStore, and tells it to retrieve the value at that key. If there is no value at that key, wait until there is, then retrieve it.
-
+* `void put(Key& k, type`^`* v)` - Reads the node index from `k`. If the index is equal to the current node's index, it puts serialized `v` into its map at key `k`. Else, it sends a message to the correct node telling it to do so and waits for a Ack confirming it was done.
+* `type* get(Key& k)` - Reads the node index from `k`. If the index is equal to the current node's index, it gets serialized data from its map at key `k`, deserializes it, and returns it. Else, it sends a message to the correct node telling it to do so and waits for a Reply message containing the data.
+* `type* wait_and_get(Key& k)` - Reads the node index from `k`. If the index is equal to the current node's index, it waits until `k` exists in its map, gets serialized data from its map at `k`, deserializes it, and returns it. Else, it sends a message to the correct node telling it to do so and waits for a Reply message containing the data.
+* `void startup_()` - Starts up the KVStore on the network. Creates a socket that other nodes will connect through. If not the server, it will also set up a socket to the server and send it its IP address and node index in a Register message. Then, it starts monitoring its sockets in a new thread.
+* `shutdown()` - Shuts down the network node. Closes all sockets and deletes all fields.
+* `send_to_node_(const char* msg, size_t dst)` - Sends the given serialized Message to the node at the given index.
+* `void monitor_sockets_()` - Monitors the sockets in an infinite loop, accepts new connnections, receives messages and processes them depending on what kind they are.
+    * If a Register is received, it keeps track of the sender's node index and socket file descriptor. If the node is the server, it also replies with a Directory containing all client IPs and node indices.
+    * If a Directory is received, the client sends Registers to all other clients in the directory, establishing connections with them.
+    * If a Put, Get, or WaitAndGet message is received, the node starts a new thread, calls the corresponding function, and then replies with either an Ack or a Reply.
 
 ## Key
 Object representing a key that corresponds to data in a key/value store.
 
 **fields**:
 * `String* key_` - The actual string that will be mapped to data in the KVStore.
-* `size_t idx_` - The index of the node that holds the k/v store containing the data.
+* `size_t idx_` - The index of the node that holds the KVStore containing the data.
 
 **methods**:
 * `String* get_keystring()` - Getter for the key field.
@@ -42,15 +49,18 @@ An array of objects split into fixed-size chunks. When it fills up, it grows, al
 * `void append(Object* val)` - Appends the given object to the end of the vector.
 * `Object* get(size_t idx)` - Returns the object in the vector at the given index.
 
+
 ## IntVector, BoolVector, FloatVector
 Similar to the Vector class, but holds primitives instead of objects.
 
+
 ## DistributedArray (Column)
-Subclass of Vector. Each chunk is stored as a k/v pair.
+Similar to Vector, but each chunk is serialized and stored in a certain node's KVStore.
 
 **fields**: 
 * List of keys pointing to each chunk
 * Cache?
+
 
 ## DataFrame
 Table containing columns of a specific type
@@ -64,8 +74,20 @@ Table containing columns of a specific type
 * `void map(Rower& r)`
 * `void pmap(Rower& r)`
 * `DataFrame* filter(Rower& r)`
-* `DataFrame* fromTypeArray(Key* k, KVStore* kv, size_t size, type* vals)` - Static method that generates a new DataFrame with one column containing `size` values from `vals`, serializes the dataframe and puts it in `kv` at `k`, and then returns the DataFrame.
-* `DataFrame* fromTypeScalar(Key* k, KVStore* kv, type val)` - Static method that generates a new DataFrame with one column and row containing `val`, serializes the dataframe and puts it in `kv` at `k`, and then returns the DataFrame.
+* `DataFrame* fromTypeArray(Key* k, KDStore* kd, size_t size, type* vals)` - Static method that generates a new DataFrame with one column containing `size` values from `vals`, serializes the dataframe and puts it in `kd` at `k`, and then returns the DataFrame.
+* `DataFrame* fromTypeScalar(Key* k, KDStore* kd, type val)` - Static method that generates a new DataFrame with one column and row containing `val`, serializes the dataframe and puts it in `kd` at `k`, and then returns the DataFrame.
+
+
+## KDStore
+Middle-man between the Application layer which uses DataFrames and the KVStore which stores serialized chunks from DistributedArrays.
+
+**fields**:
+`KVStore kv_` - The current node's KVStore.
+
+**methods**:
+* `void put(Key& k, DataFrame* v)`
+* `DataFrame* get(Key& k)`
+* `DataFrame* wait_and_get(Key& k)`
 
 
 ## Application (abstract class)
@@ -73,11 +95,12 @@ Users will subclass this class in order to write their applications that use the
 
 **fields**:
 * `size_t idx_` - index that differentiates one node from another
-* `KVStore& kv_` - each node has its own kv store with a part of the data
+* `KDStore kd_`
 
 **methods**:
 * `virtual void run_()` - runs the application
 * `size_t this_node()` - returns this node's index
+* `void done()` - Shuts down the entire system once all operations have completed.
 
 
 # Use Cases
@@ -120,11 +143,60 @@ class Trivial : public Application {
     }
 };
 ```
+This runs an eau2 application with three nodes
+* Node 0 builds one DataFrame containing an array of floats and another one containing the floats' sum. It puts both into its KVStore.
+* Node 1 gets the DataFrame with the array of floats from Node 0's KVStore and calculates its own sum. It puts this sum into Node 0's KVStore as well.
+* Node 2 gets the two sums from Node 0's KVStore and compares them.
+```
+class Demo : public Application {
+public:
+    Key main;
+    Key verify;
+    Key check;
+
+    Demo(size_t idx) : Application(idx), main("main", 0), verify("verif", 0), check("ck", 0) {
+        run_();
+    }
+
+    void run_() {
+        switch(this_node()) {
+            case 0:   producer();   break;
+            case 1:   counter();    break;
+            case 2:   summarizer();
+        }
+    }
+
+    void producer() {
+        size_t SZ = 1000;
+        float* vals = new float[SZ];
+        float sum = 0;
+        for (size_t i = 0; i < SZ; ++i) sum += vals[i] = i;
+        delete DataFrame::fromFloatArray(&main, &kv_, SZ, vals);
+        delete DataFrame::fromFloatScalar(&check, &kv_, sum);
+        delete[] vals;
+    }
+
+    void counter() {
+        DataFrame* v = kv_.wait_and_get(main);
+        float sum = 0;
+        for (size_t i = 0; i < 1000; ++i) sum += v->get_float(0,i);
+        p("The sum is ").pln(sum);
+        delete DataFrame::fromFloatScalar(&verify, &kv_, sum);
+        delete v;
+    }
+
+    void summarizer() {
+        DataFrame* result = kv_.wait_and_get(verify);
+        DataFrame* expected = kv_.wait_and_get(check);
+        pln(expected->get_float(0,0)==result->get_float(0,0) ? "SUCCESS":"FAILURE");
+        done();
+        delete result; delete expected;
+    }
+};
+```
 
 # Open Questions
 * What is the distributed array's cache?
-* Should a DataFrame hold actual data or keys to data stored in a KVStore?
-  * How does the DataFrame interact with the KVStore when being queried with keys?
 
 # Status
 ## What has been done:
@@ -134,7 +206,7 @@ class Trivial : public Application {
 * Implemented a protocol for serialization and deserialization.
 * Implemented serialization and deserialization of Object, String, all vectors, columns, Message subclasses, and DataFrame.
 * Implemented the KVStore and Application classes. They now run properly on a single node.
+* The network layer was integrated into the KVStore class. Now an application can run with multiple nodes and nodes correctly share data between their KVStores. However, entire dataframes are still being serialized and put into KVStores which isn't scalable.
 ## What is left to do:
-* Make the system distributed and integrate networking.
-* Implement the Distributed Array class.
-* Solidify a way for all three layers in the system to interact with each other successfully.
+* Implement the Distributed Array class so that DataFrames themselves are distributed across multiple nodes.
+* Implement the KDStore class so the Application layer can still put and get DataFrames.

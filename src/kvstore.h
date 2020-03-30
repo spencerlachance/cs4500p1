@@ -30,9 +30,9 @@
 #define BUF_SIZE (size_t)100000
 
 /**
- * A class describing an implementation of a key/value store.
- * This class represents a store kept on one node from a larger distributed system.
- * It also holds all of the functionality needed to exchange data with the other nodes.
+ * This class represents a key/value store maintained on one node from a larger distributed system.
+ * It also holds all of the functionality needed to exchange data with the other nodes over a 
+ * network.
  * 
  * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
@@ -65,7 +65,7 @@ public:
         wag_reply_data_(nullptr) {
         map_ = new Map();
         threads_ = new std::vector<std::thread>();
-        startup();
+        startup_();
         // Wait a second for client registration to finish
         sleep(1);
     }
@@ -107,7 +107,7 @@ public:
             Put p(&k, &v);
             // printf("\033[1;3%zumNode %zu: Sending Put\033[0m\n", idx_, idx_);
             const char* msg = p.serialize();
-            send_to_node(msg, dst_node);
+            send_to_node_(msg, dst_node);
             // Wait for an Ack confirming that the data was stored successfully
             // printf("\033[1;3%zumNode %zu: Waiting for Ack\033[0m\n", idx_, idx_);
             while (!ack_recvd_) sleep(1);
@@ -143,7 +143,7 @@ public:
             Get g(&k);
             // printf("\033[1;3%zumNode %zu: Sending Get\033[0m\n", idx_, idx_);
             const char* msg = g.serialize();
-            send_to_node(msg, dst_node);
+            send_to_node_(msg, dst_node);
             // Wait for a reply with the desired data
             // printf("\033[1;3%zumNode %zu: Waiting for Reply\033[0m\n", idx_, idx_);
             while (reply_data_ == nullptr) sleep(1);
@@ -176,13 +176,14 @@ public:
                 contains_key = map_->containsKey(key_string);
             }
             // printf("\033[1;3%zumNode %zu: Done waiting for put\033[0m\n", idx_, idx_);
+            // Get the data
             return get(k);
         } else {
             // If not, send a WaitAndGet message to the correct node
             WaitAndGet wag(&k);
             // printf("\033[1;3%zumNode %zu: Sending WaitAndGet\033[0m\n", idx_, idx_);
             const char* msg = wag.serialize();
-            send_to_node(msg, dst_node);
+            send_to_node_(msg, dst_node);
             // Wait for a reply with the desired data
             // printf("\033[1;3%zumNode %zu: Waiting for Reply\033[0m\n", idx_, idx_);
             while (wag_reply_data_ == nullptr) sleep(1);
@@ -235,13 +236,14 @@ public:
     }
 
     /**
-     * Startup protocol for a Client.
-     * Creates the sockets that the Client will use to connect to the server and other clients
-     * and sends the Client's IP to the server.
+     * Startup protocol.
+     * Creates the socket that clients will connect to this node through.
+     * If this is a client, it also creates a socket to the server and sends it a message containing
+     * the client's IP and node index.
      * 
-     * @param idx The index of the node running this Client.
+     * @param idx The index of the current node.
      */
-    void startup() {
+    void startup_() {
         buffer_ = new char[BUF_SIZE];
         ip_ = idx_to_ip_(idx_);
         has_shutdown = false;
@@ -294,8 +296,8 @@ public:
     }
 
     /**
-     * Shutdown protocol for a Client.
-     * Closes the Client's sockets and deletes all fields.
+     * Shutdown protocol.
+     * Closes all sockets and deletes all fields.
      */
     void shutdown() {
         // printf("\033[1;3%zumNode %zu: Shutting down\033[0m\n", idx_, idx_);
@@ -313,38 +315,21 @@ public:
     }
 
     /**
-     * Send a message to all clients connected to this one.
-     * 
-     * @param msg The message to be sent
-     */
-    void send_all(const char* msg) {
-        for (int i = 0; i < BACKLOG; i++) {
-            int fd = nodes_[i];
-            if (fd != -1) {
-                // printf("\033[1;3%zumNode %zu: Sending msg to node %d\033[0m\n", idx_, idx_, i);
-                exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, 
-                    "Sending msg to other client failed");
-            }
-        }
-    }
-
-    /**
-     * Send a message to a specific client.
+     * Send a message to a specific node.
      * 
      * @param msg The message to be sent
      * @param dst The index of the destination node
      */
-    void send_to_node(const char* msg, size_t dst) {
+    void send_to_node_(const char* msg, size_t dst) {
         int fd = nodes_[dst];
         if (fd == -1) {
-            // printf("\033[1;3%zumNode %zu: Could not find a node with the given index\033[0m\n", idx_, idx_);
+            printf("\033[1;3%zumNode %zu: Could not find a node index %zu\033[0m\n", idx_, idx_, dst);
         } else {
             exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, "Sending msg to other client failed");
         }
     }
 
     /**
-     * Client function
      * Listens for incoming messages coming from other nodes on the network and then processes them
      * accordingly.
      */
@@ -382,11 +367,11 @@ public:
                 // In case shutdown() was called from the other thread
                 if (has_shutdown) return;
                 if (FD_ISSET(i, &read_fds_)) {
-                    // Found a connection
                     if (i == fd_) {
+                        // Found a new connection
                         if (num_nodes + 1 > BACKLOG) {
                             // The network is full, do not accept this connection
-                            // printf("\033[1;3%zumNode %zu: Network is full, cannot accept new connection.\033[0m\n", idx_, idx_);
+                            printf("\033[1;3%zumNode %zu: Network is full, cannot accept new connection.\033[0m\n", idx_, idx_);
                             continue;
                         }
                         num_nodes++;
@@ -402,7 +387,7 @@ public:
                         }
                         // printf("\033[1;3%zumNode %zu: New connection on socket %d\033[0m\n", idx_, idx_, their_fd_);
                     } else {
-                        // The Client is receving a message
+                        // Receiving a message
                         if ((nbytes = recv(i, buffer_, BUF_SIZE, 0)) <= 0) {
                             // Connection to the other node was closed or there was an error,
                             // so shut down
@@ -445,19 +430,15 @@ public:
                     // printf("\033[1;3%zumNode %zu: Received IP \"%s\" from new client at socket %d\033[0m\n", idx_, idx_, new_ip, fd);
                     // Add the new IP to the directory
                     directory_->add_client(new_ip, new_idx);
-                    // Keep track of the new client's node index and socket fd
-                    nodes_[new_idx] = fd;
                     // Send the updated directory back to the client
                     const char* serial_directory = directory_->serialize();
                     // printf("\033[1;3%zumNode %zu: Sending updated directory back to client\033[0m\n", idx_, idx_);
                     exit_if_not(send(fd, serial_directory, strlen(serial_directory) + 1, 0) > 0,
                         "Call to send() failed");
                     delete[] serial_directory;
-                } else {
-                    // Another client sent a Register, so keep track of its fd 
-                    // and node index
-                    nodes_[new_idx] = fd;
                 }
+                // Keep track of the sender's socket fd and node index
+                nodes_[new_idx] = fd;
                 // print_map_();
                 delete r;
                 break;
@@ -474,7 +455,7 @@ public:
                 Reply* rep = m->as_reply();
                 MsgKind req = rep->get_request();
                 DataFrame* v = rep->get_value();
-                // Set the value that get() and wait_and_get() wait for above
+                // Set the values that get() and wait_and_get() wait for above
                 if (req == MsgKind::WaitAndGet) {
                     wag_reply_data_ = v;
                 } else {
@@ -496,7 +477,6 @@ public:
             case MsgKind::WaitAndGet: {
                 threads_->push_back(
                     std::thread(&KVStore::process_wag_, this, m->as_wait_and_get(), fd));
-                // printf("\033[1;3%zumNode %zu: Continuing\033[0m\n", idx_, idx_);
                 break;
             }
             default: shutdown();
@@ -527,9 +507,9 @@ public:
      */
     void process_put_(Put* p, int fd) {
         // printf("\033[1;3%zumNode %zu: Received Put\033[0m\n", idx_, idx_);
-        // Ensure that this message was sent to the right node
         Key* k = p->get_key();
         DataFrame* v = p->get_value();
+        // Ensure that this message was sent to the right node
         exit_if_not(k->get_home_node() == idx_, "Put was sent to incorrect node");
         put(*k, *v);
 
@@ -545,8 +525,8 @@ public:
      */
     void process_get_(Get* g, int fd) {
         // printf("\033[1;3%zumNode %zu: Received Get\033[0m\n", idx_, idx_);
-        // Ensure that this message was sent to the right node
         Key* k = g->get_key();
+        // Ensure that this message was sent to the right node
         exit_if_not(k->get_home_node() == idx_, "Put was sent to incorrect node");
         DataFrame* res = get(*k);
 
@@ -562,8 +542,8 @@ public:
      */
     void process_wag_(WaitAndGet* wag, int fd) {
         // printf("\033[1;3%zumNode %zu: Received WaitAndGet\033[0m\n", idx_, idx_);
-        // Ensure that this message was sent to the right node
         Key* k = wag->get_key();
+        // Ensure that this message was sent to the right node
         exit_if_not(k->get_home_node() == idx_, "Put was sent to incorrect node");
         DataFrame* res = wait_and_get(*k);
 
