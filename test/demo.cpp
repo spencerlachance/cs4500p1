@@ -29,7 +29,7 @@ public:
     }
 
     void counter() {
-        DataFrame* v = kv_.wait_and_get(&main);
+        DataFrame* v = kv_.wait_and_get(main);
         int sum = 0;
         for (size_t i = 0; i < 1000; ++i) sum += v->get_float(0,i);
         p("The sum is ").pln(sum);
@@ -37,8 +37,8 @@ public:
     }
 
     void summarizer() {
-        DataFrame* result = kv_.wait_and_get(&verify);
-        DataFrame* expected = kv_.wait_and_get(&check);
+        DataFrame* result = kv_.wait_and_get(verify);
+        DataFrame* expected = kv_.wait_and_get(check);
         pln(expected->get_int(0,0)==result->get_int(0,0) ? "SUCCESS":"FAILURE");
         done();
     }

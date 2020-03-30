@@ -17,7 +17,7 @@
 #include <thread>
 #include <unistd.h>
 #include <mutex>
-#include <future>
+#include <vector>
 
 #include "map.h"
 // #include "dataframe.h"
@@ -51,14 +51,8 @@ public:
     // WaitAndGet gets its own variable so that there is no confusion between threads running both
     // get operations
     DataFrame* wag_reply_data_;
-    // Thread that the select() loop is run in
-    std::thread* t_;
-    // Thread that put() operations run in
-    std::thread* tp_;
-    // Thread that get() operations run in
-    std::thread* tg_;
-    // Thread that wait_and_get() operations run in
-    std::thread* twag_;
+    // Vector of threads that process messages
+    std::vector<std::thread>* threads_;
     // The lock that prevents data races
     std::mutex mtx_;
 
@@ -66,8 +60,9 @@ public:
      * Constructor that initializes an empty KVStore.
      */
     KVStore(size_t idx) : idx_(idx), ack_recvd_(false), reply_data_(nullptr), 
-        wag_reply_data_(nullptr), tp_(nullptr), tg_(nullptr), twag_(nullptr) {
+        wag_reply_data_(nullptr) {
         map_ = new Map();
+        threads_ = new std::vector<std::thread>();
         startup();
         // Wait a second for client registration to finish
         sleep(1);
@@ -77,20 +72,11 @@ public:
      * Destructor
      */
     ~KVStore() {
-        t_->join();
-        if (tp_ != nullptr) {
-            tp_->join();
-            delete tp_;
+        for (std::thread& th : *threads_) {
+            if (th.joinable()) {
+                th.join();
+            }
         }
-        if (tg_ != nullptr) {
-            tg_->join();
-            delete tg_;
-        }
-        if (twag_ != nullptr) {
-            twag_->join();
-            delete twag_;
-        }
-        delete t_;
         delete map_;
     }
 
@@ -100,20 +86,20 @@ public:
      * @param k The key at which the data will be stored
      * @param v The data that will be stored in the k/v store
      */
-    void put(Key* k, DataFrame* v) {
-        size_t dst_node = k->get_home_node();
+    void put(Key& k, DataFrame& v) {
+        size_t dst_node = k.get_home_node();
         // Check if the key corresponds to this node
         if (dst_node == idx_) {
             // If so, put the data in this KVStore's map
-            const char* serial_df = v->serialize();
+            const char* serial_df = v.serialize();
             mtx_.lock();
-            map_->put(k->get_keystring(), new String(serial_df));
+            map_->put(k.get_keystring(), new String(serial_df));
             mtx_.unlock();
             // printf("\033[1;3%zumNode %zu: Put was successful\033[0m\n", idx_, idx_);
             delete[] serial_df;
         } else {
             // If not, send a Put message to the correct node
-            Put p(k, v);
+            Put p(&k, &v);
             // printf("\033[1;3%zumNode %zu: Sending Put\033[0m\n", idx_, idx_);
             send_to_node(p.serialize(), dst_node);
             // Wait for an Ack confirming that the data was stored successfully
@@ -131,14 +117,14 @@ public:
      * 
      * @return The deserialized data
      */
-    DataFrame* get(Key* k) {
-        size_t dst_node = k->get_home_node();
+    DataFrame* get(Key& k) {
+        size_t dst_node = k.get_home_node();
         DataFrame* res;
         // Check if this key corresponds to this node
         if (dst_node == idx_) {
             // If so, get the data from this KVStore's map
             mtx_.lock();
-            String* serialized_df = dynamic_cast<String*>(map_->get(k->get_keystring()));
+            String* serialized_df = dynamic_cast<String*>(map_->get(k.get_keystring()));
             mtx_.unlock();
             assert(serialized_df != nullptr);
             
@@ -147,7 +133,7 @@ public:
             assert(res != nullptr);
         } else {
             // If not, send a Get message to the correct node
-            Get g(k);
+            Get g(&k);
             // printf("\033[1;3%zumNode %zu: Sending Get\033[0m\n", idx_, idx_);
             send_to_node(g.serialize(), dst_node);
             // Wait for a reply with the desired data
@@ -168,12 +154,12 @@ public:
      * 
      * @return The deserialized data
      */
-    DataFrame* wait_and_get(Key* k) {
-        size_t dst_node = k->get_home_node();
-        String* key_string = k->get_keystring();
+    DataFrame* wait_and_get(Key& k) {
+        size_t dst_node = k.get_home_node();
         // Check if this key corresponds to this node
         if (dst_node == idx_) {
             // If so, wait until the data is put into this node's map
+            String* key_string = k.get_keystring();
             bool contains_key = map_->containsKey(key_string);
             // printf("\033[1;3%zumNode %zu: Waiting for put\033[0m\n", idx_, idx_);
             while (!contains_key) {
@@ -184,7 +170,7 @@ public:
             return get(k);
         } else {
             // If not, send a WaitAndGet message to the correct node
-            WaitAndGet wag(k);
+            WaitAndGet wag(&k);
             // printf("\033[1;3%zumNode %zu: Sending WaitAndGet\033[0m\n", idx_, idx_);
             send_to_node(wag.serialize(), dst_node);
             // Wait for a reply with the desired data
@@ -268,6 +254,8 @@ public:
             directory_ = new Directory();
             // printf("\033[1;3%zumNode %zu: Server is up.\033[0m\n", idx_, idx_);
         } else {
+            // Wait a second for the server to start up
+            sleep(1);
             // Calculate the server's IP using its node index (always 0) and use that to generate 
             // another struct
             struct addrinfo *servinfo;
@@ -290,7 +278,7 @@ public:
             exit_if_not(send(servfd_, msg, strlen(msg) + 1, 0) > 0, "Sending IP to server failed");
         }
         // Start listening for incoming messages
-        t_ = new std::thread(&KVStore::monitor_sockets_, this);
+        threads_->push_back(std::thread(&KVStore::monitor_sockets_, this));
     }
 
     /**
@@ -480,31 +468,19 @@ public:
                 break;
             }
             case MsgKind::Put: {
-                // Wait for the previous put operation to finish if there is one
-                if (tp_ != nullptr) {
-                    tp_->join();
-                    delete tp_;
-                }
-                tp_ = new std::thread(&KVStore::process_put_, this, m->as_put(), std::ref(fd));
+                threads_->push_back(
+                    std::thread(&KVStore::process_put_, this, m->as_put(), std::ref(fd)));
                 break;
             }
             case MsgKind::Get: {
-                // Wait for the previous get operation to finish if there is one
-                if (tg_ != nullptr) {
-                    tg_->join();
-                    delete tg_;
-                }
-                tg_ = new std::thread(&KVStore::process_get_, this, m->as_get(), std::ref(fd));
+                threads_->push_back(
+                    std::thread(&KVStore::process_get_, this, m->as_get(), std::ref(fd)));
                 break;
             }
             case MsgKind::WaitAndGet: {
-                // Wait for the previous wait_and_get operation to finish if there is one
-                if (twag_ != nullptr) {
-                    twag_->join();
-                    delete twag_;
-                }
-                twag_ = new std::thread(&KVStore::process_wag_, this, m->as_wait_and_get(), 
-                    std::ref(fd));
+                threads_->push_back(
+                    std::thread(&KVStore::process_wag_, this, m->as_wait_and_get(), std::ref(fd)));
+                // printf("\033[1;3%zumNode %zu: Continuing\033[0m\n", idx_, idx_);
                 break;
             }
         }
@@ -535,7 +511,7 @@ public:
         // printf("\033[1;3%zumNode %zu: Received Put\033[0m\n", idx_, idx_);
         // Ensure that this message was sent to the right node
         exit_if_not(p->get_key()->get_home_node() == idx_, "Put was sent to incorrect node");
-        put(p->get_key(), p->get_value());
+        put(*(p->get_key()), *(p->get_value()));
 
         // Reply with an Ack confirming that the put operation was successful
         Ack* a = new Ack();
@@ -551,7 +527,7 @@ public:
         // printf("\033[1;3%zumNode %zu: Received Get\033[0m\n", idx_, idx_);
         // Ensure that this message was sent to the right node
         exit_if_not(g->get_key()->get_home_node() == idx_, "Put was sent to incorrect node");
-        DataFrame* res = get(g->get_key());
+        DataFrame* res = get(*(g->get_key()));
 
         // Send back a Reply with the data
         Reply r(res, MsgKind::Get);
@@ -567,7 +543,7 @@ public:
         // printf("\033[1;3%zumNode %zu: Received WaitAndGet\033[0m\n", idx_, idx_);
         // Ensure that this message was sent to the right node
         exit_if_not(wag->get_key()->get_home_node() == idx_, "Put was sent to incorrect node");
-        DataFrame* res = wait_and_get(wag->get_key());
+        DataFrame* res = wait_and_get(*(wag->get_key()));
 
         // Send back a Reply with the data
         Reply r(res, MsgKind::WaitAndGet);
@@ -663,7 +639,7 @@ DataFrame* DataFrame::fromIntArray(Key* k, KVStore* kv, size_t size, int* vals) 
     }
     DataFrame* res = new DataFrame();
     res->add_column(col);
-    kv->put(k, res);
+    kv->put(*k, *res);
     return res;
 }
 
@@ -678,7 +654,7 @@ DataFrame* DataFrame::fromBoolArray(Key* k, KVStore* kv, size_t size, bool* vals
     }
     DataFrame* res = new DataFrame();
     res->add_column(col);
-    kv->put(k, res);
+    kv->put(*k, *res);
     return res;
 }
 
@@ -693,7 +669,7 @@ DataFrame* DataFrame::fromFloatArray(Key* k, KVStore* kv, size_t size, float* va
     }
     DataFrame* res = new DataFrame();
     res->add_column(col);
-    kv->put(k, res);
+    kv->put(*k, *res);
     return res;
 }
 
@@ -708,7 +684,7 @@ DataFrame* DataFrame::fromStringArray(Key* k, KVStore* kv, size_t size, String**
     }
     DataFrame* res = new DataFrame();
     res->add_column(col);
-    kv->put(k, res);
+    kv->put(*k, *res);
     return res;
 }
 
@@ -721,7 +697,7 @@ DataFrame* DataFrame::fromIntScalar(Key* k, KVStore* kv, int val) {
     col->push_back(val);
     DataFrame* res = new DataFrame();
     res->add_column(col);
-    kv->put(k, res);
+    kv->put(*k, *res);
     return res;
 }
 
@@ -734,7 +710,7 @@ DataFrame* DataFrame::fromBoolScalar(Key* k, KVStore* kv, bool val) {
     col->push_back(val);
     DataFrame* res = new DataFrame();
     res->add_column(col);
-    kv->put(k, res);
+    kv->put(*k, *res);
     return res;
 }
 
@@ -747,7 +723,7 @@ DataFrame* DataFrame::fromIntScalar(Key* k, KVStore* kv, float val) {
     col->push_back(val);
     DataFrame* res = new DataFrame();
     res->add_column(col);
-    kv->put(k, res);
+    kv->put(*k, *res);
     return res;
 }
 
@@ -760,6 +736,6 @@ DataFrame* DataFrame::fromStringScalar(Key* k, KVStore* kv, String* val) {
     col->push_back(val);
     DataFrame* res = new DataFrame();
     res->add_column(col);
-    kv->put(k, res);
+    kv->put(*k, *res);
     return res;
 }

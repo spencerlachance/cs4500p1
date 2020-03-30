@@ -21,7 +21,7 @@ class Trivial : public Application {
         Key key("triv",0);
         DataFrame* df = DataFrame::fromFloatArray(&key, &kv_, SZ, vals);
         assert(df->get_float(0, 1) == 1);
-        DataFrame* df2 = kv_.get(&key);
+        DataFrame* df2 = kv_.get(key);
         for (size_t i = 0; i < SZ; ++i) sum -= df2->get_float(0,i);
         assert(sum == 0);
         printf("KVStore Trivial test passed\n");
