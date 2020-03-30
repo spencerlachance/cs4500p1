@@ -68,7 +68,7 @@ class PrintRower : public Rower {
 class DataFrame : public Object {
     public:
         Vector* columns_;
-        Schema* schema_;
+        Schema schema_;
         // Number of rows
         size_t length_;
         
@@ -79,16 +79,15 @@ class DataFrame : public Object {
         Rower* r2_;
  
         /** Create a data frame with the same columns as the given df but with no rows */
-        DataFrame(DataFrame& df) {
+        DataFrame(DataFrame& df) : schema_(df.get_schema()) {
             columns_ = new Vector();
             columns_->append_all(df.get_columns_());
-            schema_ = new Schema(df.get_schema());
             length_ = df.nrows();
         }
         
         /** Create a data frame from a schema and columns. All columns are created
           * empty. */
-        DataFrame(Schema& schema) {
+        DataFrame(Schema& schema) : schema_(schema) {
             IntVector* types = schema.get_types();
             columns_ = new Vector();
             for (int i = 0; i < types->size(); i++) {
@@ -108,7 +107,6 @@ class DataFrame : public Object {
                         break;
                 }
             }
-            schema_ = new Schema(schema);
             length_ = 0;
         }
 
@@ -118,7 +116,6 @@ class DataFrame : public Object {
          * its type is added to the schema.
          */
         DataFrame() {
-            schema_ = new Schema();
             columns_ = new Vector();
             length_ = 0;
         }
@@ -126,13 +123,12 @@ class DataFrame : public Object {
         /** Destructor */
         ~DataFrame() {
             delete columns_;
-            delete schema_;
         }
         
         /** Returns the dataframe's schema. Modifying the schema after a dataframe
           * has been created in undefined. */
         Schema& get_schema() {
-            return *schema_;
+            return schema_;
         }
         
         /** Adds a column this dataframe, updates the schema, the new column
@@ -149,8 +145,8 @@ class DataFrame : public Object {
                 }
             }
             columns_->append(col);
-            if (columns_->size() > schema_->width()) {
-                schema_->add_column(col->get_type());
+            if (columns_->size() > schema_.width()) {
+                schema_.add_column(col->get_type());
             }
         }
         
@@ -205,7 +201,7 @@ class DataFrame : public Object {
           * the given offset.  If the row is not form the same schema as the
           * dataframe, results are undefined. */
         void fill_row(size_t idx, Row& row) {
-            exit_if_not(schema_->get_types()->equals(row.get_types()), "Row's schema does not match the data frame's.");
+            exit_if_not(schema_.get_types()->equals(row.get_types()), "Row's schema does not match the data frame's.");
             for (int j = 0; j < ncols(); j++) {
                 Column* col = dynamic_cast<Column*>(columns_->get(j));
                 char type = col->get_type();
@@ -231,7 +227,7 @@ class DataFrame : public Object {
         /** Add a row at the end of this dataframe. The row is expected to have
           * the right schema and be filled with values, otherwise undefined.  */
         void add_row(Row& row) {
-            exit_if_not(schema_->get_types()->equals(row.get_types()), "Row's schema does not match the data frame's.");
+            exit_if_not(schema_.get_types()->equals(row.get_types()), "Row's schema does not match the data frame's.");
             for (int j = 0; j < ncols(); j++) {
                 Column* col = dynamic_cast<Column*>(columns_->get(j));
                 char type = col->get_type();
@@ -269,13 +265,12 @@ class DataFrame : public Object {
         
         /** Visit rows in order */
         void map(Rower& r) {
-            Row* row = new Row(*schema_);
+            Row row(schema_);
             for (int i = 0; i < length_; i++) {
-                row->set_idx(i);
-                fill_row(i, *row);
-                r.accept(*row);
+                row.set_idx(i);
+                fill_row(i, row);
+                r.accept(row);
             }
-            delete row;
         }
 
         /**
@@ -286,7 +281,7 @@ class DataFrame : public Object {
         void map_x(int x) {
             int start, end;
             Rower* r;
-            Row* row = new Row(*schema_);
+            Row row(schema_);
             if (x == 1) {
                 r = r_;
                 start = 0;
@@ -297,11 +292,10 @@ class DataFrame : public Object {
                 end = length_;
             }
             for (int i = start; i < end; i++) {
-                row->set_idx(i);
-                fill_row(i, *row);
-                r->accept(*row);
+                row.set_idx(i);
+                fill_row(i, row);
+                r->accept(row);
             }
-            delete row;
         }
 
         /** This method clones the Rower and executes the map in parallel. Join is
@@ -319,24 +313,22 @@ class DataFrame : public Object {
         /** Create a new dataframe, constructed from rows for which the given Rower
           * returned true from its accept method. */
         DataFrame* filter(Rower& r) {
-            DataFrame* df = new DataFrame(*schema_);
+            DataFrame* df = new DataFrame(schema_);
             for (int i = 0; i < length_; i++) {
-                Row* row = new Row(*schema_);
-                fill_row(i, *row);
-                if (r.accept(*row)) {
-                    df->add_row(*row);
+                Row row(schema_);
+                fill_row(i, row);
+                if (r.accept(row)) {
+                    df->add_row(row);
                 }
-                delete row;
             }
             return df;
         }
         
         /** Print the dataframe in SoR format to standard output. */
         void print() {
-            PrintRower* pr = new PrintRower();
-            map(*pr);
+            PrintRower pr;
+            map(pr);
             printf("\n");
-            delete pr;
         }
 
         /** Getter for the dataframe's columns. */

@@ -42,7 +42,7 @@ public:
     // The index of this node
     size_t idx_;
     // The map from string keys to deserialized data blobs
-    Map* map_;
+    Map map_;
     // Have we received an Ack?
     bool ack_recvd_;
     // Data returned in a Reply message after a Get message is sent
@@ -63,7 +63,6 @@ public:
      */
     KVStore(size_t idx) : idx_(idx), ack_recvd_(false), reply_data_(nullptr), 
         wag_reply_data_(nullptr) {
-        map_ = new Map();
         threads_ = new std::vector<std::thread>();
         startup_();
         // Wait a second for client registration to finish
@@ -82,7 +81,6 @@ public:
         }
         delete t_;
         delete threads_;
-        delete map_;
     }
 
     /**
@@ -98,7 +96,7 @@ public:
             // If so, put the data in this KVStore's map
             const char* serial_df = v.serialize();
             mtx_.lock();
-            map_->put(k.get_keystring(), new String(serial_df));
+            map_.put(k.get_keystring(), new String(serial_df));
             mtx_.unlock();
             // printf("\033[1;3%zumNode %zu: Put was successful\033[0m\n", idx_, idx_);
             delete[] serial_df;
@@ -131,7 +129,7 @@ public:
         if (dst_node == idx_) {
             // If so, get the data from this KVStore's map
             mtx_.lock();
-            String* serialized_df = dynamic_cast<String*>(map_->get(k.get_keystring()));
+            String* serialized_df = dynamic_cast<String*>(map_.get(k.get_keystring()));
             mtx_.unlock();
             assert(serialized_df != nullptr);
             
@@ -169,11 +167,11 @@ public:
         if (dst_node == idx_) {
             // If so, wait until the data is put into this node's map
             String* key_string = k.get_keystring();
-            bool contains_key = map_->containsKey(key_string);
+            bool contains_key = map_.containsKey(key_string);
             // printf("\033[1;3%zumNode %zu: Waiting for put\033[0m\n", idx_, idx_);
             while (!contains_key) {
                 sleep(1);
-                contains_key = map_->containsKey(key_string);
+                contains_key = map_.containsKey(key_string);
             }
             // printf("\033[1;3%zumNode %zu: Done waiting for put\033[0m\n", idx_, idx_);
             // Get the data
