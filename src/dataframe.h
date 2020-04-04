@@ -12,48 +12,6 @@
 
 class KVStore;
 class Key;
-
-/**
- * Fielder that prints each field.
- * 
- * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- * @author Spencer LaChance <lachance.s@northeastern.edu>
- */
-class PrintFielder : public Fielder {
-    public:
-        void start(size_t r) { }
-        void accept(bool b) { printf("<%d>", b); }
-        void accept(float f) { printf("<%f>", f); }
-        void accept(int i) { printf("<%d>", i); }
-        void accept(String* s) { printf("<%s>", s->c_str()); }
-        void done() { }
-};
-
-/**
- * Rower that prints each row.
- * 
- * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- * @author Spencer LaChance <lachance.s@northeastern.edu>
- */
-class PrintRower : public Rower {
-    public:
-        PrintFielder* pf_;
-
-        PrintRower() {
-            pf_ = new PrintFielder();
-        }
-
-        ~PrintRower() {
-            delete pf_;
-        }
-
-        bool accept(Row& r) { 
-            r.visit(r.get_idx(), *pf_);
-            printf("\n");
-        }
-
-        void join_delete(Rower* other) { }
-};
  
 /****************************************************************************
  * DataFrame::

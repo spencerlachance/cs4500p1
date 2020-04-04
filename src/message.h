@@ -562,87 +562,87 @@ class WaitAndGet : public Message {
  * Reply is a subclass of Message that contains a DataFrame value;
  */
 class Reply : public Message {
-public:
-    DataFrame* v_;
-    // The type of request that this message is a response to (either Get or WaitAndGet)
-    MsgKind request_;
+    public:
+        DataFrame* v_;
+        // The type of request that this message is a response to (either Get or WaitAndGet)
+        MsgKind request_;
 
-    /* Constructor, DOES NOT take ownership over v */
-    Reply(DataFrame* v, MsgKind req) : v_(v), request_(req) {
-        kind_ = MsgKind::Reply;
-    } 
+        /* Constructor, DOES NOT take ownership over v */
+        Reply(DataFrame* v, MsgKind req) : v_(v), request_(req) {
+            kind_ = MsgKind::Reply;
+        } 
 
-    /* Destructor */
-    ~Reply() { }
+        /* Destructor */
+        ~Reply() { }
 
-    /* Return this reply's v_ field */
-    DataFrame* get_value() {
-        return v_;
-    }
+        /* Return this reply's v_ field */
+        DataFrame* get_value() {
+            return v_;
+        }
 
-    /* Return this reply's request_ field */
-    MsgKind get_request() {
-        return request_;
-    }
+        /* Return this reply's request_ field */
+        MsgKind get_request() {
+            return request_;
+        }
 
-    /* Returns a serialized representation of this reply message */
-    const char* serialize() {
-        StrBuff buff;
-        buff.c("{type: reply, value: ");
-        const char* serialized_v = v_->serialize();
-        buff.c(serialized_v);
-        buff.c(", request: ");
-        buff.c((size_t)request_);
-        buff.c("}");
-        String* serial_str = buff.get();
-        // Copying the char* so we can delete the String* returned from get()
-        char* copy = new char[serial_str->size() + 1];
-        strcpy(copy, serial_str->c_str());
+        /* Returns a serialized representation of this reply message */
+        const char* serialize() {
+            StrBuff buff;
+            buff.c("{type: reply, value: ");
+            const char* serialized_v = v_->serialize();
+            buff.c(serialized_v);
+            buff.c(", request: ");
+            buff.c((size_t)request_);
+            buff.c("}");
+            String* serial_str = buff.get();
+            // Copying the char* so we can delete the String* returned from get()
+            char* copy = new char[serial_str->size() + 1];
+            strcpy(copy, serial_str->c_str());
 
-        delete[] serialized_v;
-        delete serial_str;
-        return copy;
-    }
+            delete[] serialized_v;
+            delete serial_str;
+            return copy;
+        }
 
-    /* Checks if this reply equals to the given object */
-    bool equals(Object* o) {
-        Reply* other = dynamic_cast<Reply*>(o);
-        if (other == nullptr) return false;
-        return other->get_value()->equals(v_) && other->get_request() == request_;
-    }
+        /* Checks if this reply equals to the given object */
+        bool equals(Object* o) {
+            Reply* other = dynamic_cast<Reply*>(o);
+            if (other == nullptr) return false;
+            return other->get_value()->equals(v_) && other->get_request() == request_;
+        }
 
-    /* Returns nullptr because this is not an Ack */
-    Ack* as_ack() {
-        return nullptr;
-    }
+        /* Returns nullptr because this is not an Ack */
+        Ack* as_ack() {
+            return nullptr;
+        }
 
-    /* Returns nullptr because this is not a Register */
-    Register* as_register() {
-        return nullptr;
-    }
+        /* Returns nullptr because this is not a Register */
+        Register* as_register() {
+            return nullptr;
+        }
 
-    /* Returns nullptr because this is not a Directory */
-    Directory* as_directory() {
-        return nullptr;
-    }
+        /* Returns nullptr because this is not a Directory */
+        Directory* as_directory() {
+            return nullptr;
+        }
 
-    /* Returns this Reply */
-    Reply* as_reply() {
-        return this;
-    }
+        /* Returns this Reply */
+        Reply* as_reply() {
+            return this;
+        }
 
-    /* Returns nullptr because this is not a Put */
-    Put* as_put() {
-        return nullptr;
-    }
+        /* Returns nullptr because this is not a Put */
+        Put* as_put() {
+            return nullptr;
+        }
 
-    /* Returns nullptr because this is not a Get */
-    Get* as_get() {
-        return nullptr;
-    }
+        /* Returns nullptr because this is not a Get */
+        Get* as_get() {
+            return nullptr;
+        }
 
-    /* Returns nullptr because this is not a WaitAndGet */
-    WaitAndGet* as_wait_and_get() {
-        return nullptr;
-    }
+        /* Returns nullptr because this is not a WaitAndGet */
+        WaitAndGet* as_wait_and_get() {
+            return nullptr;
+        }
 };
