@@ -71,4 +71,11 @@ class Schema : public Object {
         IntVector* get_types() {
             return col_types_;
         }
+
+        /** Resolves is this schema equal to the given object? **/
+        bool equals(Object* o) {
+            Schema* other = dynamic_cast<Schema*>(o);
+            if (other == nullptr) return false;
+            return get_types()->equals(other->get_types());
+        }
 };

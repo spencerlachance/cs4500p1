@@ -3,6 +3,7 @@
 #include "string.h"
 #include <stdbool.h>
 #include <assert.h>
+#include "datatype.h"
 
 // The number of chunks held initially in each vector
 #define INITIAL_CHUNK_CAPACITY 1024
@@ -194,8 +195,7 @@ class Vector : public Object {
             return size_;
         }
 
-        // Inherited from Object
-        // Is this Vector equal to the given Object?
+        // Check for the reference equality of the Objects in this vector.
         bool equals(Object* o) {
             Vector* other = dynamic_cast<Vector*>(o);
             if (other == nullptr) return false;

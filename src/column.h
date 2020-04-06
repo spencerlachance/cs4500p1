@@ -617,10 +617,18 @@ class StringColumn : public Column {
         }
 
         /* Is this column equal to the given object? */
-        bool equals(Object* other) {
-            StringColumn* o = dynamic_cast<StringColumn*>(other);
-            if (o == nullptr) { return false;}
-            if (o->size() != size()) { return false;}
-            return o->get_fields()->equals(get_fields());
+        bool equals(Object* o) {
+            StringColumn* other = dynamic_cast<StringColumn*>(o);
+            if (other == nullptr) { return false;}
+            if (other->size() != size()) { return false;}
+            int x = size();
+            for (int i = 0; i < size(); i++) {
+                String* s_other = dynamic_cast<String*>(other->get_fields()->get(i));
+                if (s_other == nullptr) return false;
+                String* s_this = dynamic_cast<String*>(get_fields()->get(i));
+                if (s_this == nullptr) return false;
+                if (!s_other->equals(s_this)) return false;
+            }
+            return true;
         }
 };

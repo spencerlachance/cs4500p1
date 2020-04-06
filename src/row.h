@@ -7,85 +7,6 @@
 #include "schema.h"
 #include "visitors.h"
 
-/**
- * A union describing a field that could exist in a row of a dataframe.
- * 
- * @author Spencer LaChance <lachance.s@northeastern.edu>
- * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- */
-union Type {
-    int i;
-    bool b;
-    float f;
-    String* s;
-};
-
-/**
- * An Object wrapper class for the Type union. It is only allowed to one value of one of the four
- * types.
- * 
- * @author Spencer LaChance <lachance.s@northeastern.edu>
- * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- */
-class DataType : public Object {
-    public:
-    union Type t;
-    char type;
-
-    /**
-     * Constructor
-     */
-    DataType() {
-        // Initialize the object with an unknown type
-        type = 'U';
-    }
-
-    /**
-     * These setters set the value of this object to the given one. Once a value is set, the
-     * object's type is locked down and cannot change.
-     */
-    void set_int(int val) {
-        exit_if_not(type == 'U', "This object's value has already been set to a different type.");
-        t.i = val;
-        type = 'I';
-    }
-    void set_bool(bool val) {
-        exit_if_not(type == 'U', "This object's value has already been set to a different type.");
-        t.b = val;
-        type = 'B';
-    }
-    void set_float(float val) {
-        exit_if_not(type == 'U', "This object's value has already been set to a different type.");
-        t.f = val;
-        type = 'F';
-    }
-    // Does not take ownership of the String because this is a placeholder object
-    void set_string(String* val) {
-        exit_if_not(type == 'U', "This object's value has already been set to a different type.");
-        t.s = val;
-        type = 'S';
-    }
-
-    /**
-     * These getters return this object's value.
-     */
-    int get_int() {
-        exit_if_not(type == 'I', "This object's type does not match the type requested.");
-        return t.i;
-    }
-    bool get_bool() {
-        exit_if_not(type == 'B', "This object's type does not match the type requested.");
-        return t.b;
-    }
-    float get_float() {
-        exit_if_not(type == 'F', "This object's type does not match the type requested.");
-        return t.f;
-    }
-    String* get_string() {
-        exit_if_not(type == 'S', "This object's type does not match the type requested.");
-        return t.s;
-    }
-};
 
 /*************************************************************************
  * Row::
@@ -228,4 +149,25 @@ class Row : public Object {
         IntVector* get_types() {
             return col_types_;
         }
+
+        /** Getter for this row's fields. */
+        Vector* get_fields() {
+            return fields_;
+        }
+
+        /* Returns true if the given Objcet is equal to this Row, otherwise returns false.
+        *  Only used for Vectors containing Strings.
+        *  */
+        bool equals(Object* o) {
+            Row* other = dynamic_cast<Row*>(o);
+            if (other->width() != width()) return false;
+            for (int i = 0; i < width(); i++) {
+                Vector* other_fields = other->get_fields();
+                Vector* this_fields = get_fields();
+                DataType* other_dt = dynamic_cast<DataType*>(other_fields->get(i));
+                DataType* this_dt = dynamic_cast<DataType*>(this_fields->get(i));
+                if (!other_dt->equals(this_dt)) return false;
+            }
+            return other != nullptr && other->get_types()->equals(get_types()) && other->get_idx() == get_idx();
+        } 
 };

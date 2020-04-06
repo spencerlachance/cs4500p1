@@ -12,6 +12,49 @@
 
 class KVStore;
 class Key;
+
+/**
+ * Fielder that prints each field.
+ * 
+ * @author David Mberingabo <mberingabo.d@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
+ */
+class PrintFielder : public Fielder {
+    public:
+        void start(size_t r) { }
+        void accept(bool b) { printf("<%d>", b); }
+        void accept(float f) { printf("<%f>", f); }
+        void accept(int i) { printf("<%d>", i); }
+        void accept(String* s) { printf("<%s>", s->c_str()); }
+        void done() { }
+};
+
+/**
+ * Rower that prints each row.
+ * 
+ * @author David Mberingabo <mberingabo.d@husky.neu.edu>
+ * @author Spencer LaChance <lachance.s@northeastern.edu>
+ */
+class PrintRower : public Rower {
+    public:
+        PrintFielder* pf_;
+
+        PrintRower() {
+            pf_ = new PrintFielder();
+        }
+
+        ~PrintRower() {
+            delete pf_;
+        }
+
+        bool accept(Row& r) { 
+            r.visit(r.get_idx(), *pf_);
+            printf("\n");
+        }
+
+        void join_delete(Rower* other) { }
+};
+
  
 /****************************************************************************
  * DataFrame::
@@ -342,12 +385,44 @@ class DataFrame : public Object {
         }
 
         /* Checks if this DataFrame equals the given object */
-        bool equals(Object* other) {
-            DataFrame* o = dynamic_cast<DataFrame*>(other);
-            if (o == nullptr) { return false; }
-            if (ncols() != o->ncols()) { return false; }
-            if (nrows() != o->nrows()) { return false; }
-            return columns_->equals(o->get_columns_());
+        bool equals(Object* o) {
+            DataFrame* other = dynamic_cast<DataFrame*>(o);
+            if (other == nullptr) return false;
+            if (ncols() != other->ncols()) return false;
+            if (nrows() != other->nrows()) return false;
+            if (!other->get_schema().equals(&get_schema())) return false;
+            Vector* other_cols = other->get_columns_();
+            Vector* this_cols = get_columns_();
+            // For each column in the Vector of columns
+            for (int i = 0; i < ncols(); i++) {
+                Column* other_col = dynamic_cast<Column*>(other_cols->get(i));
+                Column* this_col = dynamic_cast<Column*>(this_cols->get(i));
+                if (other_col == nullptr) return false;
+                if (this_col == nullptr) return false;
+                char type = other_col->get_type();
+                // Check if the type of this and other column matches
+                if (type != this_col->get_type()) return false;
+                // Cast this and other column to the right column type,
+                // and check if the columns are equal to each other.
+                if (type == 'I') {
+                    IntColumn* i_other_col = dynamic_cast<IntColumn*>(other_col);
+                    IntColumn* i_this_col = dynamic_cast<IntColumn*>(this_col);
+                    if (!i_this_col->equals(i_other_col)) return false;
+                } else if (type == 'B') {
+                    BoolColumn* b_other_col = dynamic_cast<BoolColumn*>(other_col);
+                    BoolColumn* b_this_col = dynamic_cast<BoolColumn*>(this_col);
+                    if (!b_this_col->equals(b_other_col)) return false;
+                } else if (type == 'F') {
+                    FloatColumn* f_other_col = dynamic_cast<FloatColumn*>(other_col);
+                    FloatColumn* f_this_col = dynamic_cast<FloatColumn*>(this_col);
+                    if (!f_this_col->equals(f_other_col)) return false;
+                } else if (type == 'S') {
+                    StringColumn* s_other_col = dynamic_cast<StringColumn*>(other_col);
+                    StringColumn* s_this_col = dynamic_cast<StringColumn*>(this_col);
+                    if (!s_this_col->equals(s_other_col)) return false;
+                }
+            }
+            return true;
         }
 
         /**
