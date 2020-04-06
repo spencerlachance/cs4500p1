@@ -46,5 +46,8 @@ class Rower : public Object {
       split off will be joined.  There will be one join per split. The
       original object will be the last to be called join on. The join method
       is reponsible for cleaning up memory. */
-  virtual void join_delete(Rower* other) = 0;
+  virtual void join_delete(Rower* other) { }
+
+  /** Called when all fields have been seen. */
+  virtual bool done() { }
 };

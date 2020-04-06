@@ -9,7 +9,7 @@ build:
 	unzip data/datafile.zip -d data
 
 run:
-	./dataf -f data/datafile.txt -len 10000000
+	./dataf -f data/datafile.txt -len 1000000
 	./serial
 	./trivial
 	./demo -idx 1 &
@@ -17,13 +17,21 @@ run:
 	./demo -idx 0
 
 valgrind:
-	valgrind --leak-check=full ./dataf -f data/datafile.txt -len 1000000
+	valgrind --leak-check=full ./dataf -f data/datafile.txt -len 10000
 	valgrind --leak-check=full ./serial
 	valgrind --leak-check=full ./trivial -v
-	# Sleeping to give the lead node enough time to start up with valgrind running
-	sleep 2 && ./demo -idx 1 &
-	sleep 2 && ./demo -idx 2 &
-	valgrind --leak-check=full ./demo -idx 0
+	# Valgrind on Node 0
+	./demo -v -idx 1 &
+	./demo -v -idx 2 &
+	valgrind --leak-check=full ./demo -v -idx 0
+	# Valgrind on Node 1
+	./demo -v -idx 0 &
+	./demo -v -idx 2 &
+	valgrind --leak-check=full ./demo -v -idx 1
+	# Valgrind on Node 2
+	./demo -v -idx 0 &
+	./demo -v -idx 1 &
+	valgrind --leak-check=full ./demo -v -idx 2
 
 clean:
 	rm dataf serial trivial demo

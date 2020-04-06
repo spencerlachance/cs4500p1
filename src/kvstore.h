@@ -20,14 +20,13 @@
 #include <vector>
 
 #include "map.h"
-// #include "dataframe.h"
 #include "serial.h"
 
 #define PORT "8080"
 // The fixed number of nodes that this network supports (1 server, the rest are clients)
 #define BACKLOG 6
 // The size of the string buffer used to send messages
-#define BUF_SIZE (size_t)100000
+#define BUF_SIZE 1000000
 
 /**
  * This class represents a key/value store maintained on one node from a larger distributed system.
@@ -39,18 +38,20 @@
  */
 class KVStore : public Object {
 public:
-    // The index of this node
+    // Index of this KVStore's node
     size_t idx_;
+    // Number of nodes in the system
+    size_t num_nodes_;
     // The map from string keys to deserialized data blobs
     Map map_;
     // Have we received an Ack?
     bool ack_recvd_;
     // Data returned in a Reply message after a Get message is sent
-    DataFrame* reply_data_;
+    const char* reply_data_;
     // Data returned in a Reply message after a WaitAndGet message is sent
     // WaitAndGet gets its own variable so that there is no confusion between threads running both
     // get operations
-    DataFrame* wag_reply_data_;
+    const char* wag_reply_data_;
     // The thread that runs the select() loop
     std::thread* t_;
     // Vector of threads that process messages
@@ -60,9 +61,12 @@ public:
 
     /**
      * Constructor that initializes an empty KVStore.
+     * 
+     * @param idx   The index of the node running this KVStore.
+     * @param nodes The total number of nodes running in the system.
      */
-    KVStore(size_t idx) : idx_(idx), ack_recvd_(false), reply_data_(nullptr), 
-        wag_reply_data_(nullptr) {
+    KVStore(size_t idx, size_t nodes) : idx_(idx), num_nodes_(nodes), ack_recvd_(false),
+        reply_data_(nullptr), wag_reply_data_(nullptr) {
         threads_ = new std::vector<std::thread>();
         startup_();
         // Wait a second for client registration to finish
@@ -87,22 +91,20 @@ public:
      * Serializes the given data and puts it into the map at the given key.
      * 
      * @param k The key at which the data will be stored
-     * @param v The data that will be stored in the k/v store
+     * @param v The serialized data that will be stored in the k/v store
      */
-    void put(Key& k, DataFrame& v) {
+    void put(Key& k, const char* v) {
         size_t dst_node = k.get_home_node();
         // Check if the key corresponds to this node
         if (dst_node == idx_) {
             // If so, put the data in this KVStore's map
-            const char* serial_df = v.serialize();
             mtx_.lock();
-            map_.put(k.get_keystring(), new String(serial_df));
+            map_.put(k.get_keystring(), new String(v));
             mtx_.unlock();
             // printf("\033[1;3%zumNode %zu: Put was successful\033[0m\n", idx_, idx_);
-            delete[] serial_df;
         } else {
             // If not, send a Put message to the correct node
-            Put p(&k, &v);
+            Put p(&k, v);
             // printf("\033[1;3%zumNode %zu: Sending Put\033[0m\n", idx_, idx_);
             const char* msg = p.serialize();
             send_to_node_(msg, dst_node);
@@ -113,6 +115,7 @@ public:
             ack_recvd_ = false;
             delete[] msg;
         }
+        delete[] v;
     }
 
     /**
@@ -120,22 +123,22 @@ public:
      * 
      * @param k The key at which the reqested data is stored
      * 
-     * @return The deserialized data
+     * @return The serialized data blob
      */
-    DataFrame* get(Key& k) {
+    const char* get(Key& k) {
         size_t dst_node = k.get_home_node();
-        DataFrame* res;
+        const char* res;
         // Check if this key corresponds to this node
         if (dst_node == idx_) {
             // If so, get the data from this KVStore's map
             mtx_.lock();
-            String* serialized_df = dynamic_cast<String*>(map_.get(k.get_keystring()));
+            String* serialized_data = dynamic_cast<String*>(map_.get(k.get_keystring()));
+            assert(serialized_data != nullptr);
             mtx_.unlock();
-            assert(serialized_df != nullptr);
-            
-            Deserializer ds(serialized_df->c_str());
-            res = dynamic_cast<DataFrame*>(ds.deserialize());
-            assert(res != nullptr);
+            // Copy the data because the Map owns it
+            String* copy = serialized_data->clone();
+            res = copy->steal();
+            delete copy;
         } else {
             // If not, send a Get message to the correct node
             Get g(&k);
@@ -159,9 +162,9 @@ public:
      * 
      * @param k The key at which the reqested data is stored
      * 
-     * @return The deserialized data
+     * @return The serialized data blob
      */
-    DataFrame* wait_and_get(Key& k) {
+    const char* wait_and_get(Key& k) {
         size_t dst_node = k.get_home_node();
         // Check if this key corresponds to this node
         if (dst_node == idx_) {
@@ -186,12 +189,18 @@ public:
             // printf("\033[1;3%zumNode %zu: Waiting for Reply\033[0m\n", idx_, idx_);
             while (wag_reply_data_ == nullptr) sleep(1);
             // printf("\033[1;3%zumNode %zu: Done waiting for Reply\033[0m\n", idx_, idx_);
-            DataFrame* ret = wag_reply_data_;
+            const char* res = wag_reply_data_;
             wag_reply_data_ = nullptr;
             delete[] msg;
-            return ret;
+            return res;
         }
     }
+
+    /** Retuns the number of nodes running in the system. */
+    size_t num_nodes() { return num_nodes_; }
+
+    /** Returns the current node's index. */
+    size_t this_node() { return idx_; }
 
     // ############################# NETWORK-SPECIFIC FIELDS AND METHODS ###########################
 
@@ -452,7 +461,7 @@ public:
                 // printf("\033[1;3%zumNode %zu: Received Reply\033[0m\n", idx_, idx_);
                 Reply* rep = m->as_reply();
                 MsgKind req = rep->get_request();
-                DataFrame* v = rep->get_value();
+                const char* v = rep->get_value();
                 // Set the values that get() and wait_and_get() wait for above
                 if (req == MsgKind::WaitAndGet) {
                     wag_reply_data_ = v;
@@ -506,16 +515,16 @@ public:
     void process_put_(Put* p, int fd) {
         // printf("\033[1;3%zumNode %zu: Received Put\033[0m\n", idx_, idx_);
         Key* k = p->get_key();
-        DataFrame* v = p->get_value();
+        const char* v = p->get_value();
         // Ensure that this message was sent to the right node
         exit_if_not(k->get_home_node() == idx_, "Put was sent to incorrect node");
-        put(*k, *v);
+        put(*k, v);
 
         // Reply with an Ack confirming that the put operation was successful
         Ack* a = new Ack();
         const char* msg = a->serialize();
         exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, "Call to send() failed");
-        delete p; delete k; delete v; delete a;
+        delete p; delete k; delete a;
     }
 
     /**
@@ -526,13 +535,13 @@ public:
         Key* k = g->get_key();
         // Ensure that this message was sent to the right node
         exit_if_not(k->get_home_node() == idx_, "Put was sent to incorrect node");
-        DataFrame* res = get(*k);
+        const char* res = get(*k);
 
         // Send back a Reply with the data
         Reply r(res, MsgKind::Get);
         const char* msg = r.serialize();
         exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, "Call to send() failed");
-        delete g; delete k; delete res; delete[] msg;
+        delete g; delete k; delete[] msg; delete[] res;
     }
 
     /**
@@ -543,13 +552,13 @@ public:
         Key* k = wag->get_key();
         // Ensure that this message was sent to the right node
         exit_if_not(k->get_home_node() == idx_, "Put was sent to incorrect node");
-        DataFrame* res = wait_and_get(*k);
+        const char* res = wait_and_get(*k);
 
         // Send back a Reply with the data
         Reply r(res, MsgKind::WaitAndGet);
         const char* msg = r.serialize();
         exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, "Call to send() failed");
-        delete wag; delete k; delete res; delete[] msg;
+        delete wag; delete k; delete[] msg; delete[] res;
     }
 
     /**
@@ -628,115 +637,3 @@ public:
         return ip;
     }
 };
-
-/**
- * Builds a DataFrame with one column containing the data in the given int array, adds the
- * DataFrame to the given KVStore at the given Key, and then returns the DataFrame.
- */
-DataFrame* DataFrame::fromIntArray(Key* k, KVStore* kv, size_t size, int* vals) {
-    Column* col = new IntColumn();
-    for (int i = 0; i < size; i++) {
-        col->push_back(vals[i]);
-    }
-    DataFrame* res = new DataFrame();
-    res->add_column(col);
-    kv->put(*k, *res);
-    return res;
-}
-
-/**
- * Builds a DataFrame with one column containing the data in the given bool array, adds the
- * DataFrame to the given KVStore at the given Key, and then returns the DataFrame.
- */
-DataFrame* DataFrame::fromBoolArray(Key* k, KVStore* kv, size_t size, bool* vals) {
-    Column* col = new BoolColumn();
-    for (int i = 0; i < size; i++) {
-        col->push_back(vals[i]);
-    }
-    DataFrame* res = new DataFrame();
-    res->add_column(col);
-    kv->put(*k, *res);
-    return res;
-}
-
-/**
- * Builds a DataFrame with one column containing the data in the given float array, adds the
- * DataFrame to the given KVStore at the given Key, and then returns the DataFrame.
- */
-DataFrame* DataFrame::fromFloatArray(Key* k, KVStore* kv, size_t size, float* vals) {
-    Column* col = new FloatColumn();
-    for (int i = 0; i < size; i++) {
-        col->push_back(vals[i]);
-    }
-    DataFrame* res = new DataFrame();
-    res->add_column(col);
-    kv->put(*k, *res);
-    return res;
-}
-
-/**
- * Builds a DataFrame with one column containing the data in the given string array, adds
- * the DataFrame to the given KVStore at the given Key, and then returns the DataFrame.
- */
-DataFrame* DataFrame::fromStringArray(Key* k, KVStore* kv, size_t size, String** vals) {
-    Column* col = new StringColumn();
-    for (int i = 0; i < size; i++) {
-        col->push_back(vals[i]);
-    }
-    DataFrame* res = new DataFrame();
-    res->add_column(col);
-    kv->put(*k, *res);
-    return res;
-}
-
-/**
- * Builds a DataFrame with one column containing the single given int, adds the DataFrame
- * to the given KVStore at the given Key, and then returns the DataFrame.
- */
-DataFrame* DataFrame::fromIntScalar(Key* k, KVStore* kv, int val) {
-    Column* col = new IntColumn();
-    col->push_back(val);
-    DataFrame* res = new DataFrame();
-    res->add_column(col);
-    kv->put(*k, *res);
-    return res;
-}
-
-/**
- * Builds a DataFrame with one column containing the single given bool, adds the DataFrame
- * to the given KVStore at the given Key, and then returns the DataFrame.
- */
-DataFrame* DataFrame::fromBoolScalar(Key* k, KVStore* kv, bool val) {
-    Column* col = new BoolColumn();
-    col->push_back(val);
-    DataFrame* res = new DataFrame();
-    res->add_column(col);
-    kv->put(*k, *res);
-    return res;
-}
-
-/**
- * Builds a DataFrame with one column containing the single given float, adds the DataFrame
- * to the given KVStore at the given Key, and then returns the DataFrame.
- */
-DataFrame* DataFrame::fromFloatScalar(Key* k, KVStore* kv, float val) {
-    Column* col = new FloatColumn();
-    col->push_back(val);
-    DataFrame* res = new DataFrame();
-    res->add_column(col);
-    kv->put(*k, *res);
-    return res;
-}
-
-/**
- * Builds a DataFrame with one column containing the single given string, adds the DataFrame
- * to the given KVStore at the given Key, and then returns the DataFrame.
- */
-DataFrame* DataFrame::fromStringScalar(Key* k, KVStore* kv, String* val) {
-    Column* col = new StringColumn();
-    col->push_back(val);
-    DataFrame* res = new DataFrame();
-    res->add_column(col);
-    kv->put(*k, *res);
-    return res;
-}

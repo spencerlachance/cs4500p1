@@ -6,7 +6,7 @@
 
 #include "string.h"
 
-#define INITIAL_MAP_CAPACITY 8
+#define INITIAL_MAP_CAPACITY 64
 
 /**
  * Private Node class that represents one entry in the Map's Array.
@@ -76,6 +76,7 @@ class Node : public Object {
      * @param val The new value
      */
     void set_value(Object* val) {
+      delete val_;
       val_ = val;
     }
 
@@ -89,49 +90,12 @@ class Node : public Object {
     }
 
     /**
-     * The length of the linked list starting at this Node.
-     * 
-     * @return the length
-     */
-    int length() {
-      int length = 1;
-      if (has_next()) {
-        length += next_->length();
-      }
-      return length;
-    }
-
-    /**
-     * Removes this Node's next Node.
-     */
-    void remove_next() {
-      assert(next_ != nullptr);
-      delete next_;
-      next_ = nullptr;
-    }
-
-    /**
      * Does this Node have a next Node?
      * 
      * @return True if this Node has a next, False if it does not.
      */
     bool has_next() {
       return next_ != nullptr;
-    }
-
-    /**
-     * Generates a unique hash code for this Node.
-     * 
-     * @return the hash code
-     */
-    size_t hash() {
-      size_t hash = 0;
-      hash += key_->hash() + val_->hash();
-      hash /= 4;
-      if (has_next()) {
-        hash += next_->hash();
-      }
-      return hash;
     }
 
     /**
@@ -214,29 +178,6 @@ class Map : public Object {
       return nodes_[index];
     }
 
-    /**
-     * Private function that increases the capacity
-     * and recalculates the Map if too many key, value pairs
-     * have the same index.
-     */
-    void rehash_() {
-      Map* new_map = new Map(capacity_ + 8);
-      Node* current;
-      for (int i = 0; i < capacity_; i++) {
-        current = get_node(i);
-        if (current != nullptr) {
-          new_map->put(current->get_key(), current->get_value());
-          while (current->has_next()) {
-            current = current->get_next();
-            new_map->put(current->get_key(), current->get_value());
-          }
-        }
-      }
-
-      capacity_ += 8;
-      nodes_ = new_map->get_nodes();
-    }
-
     // Add an Object to the map with an Object key
     // Takes ownership of the key and val
     void put(String* key, Object* val) {
@@ -245,13 +186,7 @@ class Map : public Object {
       Node* current = get_node(index);
       if (current == nullptr) {
         nodes_[index] = new Node(key->clone(), val);
-      } else {
-        if (current->length() >= 3) {
-          rehash_();
-          put(key, val);
-          return;
-        }
-        
+      } else {        
         if (current->get_key()->equals(key)) {
           // There is already an entry in the map with this key, so replace 
           // the existing value with the given one.
@@ -274,49 +209,6 @@ class Map : public Object {
       size_++;
     }
 
-    // Remove the value tied to the key from the map. Removes the key as well.
-    Object* remove(String* key) {
-      int index = key->hash() % capacity_;
-
-      Node* current = get_node(index);
-      if (current == nullptr) return nullptr;
-
-      if (current->get_key()->equals(key)) {
-        // The matching node is the first one in the linked list
-        if (current->has_next()) {
-          nodes_[index] = current->get_next();
-        }
-        size_--;
-
-        Object* return_me = current->get_value();
-        delete current;
-        nodes_[index] = nullptr;
-        return return_me;
-      } else {
-        // Start traversing the linked list
-        Node* current_next;
-        while (current->has_next()) {
-          current_next = current->get_next();
-          if (current_next->get_key()->equals(key)) {
-            // current_next is the node to be removed, so replace its
-            // previous node's next with its next
-            if (current_next->has_next()) {
-              current->set_next(current_next->get_next());
-            } else {
-              current->remove_next();
-            }
-            size_--;  
-
-            Object* return_me = current_next->get_value();
-            delete current_next;
-            return return_me;
-          }
-          current = current->get_next();
-        }
-        return nullptr;
-      }
-    }
-
     // Gets the value associated with the key
     Object* get(String* key) {
       int index = key->hash() % capacity_;
@@ -336,26 +228,6 @@ class Map : public Object {
           }
         }
         return nullptr;
-      }
-    }
-
-    // Clears all the keys and values from the map
-    void clear() {
-      Node* current;
-      Node* tmp;
-      for (int i = 0; i < capacity_; i++) {
-        current = get_node(i);
-        if (current != nullptr) {
-          while (current->has_next()) {
-            tmp = current;
-            current = current->get_next();
-            delete tmp;
-            size_--;
-          }
-          delete current;
-          size_--;
-          nodes_[i] = nullptr;
-        }
       }
     }
 
@@ -386,18 +258,5 @@ class Map : public Object {
         }
       }
       return true;
-    }
-
-    // Get the hash of the map object
-    size_t hash() {
-      size_t hash = 0;
-      Node* current;
-      for (int i = 0; i < capacity_; i++) {
-        current = get_node(i);
-        if (current != nullptr) {
-          hash += current->hash();
-        }
-      }
-      return hash;
     }
 };

@@ -2,625 +2,166 @@
 
 #pragma once
 
-#include "object.h"
-#include "string.h"
-#include "vector.h"
 #include <stdarg.h>
+#include "dist_vector.h"
 
-class IntColumn;
-class BoolColumn;
-class FloatColumn;
-class StringColumn;
-
-/**************************************************************************
- * Column ::
- * Represents one column of a data frame which holds values of a single type.
- * This abstract class defines methods overriden in subclasses. There is
- * one subclass per element type. Columns are mutable, equality is pointer
- * equality. 
+/*************************************************************************
+ * DataFrame Column
+ * Holds values of a certain type.
  * 
  * @author Spencer LaChance <lachance.s@northeastern.edu>
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class Column : public Object {
-    public:
-        char type_;
+public:
+    // DistributedVector containing all of this Column's fields
+    DistributedVector* fields_;
+    char type_;
+    
+    /** Constructs an empty Column */
+    Column(char type, KVStore* kv, Key* k) : type_(type), fields_(new DistributedVector(kv, k)) {
+        exit_if_not(type == 'I' || type == 'B' || type == 'F' || type == 'S',
+            "Invalid Column type");
+    }
 
-        /** Type converters: Return same column under its actual type, or
-         *  nullptr if of the wrong type.  */
-        virtual IntColumn* as_int() = 0;
-        virtual BoolColumn*  as_bool() = 0;
-        virtual FloatColumn* as_float() = 0;
-        virtual StringColumn* as_string() = 0;
+    /** Constructs a Column containing the fields in the given DVector. */
+    Column(char type, DistributedVector* fields) : type_(type), fields_(fields) {
+        exit_if_not(type == 'I' || type == 'B' || type == 'F' || type == 'S',
+            "Invalid Column type");
+    }
 
-        /** Type appropriate push_back methods. Calling the wrong method is
-        * undefined behavior. **/
-        virtual void push_back(int val) = 0;
-        virtual void push_back(bool val) = 0;
-        virtual void push_back(float val) = 0;
-        virtual void push_back(String* val) = 0;
-
-        /** Returns the number of elements in the column. */
-        virtual size_t size() = 0;
-
-        /** Clones the column */
-        virtual Column* clone() = 0;
-
-        /** Appends a default value that represents a missing field */
-        virtual void append_missing() = 0;
-
-        /** Return the type of this column as a char: 'S', 'B', 'I' and 'F'. */
-        char get_type() {
-            return type_;
-        }
-};
- 
-/*************************************************************************
- * IntColumn::
- * Holds int values.
- * 
- * @author Spencer LaChance <lachance.s@northeastern.edu>
- * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- */
-class IntColumn : public Column {
-    public:
-        IntVector* ints_;
-        
-        /** Constructs an empty IntColumn */
-        IntColumn() {
-            ints_ = new IntVector();
-            type_ = 'I';
-        }
-
-        /** Constructs a IntColumn with the given IntVector */
-        IntColumn(IntVector* ints) {
-            ints_ = ints;
-            type_ = 'I';
-        }
-
-        /** Constructs an IntColumn initialized with the given integers. */
-        IntColumn(int n, ...) {
-            ints_ = new IntVector();
-            type_ = 'I';
-            va_list vl;
-            va_start(vl, n);
-            for (int i = 0; i < n; i++) {
-                ints_->append(va_arg(vl, int));
+    /** Constructs a Column initialized with the fields in the given va_list. */
+    Column(char type, KVStore* kv, Key* k, int n, ...) : 
+        type_(type), fields_(new DistributedVector(kv, k)) {
+        va_list vl;
+        va_start(vl, n);
+        for (int i = 0; i < n; i++) {
+            DataType* dt = new DataType();
+            switch(type_) {
+                case 'I':
+                    dt->set_int(va_arg(vl, int)); break;
+                case 'B':
+                    dt->set_bool(va_arg(vl, int)); break;
+                case 'F':
+                    dt->set_float(va_arg(vl, double)); break;
+                case 'S':
+                    dt->set_string(va_arg(vl, String*)); break;
             }
-            va_end(vl);
-        }
-
-        /** Destructor */
-        ~IntColumn() {
-            delete ints_;
-        }
-
-        /** Adds the given field to the end of the column. */
-        void push_back(int val) {
-            ints_->append(val);
-        }
-
-        /** Does nothing because a boolean cannot be added to this column. */
-        void push_back(bool val) {
-            exit_if_not(false, "Cannot call this function on an IntColumn.");
-            return;
-        }
-
-        /** Does nothing because a float cannot be added to this column. */
-        void push_back(float val) {
-            exit_if_not(false, "Cannot call this function on an IntColumn.");
-            return;
-        }
-
-        /** Does nothing because a string cannot be added to this column. */
-        void push_back(String* val) {
-            exit_if_not(false, "Cannot call this function on an IntColumn.");
-            return;
-        }
-
-        /** Gets the int at the specified index. */
-        int get(size_t idx) {
-            return ints_->get(idx);
-        }
-
-        /** Returns this IntColumn. */
-        IntColumn* as_int() {
-            return this;
-        }
-
-        /** Returns nullptr because this is not a BoolColumn. */
-        BoolColumn* as_bool() {
-            exit_if_not(false, "Cannot call this function on an IntColumn.");
-            return nullptr;
-        }
-
-        /** Returns nullptr because this is not a FloatColumn. */
-        FloatColumn* as_float() {
-            exit_if_not(false, "Cannot call this function on an IntColumn.");
-            return nullptr;
-        }
-
-        /** Returns nullptr because this is not a StringColumn. */
-        StringColumn* as_string() {
-            exit_if_not(false, "Cannot call this function on an IntColumn.");
-            return nullptr;
-        }
-
-        /** Set value at idx. An out of bound idx is undefined.  */
-        void set(size_t idx, int val) {
-            ints_->set(val, idx);
-        }
-
-        /** Returns the number of fields in this IntColumn */
-        size_t size() {
-            return ints_->size();
-        }
-
-        /** Getter for this column's underlying array of fields. */
-        IntVector* get_fields() {
-            return ints_;
-        }
-
-        /** Returns a clone of this IntColumn. */
-        Column* clone() {
-            IntColumn* clone = new IntColumn();
-            clone->get_fields()->append_all(ints_);
-            return clone;
-        }
-
-        /** Appends a default value that represents a missing field */
-        void append_missing() {
-            push_back(0);
-        }
-
-        /** Returns a serialized representation of this Integer column. */
-        const char* serialize() {
-            StrBuff buff;
-            const char* serial_vector = ints_->serialize();
-            buff.c("{type: int_column, data: ");
-            buff.c(serial_vector);
-            buff.c("}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
-            delete serial_str;
-            delete[] serial_vector;
-            return copy;
-        }
-
-        /* Is this column equal to the given object? */
-        bool equals(Object* other) {
-            IntColumn* o = dynamic_cast<IntColumn*>(other);
-            if (o == nullptr) { return false;}
-            if (o->size() != size()) { return false;}
-            return o->get_fields()->equals(get_fields());
-        }
-};
- 
-/*************************************************************************
- * BoolColumn::
- * Holds boolean values.
- * 
- * @author Spencer LaChance <lachance.s@northeastern.edu>
- * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- */
-class BoolColumn : public Column {
-    public:
-        BoolVector* bools_;
-        
-        /** Constructs an empty BoolColumn */
-        BoolColumn() {
-            bools_ = new BoolVector();
-            type_ = 'B';
-        }
-
-        /** Constructs a BoolColumn with the given BoolVector */
-        BoolColumn(BoolVector* bools) {
-            bools_ = bools;
-            type_ = 'B';
-        }
-
-        /** Constructs an BoolColumn initialized with the given booleans. */
-        BoolColumn(int n, ...) {
-            bools_ = new BoolVector();
-            type_ = 'B';
-            va_list vl;
-            va_start(vl, n);
-            for (int i = 0; i < n; i++) {
-                bools_->append(va_arg(vl, int));
-            }
-            va_end(vl);
-        }
-
-        /** Destructor */
-        ~BoolColumn() {
-            delete bools_;
-        }
-
-        /** Does nothing because an integer cannot be added to this column. */
-        void push_back(int val) {
-            exit_if_not(false, "Cannot call this function on a BoolColumn.");
-            return;
-        }
-
-        /** Adds the given field to the end of this column. */
-        void push_back(bool val) {
-            bools_->append(val);
-        }
-
-        /** Does nothing because a float cannot be added to this column. */
-        void push_back(float val) {
-            exit_if_not(false, "Cannot call this function on a BoolColumn.");
-            return;
-        }
-
-        /** Does nothing because a string cannot be added to this column. */
-        void push_back(String* val) {
-            exit_if_not(false, "Cannot call this function on a BoolColumn.");
-            return;
-        }
-
-        /** Gets the boolean at the specified index. */
-        bool get(size_t idx) {
-            return bools_->get(idx);
-        }
-
-        /** Returns nullptr because this is not an IntColumn. */
-        IntColumn* as_int() {
-            exit_if_not(false, "Cannot call this function on a BoolColumn.");
-            return nullptr;
-        }
-
-        /** Returns this BoolColumn. */
-        BoolColumn* as_bool() {
-            return this;
-        }
-
-        /** Returns nullptr because this is not a FloatColumn. */
-        FloatColumn* as_float() {
-            exit_if_not(false, "Cannot call this function on a BoolColumn.");
-            return nullptr;
-        }
-
-        /** Returns nullptr because this is not a StringColumn. */
-        StringColumn* as_string() {
-            exit_if_not(false, "Cannot call this function on a BoolColumn.");
-            return nullptr;
-        }
-
-        /** Set value at idx. An out of bound idx is undefined.  */
-        void set(size_t idx, bool val) {
-            bools_->set(val, idx);
-        }
-
-        /** Returns the number of fields in this BoolColumn */
-        size_t size() {
-            return bools_->size();
-        }
-
-        /** Getter for this column's underlying array of fields. */
-        BoolVector* get_fields() {
-            return bools_;
-        }
-
-        /** Returns a clone of this BoolColumn. */
-        Column* clone() {
-            BoolColumn* clone = new BoolColumn();
-            clone->get_fields()->append_all(bools_);
-            return clone;
-        }
-
-        /** Appends a default value that represents a missing field */
-        void append_missing() {
-            push_back(false);
-        }
-
-        /** Returns a serialized representation of this boolean column. */
-        const char* serialize() {
-            StrBuff buff;
-            const char* serial_vector = bools_->serialize();
-            buff.c("{type: bool_column, data: ");
-            buff.c(serial_vector);
-            buff.c("}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
-            delete serial_str;
-            delete[] serial_vector;
-            return copy;
-        }
-
-        /* Is this column equal to the given object? */
-        bool equals(Object* other) {
-            BoolColumn* o = dynamic_cast<BoolColumn*>(other);
-            if (o == nullptr) { return false;}
-            if (o->size() != size()) { return false;}
-            return o->get_fields()->equals(get_fields());
-        }
-};
- 
-/*************************************************************************
- * FloatColumn::
- * Holds float values.
- * 
- * @author Spencer LaChance <lachance.s@northeastern.edu>
- * @author David Mberingabo <mberingabo.d@husky.neu.edu>
- */
-class FloatColumn : public Column {
-    public:
-        FloatVector* floats_;
-        
-        /** Constructs an empty FloatColumn */
-        FloatColumn() {
-            floats_ = new FloatVector();
-            type_ = 'F';
-        }
-
-        /** Constructs a FloatColumn with the given FloatVector */
-        FloatColumn(FloatVector* floats) {
-            floats_ = floats;
-            type_ = 'F';
-        }
-
-        /** Constructs an FloatColumn initialized with the given floats. */
-        FloatColumn(int n, ...) {
-            floats_ = new FloatVector();
-            type_ = 'F';
-            va_list vl;
-            va_start(vl, n);
-            for (int i = 0; i < n; i++) {
-                floats_->append((float) va_arg(vl, double));
-            }
-            va_end(vl);
-        }
-
-        /** Destructor */
-        ~FloatColumn() {
-            delete floats_;
-        }
-
-        /** Does nothing because an integer cannot be added to this column. */
-        void push_back(int val) {
-            exit_if_not(false, "Cannot call this function on a FloatColumn.");
-            return;
-        }
-
-        /** Does nothing because a boolean cannot be added to this column. */
-        void push_back(bool val) {
-            exit_if_not(false, "Cannot call this function on a FloatColumn.");
-            return;
-        }
-
-        /** Adds the given field to the end of this column. */
-        void push_back(float val) {
-            floats_->append(val);
-        }
-
-        /** Does nothing because a string cannot be added to this column. */
-        void push_back(String* val) {
-            exit_if_not(false, "Cannot call this function on a FloatColumn.");
-            return;
-        }
-
-        /** Gets the float at the specified index. */
-        float get(size_t idx) {
-            return floats_->get(idx);
-        }
-
-        /** Returns nullptr because this is not an IntColumn. */
-        IntColumn* as_int() {
-            exit_if_not(false, "Cannot call this function on a FloatColumn.");
-            return nullptr;
-        }
-
-        /** Returns nullptr because this is not a BoolColumn. */
-        BoolColumn* as_bool() {
-            exit_if_not(false, "Cannot call this function on a FloatColumn.");
-            return nullptr;
-        }
-
-        /** Returns this FloatColumn. */
-        FloatColumn* as_float() {
-            return this;
-        }
-
-        /** Returns nullptr because this is not a StringColumn. */
-        StringColumn* as_string() {
-            exit_if_not(false, "Cannot call this function on a FloatColumn.");
-            return nullptr;
-        }
-
-        /** Set value at idx. An out of bound idx is undefined.  */
-        void set(size_t idx, float val) {
-            floats_->set(val, idx);
-        }
-
-        /** Returns the number of fields in this FloatColumn */
-        size_t size() {
-            return floats_->size();
-        }
-
-        /** Getter for this column's underlying array of fields. */
-        FloatVector* get_fields() {
-            return floats_;
-        }
-
-        /** Returns a clone of this FloatColumn. */
-        Column* clone() {
-            FloatColumn* clone = new FloatColumn();
-            clone->get_fields()->append_all(floats_);
-            return clone;
-        }
-
-        /** Appends a default value that represents a missing field */
-        void append_missing() {
-            push_back(0.0f);
-        }
-
-        /** Returns a serialized representation of this float column. */
-        const char* serialize() {
-            StrBuff buff;
-            const char* serial_vector = floats_->serialize();
-            buff.c("{type: float_column, data: ");
-            buff.c(serial_vector);
-            buff.c("}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
-            delete serial_str;
-            delete[] serial_vector;
-            return copy;
-        }
-
-        /* Is this column equal to the given object? */
-        bool equals(Object* other) {
-            FloatColumn* o = dynamic_cast<FloatColumn*>(other);
-            if (o == nullptr) { return false;}
-            if (o->size() != size()) { return false;}
-            return o->get_fields()->equals(get_fields());
-        }
-};
- 
-/*************************************************************************
- * StringColumn::
- * Holds string pointers. The strings are external.  Nullptr is a valid
- * value.
- */
-class StringColumn : public Column {
-    public:
-        Vector* strings_;
-        
-        /** Constructs an empty StringColumn */
-        StringColumn() {
-            strings_ = new Vector();
-            type_ = 'S';
-        }
-
-        /** Constructs a StringColumn with the given Vector */
-        StringColumn(Vector* strings) {
-            strings_ = strings;
-            type_ = 'S';
-        }
-
-        /** Constructs a StringColumn and initializes it with the given strings. */
-        StringColumn(int n, ...) {
-            strings_ = new Vector();
-            type_ = 'S';
-            va_list vl;
-            va_start(vl, n);
-            for (int i = 0; i < n; i++) {
-                strings_->append(va_arg(vl, String*));
-            }
-            va_end(vl);
-        }
-
-        /** Destructor */
-        ~StringColumn() {
-            delete strings_;
-        }
-
-        /** Does nothing because an integer cannot be added to this column. */
-        void push_back(int val) {
-            exit_if_not(false, "Cannot call this function on a StringColumn.");
-            return;
-        }
-
-        /** Does nothing because a boolean cannot be added to this column. */
-        void push_back(bool val) {
-            exit_if_not(false, "Cannot call this function on a StringColumn.");
-            return;
-        }
-
-        /** Does nothing because a float cannot be added to this column. */
-        void push_back(float val) {
-            exit_if_not(false, "Cannot call this function on a StringColumn.");
-            return;
-        }
-
-        /** Adds the given string to this column. Takes control of the string. */
-        void push_back(String* val) {
-            strings_->append(val);
-        }
-
-        /** Returns nullptr because this is not an IntColumn. */
-        IntColumn* as_int() {
-            exit_if_not(false, "Cannot call this function on a StringColumn.");
-            return nullptr;
-        }
-
-        /** Returns nullptr because this is not a BoolColumn. */
-        BoolColumn* as_bool() {
-            exit_if_not(false, "Cannot call this function on a StringColumn.");
-            return nullptr;
-        }
-
-        /** Returns nullptr becuase this is not a FloatColumn. */
-        FloatColumn* as_float() {
-            exit_if_not(false, "Cannot call this function on a StringColumn.");
-            return nullptr;
-        }
-
-        /** Returns this StringColumn. */
-        StringColumn* as_string() {
-            return this;
-        }
-
-        /** Returns the string at idx; undefined on invalid idx.*/
-        String* get(size_t idx) {
-            return dynamic_cast<String*>(strings_->get(idx));
-        }
-
-        /** Acquire ownership of the string.  Out of bound idx is undefined. */
-        void set(size_t idx, String* val) {
-            strings_->set(val, idx);
-        }
-
-        /** Returns the number of fields in this StringColumn */
-        size_t size() {
-            return strings_->size();
-        }
-
-        /** Getter for this column's underlying array of fields. */
-        Vector* get_fields() {
-            return strings_;
-        }
-
-        /** Returns a clone of this StringColumn. */
-        Column* clone() {
-            StringColumn* clone = new StringColumn();
-            clone->get_fields()->append_all(strings_);
-            return clone;
-        }
-
-        /** Appends a default value that represents a missing field */
-        void append_missing() {
-            push_back(nullptr);
-        }
-
-        /* Returns the serialized representation of this string column. */
-        const char* serialize() {
-            StrBuff buff;
-            const char* serial_vector = strings_->serialize();
-            buff.c("{type: string_column, data: ");
-            buff.c(serial_vector);
-            buff.c("}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
-            delete serial_str;
-            delete[] serial_vector;
-            return copy;
-        }
-
-        /* Is this column equal to the given object? */
-        bool equals(Object* other) {
-            StringColumn* o = dynamic_cast<StringColumn*>(other);
-            if (o == nullptr) { return false;}
-            if (o->size() != size()) { return false;}
-            return o->get_fields()->equals(get_fields());
-        }
+            fields_->append(dt);
+        }
+        va_end(vl);
+        done();
+    }
+
+    /** Destructor */
+    ~Column() { delete fields_; }
+
+    /** Adds the given int to the end of the column. */
+    void push_back(int val) {
+        exit_if_not(type_ = 'I', "Column type is not integer");
+        DataType* dt = new DataType();
+        dt->set_int(val);
+        fields_->append(dt);
+    }
+
+    /** Adds the given bool to the end of the column. */
+    void push_back(bool val) {
+        exit_if_not(type_ = 'B', "Column type is not boolean");
+        DataType* dt = new DataType();
+        dt->set_bool(val);
+        fields_->append(dt);
+    }
+
+    /** Adds the given float to the end of the column. */
+    void push_back(float val) {
+        exit_if_not(type_ = 'F', "Column type is not float");
+        DataType* dt = new DataType();
+        dt->set_float(val);
+        fields_->append(dt);
+    }
+
+    /** Adds the given string to the end of the column. */
+    void push_back(String* val) {
+        exit_if_not(type_ = 'S', "Column type is not string");
+        DataType* dt = new DataType();
+        dt->set_string(val);
+        fields_->append(dt);
+    }
+
+    /** Gets the int at the specified index. */
+    int get_int(size_t idx) {
+        exit_if_not(type_ = 'I', "Column type is not integer");
+        DataType* dt = fields_->get(idx);
+        int res = dt->get_int();
+        delete dt;
+        return res;
+    }
+
+    /** Gets the bool at the specified index. */
+    bool get_bool(size_t idx) {
+        exit_if_not(type_ = 'B', "Column type is not boolean");
+        DataType* dt = fields_->get(idx);
+        int res = dt->get_bool();
+        delete dt;
+        return res;
+    }
+
+    /** Gets the float at the specified index. */
+    float get_float(size_t idx) {
+        exit_if_not(type_ = 'F', "Column type is not float");
+        DataType* dt = fields_->get(idx);
+        int res = dt->get_float();
+        delete dt;
+        return res;
+    }
+
+    /** Gets the string at the specified index. */
+    String* get_string(size_t idx) {
+        exit_if_not(type_ = 'S', "Column type is not string");
+        DataType* dt = fields_->get(idx);
+        String* res = dt->get_string()->clone();
+        delete dt;
+        return res;
+    }
+
+    /** Returns the number of fields in this Column. */
+    size_t size() { return fields_->size(); }
+
+    /** Getter for this column's underlying array of fields. */
+    DistributedVector* get_fields() { return fields_; }
+
+    /** Getter for this column's type. */
+    char get_type() { return type_; }
+
+    /** Appends an empty DataType that represents a missing field */
+    void append_missing() {
+        DataType* dt = new DataType();
+        fields_->append(dt);
+    }
+
+    /** Called when all fields have been added to this column. */
+    void done() { fields_->done(); }
+
+    /** Returns a serialized representation of this Column. */
+    const char* serialize() {
+        StrBuff buff;
+        // Serialize the type char
+        char* type = new char[2];
+        type[0] = type_;
+        type[1] = '\0';
+        buff.c(type);
+        delete[] type;
+        // Serialize the DistributedVector
+        const char* serial_vec = fields_->serialize();
+        buff.c(serial_vec);
+        delete[] serial_vec;
+        return buff.c_str();
+    }
+
+    /* Is this column equal to the given object? */
+    bool equals(Object* other) {
+        Column* o = dynamic_cast<Column*>(other);
+        if (o == nullptr) return false;
+        return type_ == o->get_type() && o->get_fields()->equals(get_fields());
+    }
 };

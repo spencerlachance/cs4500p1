@@ -43,7 +43,7 @@ class ParserMain {
         /**
          * The Constructor, formerly the main function.
          */
-        ParserMain(int argc, char* argv[]) {
+        ParserMain(int argc, char* argv[], KVStore* kv, Key* k) {
             // Parse arguments
             char* filename = nullptr;
             // -1 represents argument not provided
@@ -85,51 +85,22 @@ class ParserMain {
 
             // Run parsing
             SorParser parser{file, (size_t)start, (size_t)start + len, file_size};
-            Schema* schema = parser.guessSchema();
-            _df = new DataFrame(*schema);
+            Schema* schema = parser.guessSchema(kv, k);
+            _df = new DataFrame(kv, k);
             parser.parseFile();
             ColumnSet* set = parser.getColumnSet();
 
-            // Adds the columns to the empty df by creating rows from the array of columns
-            // and adding each row to the df.
-            Row* row = new Row(*schema);
-            int nrows = set->getColumn(0)->size();
+            // Adds the columns to the empty df.
             char type;
-            for (int i = 0; i < nrows; i++) {
-                // Build the row
-                for (int j = 0; j < set->getLength(); j++) {
-                    Column* col = set->getColumn(j);
-                    type = col->get_type();
-                    switch (type) {
-                        case 'I':
-                            row->set(j, col->as_int()->get(i));
-                            break;
-                        case 'B':
-                            row->set(j, col->as_bool()->get(i));
-                            break;
-                        case 'F':
-                            row->set(j, col->as_float()->get(i));
-                            break;
-                        case 'S':
-                            row->set(j, col->as_string()->get(i));
-                            break;
-                        default:
-                            assert(false);
-                    }
-                }
-                _df->add_row(*row);
+            for (int i = 0; i < set->getLength(); i++) {
+                Column* col = set->getColumn(i);
+                col->done();
+                assert(col->get_type() == schema->col_type(i));
+                _df->add_column(col);
             }
-            delete row;
             delete schema;
 
             fclose(file);
-        }
-
-        /**
-         * Destructor
-         */
-        ~ParserMain() {
-            delete _df;
         }
 
         /**

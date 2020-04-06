@@ -133,7 +133,7 @@ class AboveRower : public Rower {
 void test_map(DataFrame* df) {
     SumRower* sr = new SumRower();
     df->map(*sr);
-    assert(sr->get_total() == 5050);
+    assert(sr->get_total() == 500500);
     printf("Map test passed\n");
     delete sr;
 }
@@ -145,7 +145,7 @@ void test_map(DataFrame* df) {
 void test_filter(DataFrame* df) {
     AboveRower* ar = new AboveRower(50);
     DataFrame* filtered_df = df->filter(*ar);
-    assert(filtered_df->nrows() == 50);
+    assert(filtered_df->nrows() == 950);
     printf("Filter test passed\n");
     delete ar;
     delete filtered_df;
@@ -155,35 +155,43 @@ void test_filter(DataFrame* df) {
  * This test builds a DataFrame from data in a file and then calculates the sum of all of its ints.
  * This test is meant to measure performance, so it does not verify that the sum is correct.
  */
-void test_datafile(int argc, char** argv) {
+void test_datafile(int argc, char** argv, KVStore* kv) {
     // Upon construction, this class reads the command line arguments and builds a dataframe
     // containing fields from a datafile.
-    ParserMain* pf = new ParserMain(argc, argv);
+    Key* k2 = new Key("bar", 0);
+    ParserMain* pf = new ParserMain(argc, argv, kv, k2);
 
-    DataFrame* df = new DataFrame(*(pf->get_dataframe()));
+    DataFrame* df = pf->get_dataframe();
     SumRower* sr = new SumRower();
     df->map(*sr);
     delete pf;
     delete df;
     delete sr;
+    delete k2;
     printf("Datafile test passed\n");
 }
 
 int main(int argc, char** argv) {
     Schema s("IS");
-    DataFrame* df = new DataFrame(s);
+    KVStore* kv = new KVStore(0, 1);
+    Key* k1 = new Key("foo", 0);
+    DataFrame* df = new DataFrame(s, kv, k1);
     Row* r = new Row(s);
     String* str = new String("foo");
-    for (int i = 1; i <= 100; i++) {
+    for (int i = 1; i <= 1000; i++) {
         r->set(0, i);
-        r->set(1, str);
-        df->add_row(*r);
+        r->set(1, str->clone());
+        if (i == 1000) df->add_row(*r, true);
+        else           df->add_row(*r, false);
     }
 
     test_map(df);
     test_filter(df);
-    test_datafile(argc, argv);
+    test_datafile(argc, argv, kv);
 
+    kv->shutdown();
+    delete kv;
+    delete k1;
     delete df;
     delete r;
     delete str;

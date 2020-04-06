@@ -4,8 +4,10 @@
 
 #include <assert.h>
 #include <sys/socket.h>
-#include "dataframe.h"
 #include "message.h"
+#include "datatype.h"
+
+class DataFrame; class Column; class DistributedVector; class KVStore; class Chunk;
 
 /**
  * Helper class that handles deserializing objects of various types.
@@ -44,7 +46,52 @@ class Deserializer : public Object {
             return rtrn; 
         }
 
-        /* Builds and returns an object from the given bytestream. */
+        /* Builds and returns an integer from the bytestream. */
+        int deserialize_int() {
+            StrBuff buff;
+            assert(step() == '{');
+            while (current() != '}') {
+                *x_ = step();
+                buff.c(x_);
+            }
+            assert(step() == '}');
+            char* c_int = buff.c_str();
+            int res = atoi(c_int);
+            delete[] c_int;
+            return res;
+        }
+
+        /* Builds and returns a float from the bytestream. */
+        float deserialize_float() {
+            StrBuff buff;
+            assert(step() == '{');
+            while (current() != '}') {
+                *x_ = step();
+                buff.c(x_);
+            }
+            assert(step() == '}');
+            char* c_float = buff.c_str();
+            float res = atof(c_float);
+            delete[] c_float;
+            return res;
+        }
+
+        /* Builds and returns a boolean from the bytestream. */
+        bool deserialize_bool() {
+            StrBuff buff;
+            assert(step() == '{');
+            while (current() != '}') {
+                *x_ = step();
+                buff.c(x_);
+            }
+            assert(step() == '}');
+            char* c_bool = buff.c_str();
+            bool res = atoi(c_bool);
+            delete[] c_bool;
+            return res;
+        }
+
+        /* Builds and returns an object from the bytestream. */
         Object* deserialize() {
             // stream's initial 6 chars should be "{type: "
             assert(step() == '{');
@@ -57,15 +104,14 @@ class Deserializer : public Object {
 
             // Fill a buffer with the type of object to create
             // either "object", "string", "vector" or "FloatVector".
-            StrBuff* buff = new StrBuff();
+            StrBuff buff;
             while (current() != ',' && current() != '}') {
                 *x_ = step();
-                buff->c(x_);
+                buff.c(x_);
             }
 
-            String* type_str = buff->get();
+            String* type_str = buff.get();
             char* type = type_str->c_str();
-            delete buff;
 
             if (strcmp(type, "object") == 0) {
                 delete type_str;
@@ -73,9 +119,6 @@ class Deserializer : public Object {
             } else if (strcmp(type, "ack") == 0) {
                 delete type_str;
                 return new Ack();
-            } else if (strcmp(type, "key") == 0) {
-                delete type_str;
-                return deserialize_key();
             } else if (strcmp(type, "directory") == 0) {
                 delete type_str;
                 return deserialize_directory();
@@ -109,21 +152,6 @@ class Deserializer : public Object {
             } else if (strcmp(type, "bool_vector") == 0) {
                 delete type_str;
                 return deserialize_bool_vector();
-            } else if (strcmp(type, "int_column") == 0) {
-                delete type_str;
-                return deserialize_int_column();
-            } else if (strcmp(type, "bool_column") == 0) {
-                delete type_str;
-                return deserialize_bool_column();
-            } else if (strcmp(type, "float_column") == 0) {
-                delete type_str;
-                return deserialize_float_column();
-            } else if (strcmp(type, "string_column") == 0) {
-                delete type_str;
-                return deserialize_string_column();
-            } else if (strcmp(type, "dataframe") == 0) {
-                delete type_str;
-                return deserialize_dataframe();
             } else {
                 exit_if_not(false, "Unknown type");
             }
@@ -132,37 +160,11 @@ class Deserializer : public Object {
         /* Builds and returns a Key from the given bytestream. */
         // {type: key, key: {type: string, cstr: foo}, idx: 0}
         Key* deserialize_key() {
-            assert(step() == ',');
-            assert(step() == ' ');
-            assert(step() == 'k');
-            assert(step() == 'e');
-            assert(step() == 'y');
-            assert(step() == ':');
-            assert(step() == ' ');
             String* key_str = dynamic_cast<String*>(deserialize());
             assert(key_str != nullptr);
-            assert(step() == ',');
-            assert(step() == ' ');
-            assert(step() == 'i');
-            assert(step() == 'd');
-            assert(step() == 'x');
-            assert(step() == ':');
-            assert(step() == ' ');
-
-            // Fill a buffer with 
-            StrBuff buff;
-            while (current() != ',' && current() != '}') {
-                *x_ = step();
-                buff.c(x_);
-            }
-            assert(step() == '}');
-
-            String* idx_str = buff.get();
-            int idx = atoi(idx_str->c_str());
+            int idx = deserialize_int();
             const char* key = key_str->c_str();
             Key* rtrn = new Key(key, idx);
-
-            delete idx_str;
             delete key_str;
             return rtrn;
         }        
@@ -247,8 +249,7 @@ class Deserializer : public Object {
             assert(step() == 'y');
             assert(step() == ':');
             assert(step() == ' ');
-            Key* k = dynamic_cast<Key*>(deserialize());
-            assert(k != nullptr);
+            Key* k = deserialize_key();
             assert(step() == ',');
             assert(step() == ' ');
             assert(step() == 'v');
@@ -258,15 +259,14 @@ class Deserializer : public Object {
             assert(step() == 'e');
             assert(step() == ':');
             assert(step() == ' ');
-            DataFrame* v = dynamic_cast<DataFrame*>(deserialize());
-            assert(v != nullptr);
-            assert(step() == ']');
+            // Extract the blob of serialized data
+            StrBuff buff;
+            while (i_ < strlen(stream_) - 1) {
+                *x_ = step();
+                buff.c(x_);
+            }
             assert(step() == '}');
-            assert(step() == '}');
-
-            Put* rtrn = new Put(k, v);
-            
-            return rtrn;
+            return new Put(k, buff.c_str());
         }
 
         /* BUilds and returns a Get message from the given bytestream. */
@@ -279,12 +279,9 @@ class Deserializer : public Object {
             assert(step() == 'y');
             assert(step() == ':');
             assert(step() == ' ');
-            Key* k = dynamic_cast<Key*>(deserialize());
-            assert(k != nullptr);
+            Key* k = deserialize_key();
             assert(step() == '}');
-            
-            Get* rtrn = new Get(k);
-            return rtrn;
+            return new Get(k);
         }
 
         /* BUilds and returns a WaitAndGet message from the given bytestream. */
@@ -297,8 +294,7 @@ class Deserializer : public Object {
             assert(step() == 'y');
             assert(step() == ':');
             assert(step() == ' ');
-            Key* k = dynamic_cast<Key*>(deserialize());
-            assert(k != nullptr);
+            Key* k = deserialize_key();
             assert(step() == '}');
             
             WaitAndGet* rtrn = new WaitAndGet(k);
@@ -307,20 +303,6 @@ class Deserializer : public Object {
 
         /* Builds and returns a Reply message from the given bytestream. */
         Reply* deserialize_reply() {
-            StrBuff buff;
-            assert(step() == ',');
-            assert(step() == ' ');
-            assert(step() == 'v');
-            assert(step() == 'a');
-            assert(step() == 'l');
-            assert(step() == 'u');
-            assert(step() == 'e');
-            assert(step() == ':');
-            assert(step() == ' ');
-            DataFrame* df = dynamic_cast<DataFrame*>(deserialize());
-            assert(df != nullptr);
-            assert(step() == ']');
-            assert(step() == '}');
             assert(step() == ',');
             assert(step() == ' ');
             assert(step() == 'r');
@@ -332,20 +314,28 @@ class Deserializer : public Object {
             assert(step() == 't');
             assert(step() == ':');
             assert(step() == ' ');
-            while (current() != '}') {
+            MsgKind req = (MsgKind)deserialize_int();
+            assert(step() == ',');
+            assert(step() == ' ');
+            assert(step() == 'v');
+            assert(step() == 'a');
+            assert(step() == 'l');
+            assert(step() == 'u');
+            assert(step() == 'e');
+            assert(step() == ':');
+            assert(step() == ' ');
+            // Extract the serialized data
+            StrBuff buff;
+            while (i_ < strlen(stream_) - 1) {
                 *x_ = step();
                 buff.c(x_);
             }
-            String* req_str = buff.get();
-            MsgKind req = (MsgKind)atoi(req_str->c_str());
-            delete req_str;
-
-            return new Reply(df, req);
+            return new Reply(buff.c_str(), req);
         }
 
         /* Builds and returns a String from the given bytestream. */
         String* deserialize_string() {
-            StrBuff* buff = new StrBuff();
+            StrBuff buff;
             // Sellecing the c_str
             assert(step() == ',');
             assert(step() == ' '); 
@@ -358,18 +348,17 @@ class Deserializer : public Object {
             // Iterating over the string characters.
             while (current() != '}') {
                 *x_ = step();
-                buff->c(x_);
+                buff.c(x_);
             }
             assert(step() == '}');
 
-            String* deserial_str = buff->get();
-            delete buff;
+            String* deserial_str = buff.get();
             return deserial_str;
         }
 
         /* Builds and returns an vector representation of the given bytestream. 
-        *  Even if this is an vector containing object elements, only strings can be deserialized,
-        *  so we assume the return vector is an vector of strings. 
+        *  Our Vector class can hold objects of all kinds, but here we are deserializing one that
+        *  only holds strings.
         *  Create an vector, append strings from the stream to it and return it.
         */
         Vector* deserialize_string_vector() {
@@ -384,14 +373,11 @@ class Deserializer : public Object {
             assert(step() == 's'); 
             assert(step() == ':'); 
             assert(step() == ' '); 
-            assert(step() == '['); 
-
-            // We use this vector class for all types of objects but, for the scope 
-            // of this prototype, only string objects are deserializable, so we have 
-            // an assert to check if it is possible to cast object elements to string.
+            assert(step() == '[');
             Vector* vec = new Vector();
             while (current() != ']') {
                 String* element = dynamic_cast<String*>(deserialize());
+                assert(element != nullptr);
                 vec->append(element);
                 if (current() == ',') { step(); } // Step over the ','
             }
@@ -402,7 +388,7 @@ class Deserializer : public Object {
         *  Create a new FlaotVector(), fill it with floats from the stream and return it.
         * */
         FloatVector* deserialize_float_vector() {
-            StrBuff* buff = new StrBuff();
+            StrBuff buff;
             // stream's initial 11 chars should be ", floats: ["
             assert(step() == ','); 
             assert(step() == ' '); 
@@ -419,26 +405,15 @@ class Deserializer : public Object {
             // New FloatVector we will return once we have filled it with corresponding floats
             FloatVector* fvec = new FloatVector();
             while (current() != ']') {
-                while (current() != ',' && current() != ']') {
-                    *x_ = step();
-                    buff->c(x_);
-                }
-                String* float_str = buff->get();
-                float f = atof(float_str->c_str()); // Deserialized chr to a float.
-                fvec->append(f);
-                delete float_str;
-                delete buff;
-                if (current() == ',') {
-                    step();
-                    buff = new StrBuff();
-                };
+                fvec->append(deserialize_float());
+                if (current() == ',') { step(); } // Step over the ','
             }
             return fvec;
         }
 
         /* Builds and returns an IntVector from the bytestream */
         IntVector* deserialize_int_vector() {
-            StrBuff* buff = new StrBuff();
+            StrBuff buff;
 
             // stream's initial 9 chars should be ", ints: ["
             assert(step() == ','); 
@@ -454,26 +429,15 @@ class Deserializer : public Object {
             // New IntVector we will return once we have filled it with corresponding ints
             IntVector* ivec = new IntVector();
             while (current() != ']') {
-                while (current() != ',' && current() != ']') {
-                    *x_ = step();
-                    buff->c(x_);
-                }
-                String* int_str = buff->get();
-                int val = atoi(int_str->c_str()); // Deserialized chr to an int.
-                ivec->append(val);
-                delete int_str;
-                delete buff;
-                if (current() == ',') {
-                    step();
-                    buff = new StrBuff();
-                };
+                ivec->append(deserialize_int());
+                if (current() == ',') { step(); } // Step over the ','
             }
             return ivec;
         }
 
         /* Builds and returns an BoolVector from the bytestream */
         BoolVector* deserialize_bool_vector() {
-            StrBuff* buff = new StrBuff();
+            StrBuff buff;
             // stream's initial 9 chars should be ", bools: ["
             assert(step() == ',');
             assert(step() == ' ');
@@ -489,111 +453,38 @@ class Deserializer : public Object {
             // New BoolVector we will return once we have filled it with corresponding bools
             BoolVector* bvec = new BoolVector();
             while (current() != ']') {
-                while (current() != ',' && current() != ']') {
-                    *x_ = step();
-                    buff->c(x_);
-                }
-                String* bool_str = buff->get();
-                if (strcmp(bool_str->c_str(), "true") == 0) {
-                    bvec->append(true);
-                } else if (strcmp(bool_str->c_str(), "false") == 0) {
-                    bvec->append(false);
-                }
-                delete bool_str;
-                delete buff;
-                if (current() == ',') {
-                    step();
-                    buff = new StrBuff();
-                };
+                bvec->append(deserialize_bool());
+                if (current() == ',') { step(); } // Step over the ','
             }
             return bvec;
         }
 
-        /* Builds and returns a BoolColumn from the bytestream */
-        BoolColumn* deserialize_bool_column() {
-            assert(step() == ',');
-            assert(step() == ' ');
-            assert(step() == 'd');
-            assert(step() == 'a');
-            assert(step() == 't');
-            assert(step() == 'a');
-            assert(step() == ':');
-            assert(step() == ' ');
-            BoolVector* bvec = dynamic_cast<BoolVector*>(deserialize());
-            BoolColumn* bcol = new BoolColumn(bvec);
-            return bcol;
-        }
-
-        /* Deserialize an IntColumn from the bytestream */
-        IntColumn* deserialize_int_column() {
-            assert(step() == ','); 
-            assert(step() == ' '); 
-            assert(step() == 'd'); 
-            assert(step() == 'a'); 
-            assert(step() == 't'); 
-            assert(step() == 'a'); 
-            assert(step() == ':'); 
-            assert(step() == ' ');
-            IntVector* ivec = dynamic_cast<IntVector*>(deserialize());
-            IntColumn* icol = new IntColumn(ivec);
-            return icol;
-        }
-
-        /* Deserialize a FloatColumn from the bytestream */
-        FloatColumn* deserialize_float_column() {
-            assert(step() == ','); 
-            assert(step() == ' '); 
-            assert(step() == 'd'); 
-            assert(step() == 'a'); 
-            assert(step() == 't'); 
-            assert(step() == 'a'); 
-            assert(step() == ':'); 
-            assert(step() == ' ');
-            FloatVector* fvec = dynamic_cast<FloatVector*>(deserialize());
-            FloatColumn* fcol = new FloatColumn(fvec);
-            return fcol;
-        }
-
-        /* Deserialize a StringColumn from the bytestream */
-        StringColumn* deserialize_string_column() {
-            assert(step() == ','); 
-            assert(step() == ' '); 
-            assert(step() == 'd'); 
-            assert(step() == 'a'); 
-            assert(step() == 't'); 
-            assert(step() == 'a'); 
-            assert(step() == ':'); 
-            assert(step() == ' ');
-            Vector* svec = dynamic_cast<Vector*>(deserialize());
-            StringColumn* scol = new StringColumn(svec);
-            return scol;
-        }
-
-        /* Deserialize a DataFrame from the bytestream. */
-        DataFrame* deserialize_dataframe() {
-            assert(step() == ',');
-            assert(step() == ' ');
-            assert(step() == 'c');
-            assert(step() == 'o');
-            assert(step() == 'l');
-            assert(step() == 'u');
-            assert(step() == 'm');
-            assert(step() == 'n');
-            assert(step() == 's');
-            assert(step() == ':');
-            assert(step() == ' ');
-            assert(step() == '[');
-
-            DataFrame* rtrn_df = new DataFrame();
-            while (current() != ']') {
-                Column* col = dynamic_cast<Column*>(deserialize());
-                rtrn_df->add_column(col);
-                assert(step() == ']');
-                assert(step() == '}');
-                assert(step() == '}');
-                if (current() == ',') step(); // Skip the ','
+        /** Builds and returns a DataType from the bytestream. */
+        DataType* deserialize_datatype() {
+            char type = step();
+            DataType* dt = new DataType();
+            switch (type) {
+                case 'I':
+                    dt->set_int(deserialize_int()); break;
+                case 'B':
+                    dt->set_bool(deserialize_bool()); break;
+                case 'F':
+                    dt->set_float(deserialize_float()); break;
+                case 'S':
+                    dt->set_string(dynamic_cast<String*>(deserialize())); break;
             }
-
-            return rtrn_df;
+            return dt;
         }
+
+        /** Builds and returns a Chunk from the bytestream. */
+        Chunk* deserialize_chunk();
+
+        /** Builds and returns a DistributedVector from the bytestream. */
+        DistributedVector* deserialize_dist_vector(KVStore* kv);
+
+        /** Builds and returns a Column from the bytestream. */
+        Column* deserialize_column(KVStore* kv);
+
+        /** Builds and returns a DataFrame from the bytestream. */
+        DataFrame* deserialize_dataframe(KVStore* kv, Key* k);
 };

@@ -11,8 +11,8 @@
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */
 class Key : public Object {
-    public:
-    // The string key that the data will be stored at within the map
+public:
+    // The string key that the data will be stored at within the store
     String* key_;
     // The index of the node on which the data is stored
     size_t idx_;
@@ -47,28 +47,50 @@ class Key : public Object {
     }
 
     /* Returns a serialized representation of this key */
-        const char* serialize() {
-            StrBuff buff;
-            buff.c("{type: key, key: ");
-            const char* serial_k = key_->serialize();
-            buff.c(serial_k);
-            buff.c(", idx: ");
-            buff.c(idx_);
-            buff.c("}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
+    const char* serialize() {
+        StrBuff buff;
+        // Serialize the string
+        const char* serial_k = key_->serialize();
+        buff.c(serial_k);
+        delete[] serial_k;
+        // Serialize the node index
+        Serializer ser;
+        const char* serial_idx = ser.serialize_int(idx_);
+        buff.c(serial_idx);
+        delete[] serial_idx;
+        return buff.c_str();
+    }
 
-            delete serial_str;
-            delete[] serial_k;
-            return copy;
-        }
-
-        /* Return true if this key is equal to the given objects, and false if not. */
-        bool equals(Object* o) {
-            Key* other = dynamic_cast<Key*>(o);
-            if (other == nullptr) return false;
-            return (idx_ == other->get_home_node()) && (key_->equals(other->get_keystring()));
-        }
+    /* Return true if this key is equal to the given objects, and false if not. */
+    bool equals(Object* o) {
+        Key* other = dynamic_cast<Key*>(o);
+        if (other == nullptr) return false;
+        return idx_ == other->get_home_node() && key_->equals(other->get_keystring());
+    }
 };
+
+/** 
+ * Uses a StrBuff to build new keys with characters appended to an original key's string.
+ * @author Jan Vitek <vitekj@me.com>
+ */
+class KeyBuff : public Object {
+public:
+    Key* orig_; // external
+    StrBuff buf_;
+
+    KeyBuff(Key* orig) : orig_(orig), buf_() {
+        buf_.c(*orig_->get_keystring());
+    }
+
+    KeyBuff& c(String &s) { buf_.c(s); return *this;  }
+    KeyBuff& c(size_t v) { buf_.c(v); return *this; }
+    KeyBuff& c(const char* v) { buf_.c(v); return *this; }
+
+    Key* get(size_t idx) {
+        char* s = buf_.c_str();
+        buf_.c(*orig_->get_keystring());
+        Key* k = new Key(s, idx);
+        delete[] s;
+        return k;
+    }
+}; // KeyBuff

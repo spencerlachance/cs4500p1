@@ -1,8 +1,9 @@
 #pragma once
 
-#include "string.h"
 #include <stdbool.h>
 #include <assert.h>
+#include "string.h"
+#include "serializer.h"
 
 // The number of chunks held initially in each vector
 #define INITIAL_CHUNK_CAPACITY 1024
@@ -123,7 +124,6 @@ class Vector : public Object {
         // Sets the element at index to val.
         // If index == size(), appends to the end of the vector.
         void set(Object* val, size_t index) {
-            assert(index >= 0);
             assert(index <= size_);
 
             if (index == size_) {
@@ -143,7 +143,6 @@ class Vector : public Object {
         
         // Gets the element at the given index.
         Object* get(size_t index) {
-            assert(index >= 0);
             assert(index < size_);
             int outer_idx = index / CHUNK_SIZE;
             int inner_idx = index % CHUNK_SIZE;
@@ -222,12 +221,7 @@ class Vector : public Object {
                 }
             }
             buff.c("]}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
-            delete serial_str;
-            return copy;
+            return buff.c_str();
         }
 };
 
@@ -326,8 +320,7 @@ class BoolVector : public Object {
         
         // Sets the element at index to val.
         // If index == size(), appends to the end of the vector.
-        void set(bool val, size_t index) { 
-            assert(index >= 0);
+        void set(bool val, size_t index) {
             assert(index <= size_);
 
             if (index == size_) {
@@ -341,8 +334,7 @@ class BoolVector : public Object {
         }
         
         // Gets the element at the given index.
-        bool get(size_t index) { 
-            assert(index >= 0);
+        bool get(size_t index) {
             assert(index < size_);
             int outer_idx = index / CHUNK_SIZE;
             int inner_idx = index % CHUNK_SIZE;
@@ -400,25 +392,18 @@ class BoolVector : public Object {
          */
         const char* serialize() {
             StrBuff buff;
+            Serializer ser;
             buff.c("{type: bool_vector, bools: [");
             for (int i = 0; i < size_; i++) {
-                bool b = get(i);
-                if (b) {
-                    buff.c("true");
-                } else {
-                    buff.c("false");
-                }
+                char* serial_bool = ser.serialize_bool(get(i));
+                buff.c(serial_bool);
+                delete[] serial_bool;
                 if (i < size_ - 1) {
                      buff.c(",");
                 }
             }
             buff.c("]}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
-            delete serial_str;
-            return copy;
+            return buff.c_str();
         }
 };
 
@@ -518,7 +503,6 @@ class IntVector : public Object {
         // Sets the element at index to val.
         // If index == size(), appends to the end of the vector.
         void set(int val, size_t index) {
-            assert(index >= 0);
             assert(index <= size_);
 
             if (index == size_) {
@@ -534,7 +518,6 @@ class IntVector : public Object {
         // Gets the element at index.
         // If index is >= size(), does nothing and returns undefined.
         int get(size_t index) {
-            assert(index >= 0);
             assert(index < size_);
             int outer_idx = index / CHUNK_SIZE;
             int inner_idx = index % CHUNK_SIZE;
@@ -593,42 +576,18 @@ class IntVector : public Object {
          */
         const char* serialize() {
             StrBuff buff;
+            Serializer ser;
             buff.c("{type: int_vector, ints: [");
             for (int i = 0; i < size_; i++) {
-                char* int_char = int_to_char(get(i));
-                buff.c(int_char);
-                delete[] int_char;
+                char* serial_int = ser.serialize_int(get(i));
+                buff.c(serial_int);
+                delete[] serial_int;
                 if (i < size_ - 1) {
                      buff.c(",");
                 }
             }
             buff.c("]}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
-            delete serial_str;
-            return copy;
-        }
-
-        /** 
-         * Converts an int to a char*
-         */
-        char* int_to_char(int i) {
-            // The size of the buffer that will hold the float
-            size_t len = 5;
-            char* c_int = new char[len]; 
-            int ret = snprintf(c_int, len, "%d", i);
-            exit_if_not(ret >= 0, "snprintf failed");
-            while (ret >= len) {
-                // The float was too large for the buffer, so increase its size and try again
-                delete[] c_int;
-                len += 5;
-                c_int = new char[len];
-                ret = snprintf(c_int, len, "%d", i);
-                exit_if_not(ret >= 0, "snprintf failed");
-            }
-            return c_int;
+            return buff.c_str();
         }
 };
 
@@ -729,7 +688,6 @@ class FloatVector : public Object {
         // Sets the element at index to val.
         // If index == size(), appends to the end of the vector.
         void set(float val, size_t index) {
-            assert(index >= 0);
             assert(index <= size_);
 
             if (index == size_) {
@@ -744,7 +702,6 @@ class FloatVector : public Object {
         
         // Gets the element at index.
         float get(size_t index) {
-            assert(index >= 0);
             assert(index < size_);
             int outer_idx = index / CHUNK_SIZE;
             int inner_idx = index % CHUNK_SIZE;
@@ -805,41 +762,17 @@ class FloatVector : public Object {
          */
         const char* serialize() {
             StrBuff buff;
+            Serializer ser;
             buff.c("{type: float_vector, floats: [");
             for (int i = 0; i < size_; i++) {
-                char* float_char = float_to_char(get(i));
-                buff.c(float_char);
-                delete[] float_char;
+                char* serial_float = ser.serialize_float(get(i));
+                buff.c(serial_float);
+                delete[] serial_float;
                 if (i < size_ - 1) {
                      buff.c(",");
                 }
             }
             buff.c("]}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
-            delete serial_str;
-            return copy;
-        }
-
-        /** 
-         * Converts a float to a char*
-         */
-        char* float_to_char(float f) {
-            // The size of the buffer that will hold the float
-            size_t len = 10;
-            char* c_float = new char[len]; 
-            int ret = snprintf(c_float, len, "%.7f", f);
-            exit_if_not(ret >= 0, "snprintf failed");
-            while (ret >= len) {
-                // The float was too large for the buffer, so increase its size and try again
-                delete[] c_float;
-                len += 10;
-                c_float = new char[len]; 
-                ret = snprintf(c_float, len, "%.7f", f);
-                exit_if_not(ret >= 0, "snprintf failed");
-            }
-            return c_float;
+            return buff.c_str();
         }
 };

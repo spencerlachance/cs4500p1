@@ -108,6 +108,7 @@ public:
         val_ = new char[capacity_ = 10];
         size_ = 0;
     }
+    ~StrBuff() { delete[] val_; }
     void grow_by_(size_t step) {
         if (step + size_ < capacity_) return;
         capacity_ *= 2;
@@ -132,7 +133,21 @@ public:
         grow_by_(1);     // ensure space for terminator
         val_[size_] = 0; // terminate
         String *res = new String(true, val_, size_);
-        val_ = nullptr; // val_ was consumed above
+        // Reset fields
+        val_ = new char[capacity_ = 10];
+        size_ = 0;
+        return res;
+    }
+
+    /* Like get() but returns a char* instead */
+    char* c_str() {
+        assert(val_ != nullptr); // can be called only once
+        grow_by_(1);     // ensure space for terminator
+        char* res = val_;
+        res[size_] = 0; // terminate
+        // Reset fields
+        val_ = new char[capacity_ = 10];
+        size_ = 0;
         return res;
     }
 };

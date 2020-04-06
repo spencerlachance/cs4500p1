@@ -143,14 +143,8 @@ class Register : public Message {
             buff.c(sender_);
             buff.c("}");
 
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
-            
-            delete serial_str;
             delete[] serial_ip;
-            return copy;
+            return buff.c_str();
         }
 
         /* Returns nullptr because this is not an Ack */
@@ -253,15 +247,9 @@ class Directory : public Message {
             buff.c(serial_ivec);
             buff.c("}");
 
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
-            
-            delete serial_str;
             delete[] serial_vec;
             delete[] serial_ivec;
-            return copy;
+            return buff.c_str();
         }
 
         /**
@@ -310,54 +298,41 @@ class Directory : public Message {
         }
 };
 
-/* Put is a message subclass used to store a (DataFrame) at a key. */
+/* Put is a message subclass used to store a blob of serialized data at a key. */
 class Put : public Message {
     public:
-        Key* k_;
-        DataFrame* v_;
+        Key* k_;   // external
+        const char* v_; // external
 
-        /* Constructor, takes ownership of k and v. */
-        Put(Key* k, DataFrame* v) {
+        /* Constructor */
+        Put(Key* k, const char* v) : k_(k), v_(v) {
             kind_ = MsgKind::Put;
-            k_ = k;
-            v_ = v;
         }
-
-        /* Destructor */
-        ~Put() { }
 
         /* Returns this put message's key */
         Key* get_key() { return k_; }
 
-        /* Returns this put message's value (DataFrame) */
-        DataFrame* get_value() { return v_; }
+        /* Returns this put message's value */
+        const char* get_value() { return v_; }
 
         /* Returns a serialized representation of this put message */
         const char* serialize() {
             StrBuff buff;
-            buff.c("{type: put, key: ");
             const char* serial_k = k_->serialize();
+            buff.c("{type: put, key: ");
             buff.c(serial_k);
             buff.c(", value: ");
-            const char* serial_v = v_->serialize();
-            buff.c(serial_v);
+            buff.c(v_);
             buff.c("}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
-
-            delete serial_str;
             delete[] serial_k;
-            delete[] serial_v;
-            return copy;
+            return buff.c_str();
         }
 
         /* Return true if this put message equals the given object, and false if not. */
         bool equals(Object* o) {
             Put* other = dynamic_cast<Put*>(o);
             if (other == nullptr) return false;
-            return (other->get_key()->equals(k_)) && (other->get_value()->equals(v_));
+            return other->get_key()->equals(k_) && strcmp(v_, other->get_value()) == 0;
         }
 
         /* Returns nullptr because this is not an Ack */
@@ -409,9 +384,6 @@ class Get : public Message {
             k_ = k;
         }
 
-        /* Desrtuctor */
-        ~Get() { }
-
         /* Return this Get message's key */
         Key* get_key() {
             return k_;
@@ -420,18 +392,14 @@ class Get : public Message {
         /* Returns a serialized representation of this get message */
         const char* serialize() {
             StrBuff buff;
-            buff.c("{type: get, key: ");
             const char* serialized_k = k_->serialize();
+
+            buff.c("{type: get, key: ");
             buff.c(serialized_k);
             buff.c("}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
 
             delete[] serialized_k;
-            delete serial_str;
-            return copy;
+            return buff.c_str();
         }
 
         /* Return true if this get message equals the given object, and false if not. */
@@ -501,18 +469,14 @@ class WaitAndGet : public Message {
         /* Returns a serialized representation of this WaitAndGet message */
         const char* serialize() {
             StrBuff buff;
-            buff.c("{type: wait_get, key: ");
             const char* serialized_k = k_->serialize();
+
+            buff.c("{type: wait_get, key: ");
             buff.c(serialized_k);
             buff.c("}");
-            String* serial_str = buff.get();
-            // Copying the char* so we can delete the String* returned from get()
-            char* copy = new char[serial_str->size() + 1];
-            strcpy(copy, serial_str->c_str());
 
             delete[] serialized_k;
-            delete serial_str;
-            return copy;
+            return buff.c_str();
         }
 
         /* Return true if this get message equals the given object, and false if not. */
@@ -563,20 +527,17 @@ class WaitAndGet : public Message {
  */
 class Reply : public Message {
 public:
-    DataFrame* v_;
+    const char* v_; // external
     // The type of request that this message is a response to (either Get or WaitAndGet)
     MsgKind request_;
 
-    /* Constructor, DOES NOT take ownership over v */
-    Reply(DataFrame* v, MsgKind req) : v_(v), request_(req) {
+    /* Constructor */
+    Reply(const char* v, MsgKind req) : v_(v), request_(req) {
         kind_ = MsgKind::Reply;
-    } 
+    }
 
-    /* Destructor */
-    ~Reply() { }
-
-    /* Return this reply's v_ field */
-    DataFrame* get_value() {
+    /* Return this reply's value */
+    const char* get_value() {
         return v_;
     }
 
@@ -588,27 +549,22 @@ public:
     /* Returns a serialized representation of this reply message */
     const char* serialize() {
         StrBuff buff;
-        buff.c("{type: reply, value: ");
-        const char* serialized_v = v_->serialize();
-        buff.c(serialized_v);
-        buff.c(", request: ");
-        buff.c((size_t)request_);
+        Serializer ser;
+        const char* serial_req = ser.serialize_int((size_t)request_);
+        buff.c("{type: reply, request: ");
+        buff.c(serial_req);
+        buff.c(", value: ");
+        buff.c(v_);
         buff.c("}");
-        String* serial_str = buff.get();
-        // Copying the char* so we can delete the String* returned from get()
-        char* copy = new char[serial_str->size() + 1];
-        strcpy(copy, serial_str->c_str());
-
-        delete[] serialized_v;
-        delete serial_str;
-        return copy;
+        delete[] serial_req;
+        return buff.c_str();
     }
 
     /* Checks if this reply equals to the given object */
     bool equals(Object* o) {
         Reply* other = dynamic_cast<Reply*>(o);
         if (other == nullptr) return false;
-        return other->get_value()->equals(v_) && other->get_request() == request_;
+        return strcmp(v_, other->get_value()) == 0 && other->get_request() == request_;
     }
 
     /* Returns nullptr because this is not an Ack */

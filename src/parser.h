@@ -49,11 +49,6 @@ class ColumnSet : public Object {
      * Destructor for ColumnSet
      */
     virtual ~ColumnSet() {
-        for (size_t i = 0; i < _length; i++) {
-            if (_columns[i] != nullptr) {
-                delete _columns[i];
-            }
-        }
         delete[] _columns;
     }
 
@@ -68,10 +63,13 @@ class ColumnSet : public Object {
      * @param which The index for the column to initialize
      * @param type The type of column to create
      */
-    virtual void initializeColumn(size_t which, char type) {
+    virtual void initializeColumn(size_t which, char type, KVStore* kv, Key* k) {
         assert(which < _length);
         assert(_columns[which] == nullptr);
-        Column* col = makeColumnFromType(type);
+        KeyBuff kbuf(k);
+        kbuf.c("-c");
+        kbuf.c(which);
+        Column* col = makeColumnFromType(type, kv, kbuf.get(kv->this_node()));
         _columns[which] = col;
     }
 
@@ -92,19 +90,8 @@ class ColumnSet : public Object {
      * @param type The type of column to create
      * @return The newly created column. Caller must free.
      */
-    Column* makeColumnFromType(char type) {
-        switch (type) {
-            case 'S':
-                return new StringColumn();
-            case 'I':
-                return new IntColumn();
-            case 'F':
-                return new FloatColumn();
-            case 'B':
-                return new BoolColumn();
-            default:
-                assert(false);
-        }
+    Column* makeColumnFromType(char type, KVStore* kv, Key* k) {
+        return new Column(type, kv, k);
     }
 };
 
@@ -487,19 +474,19 @@ class SorParser : public Object {
                 slice.trim(STRING_QUOTE);
                 assert(slice.getLength() <= MAX_STRING);
                 char* cstr = slice.toCString();
-                dynamic_cast<StringColumn*>(column)->push_back(new String(cstr));
+                column->push_back(new String(cstr));
                 // Because the String constructor clones the char*
                 delete[] cstr;
                 break;
             }
             case 'I':
-                dynamic_cast<IntColumn*>(column)->push_back(slice.toInt());
+                column->push_back(slice.toInt());
                 break;
             case 'F':
-                dynamic_cast<FloatColumn*>(column)->push_back(slice.toFloat());
+                column->push_back(slice.toFloat());
                 break;
             case 'B':
-                dynamic_cast<BoolColumn*>(column)->push_back(slice.toInt() == 1);
+                column->push_back(slice.toInt() == 1);
                 break;
             default:
                 assert(false);
@@ -608,7 +595,7 @@ class SorParser : public Object {
      * Attempts to guess the schema based on the first 500 lines in the file.
      * Must be called first, before parseFile or getColumnSet. Can only be called once.
      */
-    virtual Schema* guessSchema() {
+    virtual Schema* guessSchema(KVStore* kv, Key* k) {
         assert(_columns == nullptr);
         assert(_typeGuesses == nullptr);
         // Detect the row with the most fields in the first 500 lines
@@ -650,7 +637,7 @@ class SorParser : public Object {
                 // Assume bool for anything we still don't have a guess for as per spec
                 _typeGuesses[i] = 'B';
             }
-            _columns->initializeColumn(i, _typeGuesses[i]);
+            _columns->initializeColumn(i, _typeGuesses[i], kv, k);
         }
 
         return new Schema(_typeGuesses);
