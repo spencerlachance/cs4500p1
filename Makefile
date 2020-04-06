@@ -17,7 +17,7 @@ run:
 	./demo -idx 0
 
 valgrind:
-	valgrind --leak-check=full ./dataf -f data/datafile.txt -len 10000
+	valgrind --leak-check=full ./dataf -f data/datafile.txt -len 100000
 	valgrind --leak-check=full ./serial
 	valgrind --leak-check=full ./trivial -v
 	# Valgrind on Node 0

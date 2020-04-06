@@ -50,7 +50,7 @@ public:
             fields_->append(dt);
         }
         va_end(vl);
-        done();
+        lock();
     }
 
     /** Destructor */
@@ -140,7 +140,10 @@ public:
     }
 
     /** Called when all fields have been added to this column. */
-    void done() { fields_->done(); }
+    void lock() { fields_->lock(); }
+
+    /** Called when more fields must be added to this locked column. */
+    void unlock() { fields_->unlock(); }
 
     /** Returns a serialized representation of this Column. */
     const char* serialize() {

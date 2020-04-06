@@ -94,7 +94,7 @@ class ParserMain {
             char type;
             for (int i = 0; i < set->getLength(); i++) {
                 Column* col = set->getColumn(i);
-                col->done();
+                col->lock();
                 assert(col->get_type() == schema->col_type(i));
                 _df->add_column(col);
             }

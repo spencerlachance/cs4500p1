@@ -91,6 +91,11 @@ public:
         return t_.s;
     }
 
+    /**
+     * Returns this DataType's type char.
+     * */
+    char get_type() { return type_; }
+
     /** Returns a copy of this DataType. */
     DataType* clone() {
         DataType* res = new DataType();
@@ -146,5 +151,23 @@ public:
             }
         }
         return buff.c_str();
+    }
+
+    bool equals(Object* o) {
+        DataType* other = dynamic_cast<DataType*>(o);
+        if (other == nullptr) return false;
+        if (type_ != other->get_type()) return false;
+        switch (type_) {
+            case 'I':
+                return other->get_int() == get_int();
+            case 'B':
+                return other->get_bool() == get_bool();
+            case 'F':
+                return other->get_float() == get_float();
+            case 'S':
+                return other->get_string()->equals(get_string());
+            case 'U':
+                return true;
+        }
     }
 };

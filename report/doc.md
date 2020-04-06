@@ -94,7 +94,7 @@ A vector of DataFrame fields where each chunk is serialized and put into the KVS
 * `void store_chunk_(size_t idx)` - Serializes `current_` and puts it into the KVStore once it fills up or once the last field is added to the DVector. `idx` is appended to the column's key, and then that key is used to store the chunk and added to `keys_`.
 * `void append(DataType* val)` - Appends the given field to the end of the DVector as long as it isn't locked. Calls `store_chunk_()` once `current_` is full.
 * `DataType* get(size_t index)` - Returns the field at the given index. If the chunk containing the field isn't cached, it fetches it from the KVStore, deserializes it, and resets the cache to it.
-* `void done()` - Called after the last field is added to the DVector. Call `store_chunk_()` and then sets `is_locked_` to true.
+* `void lock()` - Called after the last field is added to the DVector. Call `store_chunk_()` and then sets `is_locked_` to true.
 
 
 ## Column
@@ -108,7 +108,7 @@ A column in the DataFrame, holds fields of a specific type.
 * `void push_back(type val)` - Appends the given field to the end of the Column.
 * `type get_type(size_t idx)` - Returns the field at the given index.
 * `void append_missing()` - Appends a missing value to the end of the Column.
-* `void done()` - Called after the last field has been added to the Column.
+* `void lock()` - Called after the last field has been added to the Column.
 
 
 ## DataFrame
@@ -121,7 +121,7 @@ Table containing columns of a specific type
 **methods**:
 * Getters for specific fields (one for each type)
 * `void add_column(Column* col)` - Adds the given column to the DataFrame. Pads either the given column or every other column with missing fields, whichever's length is smaller.
-* `void add_row(Row& row, bool last_row)` - Adds the given row to the bottom of the DataFrame. If `last_row` is true, it calls every column's `done()` method.
+* `void add_row(Row& row, bool last_row)` - Adds the given row to the bottom of the DataFrame. If `last_row` is true, it calls every column's `lock()` method.
 * `void map(Rower& r)`
 * `void pmap(Rower& r)`
 * `DataFrame* filter(Rower& r)`

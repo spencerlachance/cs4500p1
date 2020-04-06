@@ -56,7 +56,7 @@ DataFrame* DataFrame::fromIntArray(Key* k, KDStore* kd, size_t size, int* vals) 
     for (int i = 0; i < size; i++) {
         col->push_back(vals[i]);
     }
-    col->done();
+    col->lock();
     DataFrame* res = new DataFrame(kv, k);
     res->add_column(col);
     kv->put(*k, res->serialize());
@@ -75,7 +75,7 @@ DataFrame* DataFrame::fromBoolArray(Key* k, KDStore* kd, size_t size, bool* vals
     for (int i = 0; i < size; i++) {
         col->push_back(vals[i]);
     }
-    col->done();
+    col->lock();
     DataFrame* res = new DataFrame(kv, k);
     res->add_column(col);
     kv->put(*k, res->serialize());
@@ -94,7 +94,7 @@ DataFrame* DataFrame::fromFloatArray(Key* k, KDStore* kd, size_t size, float* va
     for (int i = 0; i < size; i++) {
         col->push_back(vals[i]);
     }
-    col->done();
+    col->lock();
     DataFrame* res = new DataFrame(kv, k);
     res->add_column(col);
     kv->put(*k, res->serialize());
@@ -113,7 +113,7 @@ DataFrame* DataFrame::fromStringArray(Key* k, KDStore* kd, size_t size, String**
     for (int i = 0; i < size; i++) {
         col->push_back(vals[i]);
     }
-    col->done();
+    col->lock();
     DataFrame* res = new DataFrame(kv, k);
     res->add_column(col);
     kv->put(*k, res->serialize());
@@ -130,7 +130,7 @@ DataFrame* DataFrame::fromIntScalar(Key* k, KDStore* kd, int val) {
     kbuf.c("-c0");
     Column* col = new Column('I', kv, kbuf.get(kv->this_node()));
     col->push_back(val);
-    col->done();
+    col->lock();
     DataFrame* res = new DataFrame(kv, k);
     res->add_column(col);
     kv->put(*k, res->serialize());
@@ -147,7 +147,7 @@ DataFrame* DataFrame::fromBoolScalar(Key* k, KDStore* kd, bool val) {
     kbuf.c("-c0");
     Column* col = new Column('B', kv, kbuf.get(kv->this_node()));
     col->push_back(val);
-    col->done();
+    col->lock();
     DataFrame* res = new DataFrame(kv, k);
     res->add_column(col);
     kv->put(*k, res->serialize());
@@ -164,7 +164,7 @@ DataFrame* DataFrame::fromFloatScalar(Key* k, KDStore* kd, float val) {
     kbuf.c("-c0");
     Column* col = new Column('F', kv, kbuf.get(kv->this_node()));
     col->push_back(val);
-    col->done();
+    col->lock();
     DataFrame* res = new DataFrame(kv, k);
     res->add_column(col);
     kv->put(*k, res->serialize());
@@ -181,7 +181,7 @@ DataFrame* DataFrame::fromStringScalar(Key* k, KDStore* kd, String* val) {
     kbuf.c("-c0");
     Column* col = new Column('S', kv, kbuf.get(kv->this_node()));
     col->push_back(val);
-    col->done();
+    col->lock();
     DataFrame* res = new DataFrame(kv, k);
     res->add_column(col);
     kv->put(*k, res->serialize());

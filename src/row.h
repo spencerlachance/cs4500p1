@@ -145,7 +145,19 @@ class Row : public Object {
         }
 
         /** Getter for this row's schema's types. */
-        IntVector* get_types() {
-            return col_types_;
-        }
+        IntVector* get_types() { return col_types_; }
+
+        /** Getter for this row's fields. */
+        Vector* get_fields() { return fields_; }
+
+        /* Returns true if the given Objcet is equal to this Row, otherwise returns false.
+        *  Only used for Vectors containing Strings.
+        *  */
+        bool equals(Object* o) {
+            Row* other = dynamic_cast<Row*>(o);
+            if (other == nullptr) return false;
+            if (other->width() != width()) return false;
+            return other->get_fields()->equals(fields_) && other->get_types()->equals(col_types_) &&
+                other->get_idx() == idx_;
+        } 
 };

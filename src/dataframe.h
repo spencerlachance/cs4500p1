@@ -54,7 +54,7 @@ class PrintRower : public Rower {
 
         void join_delete(Rower* other) { }
 };
- 
+
 /****************************************************************************
  * DataFrame::
  *
@@ -99,9 +99,7 @@ class DataFrame : public Object {
         
         /** Returns the dataframe's schema. Modifying the schema after a dataframe
           * has been created in undefined. */
-        Schema& get_schema() {
-            return schema_;
-        }
+        Schema& get_schema() { return schema_; }
         
         /** Adds a column this dataframe, updates the schema, the new column
           * is external, and appears as the last column of the dataframe. 
@@ -195,7 +193,7 @@ class DataFrame : public Object {
                         exit_if_not(false, "Column has invalid type.");
                 }
                 // Finalize the columns
-                if (last_row) col->done();
+                if (last_row) col->lock();
             }
             length_++;
         }
@@ -264,7 +262,7 @@ class DataFrame : public Object {
             // we have to finalize all of its columns in a separate loop.
             Vector* cols = df->get_columns();
             for (int j = 0; j < df->ncols(); j++) {
-                dynamic_cast<Column*>(cols->get(j))->done();
+                dynamic_cast<Column*>(cols->get(j))->lock();
             }
             return df;
         }
@@ -282,6 +280,7 @@ class DataFrame : public Object {
         /** Pads the given column with a default value until its length
          *  matches the number of rows in the data frame. */
         void pad_column_(Column* col) {
+            col->unlock();
             char type = col->get_type();
             while (col->size() < length_) {
                 switch(type) {
@@ -301,6 +300,7 @@ class DataFrame : public Object {
                         exit_if_not(false, "Invalid column type.");
                 }
             }
+            col->lock();
         }
 
         /* Returns a serialized representation of this DataFrame */

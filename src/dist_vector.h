@@ -127,6 +127,16 @@ public:
         delete current_;
         current_ = nullptr;
     }
+
+    /** Retrieves the nth chunk from the KVStore and deserialize it. */
+    void retrieve_chunk_(size_t n) {
+        Key* k = dynamic_cast<Key*>(keys_->get(n));
+        const char* serial_chunk = kv_->get(*k);
+        Deserializer ds(serial_chunk);
+        // The chunk is cached because it will likely be needed for the next get()
+        current_ = ds.deserialize_chunk();
+        delete[] serial_chunk;
+    }
     
     // Appends val to the end of the vector.
     void append(DataType* val) {
@@ -151,14 +161,9 @@ public:
         // The index of the field in the chunk
         size_t field_idx = index % CHUNK_SIZE;
         if (current_ == nullptr || current_->idx() != chunk_idx) {
-            delete current_;
+            if (current_ != nullptr) delete current_;
             // Retrieve the chunk from the KVStore
-            Key* k = dynamic_cast<Key*>(keys_->get(chunk_idx));
-            const char* serial_chunk = kv_->get(*k);
-            Deserializer ds(serial_chunk);
-            // The chunk is cached because it will likely be needed for the next get()
-            current_ = ds.deserialize_chunk();
-            delete[] serial_chunk;
+            retrieve_chunk_(chunk_idx);
         }
         // Retrieve the field from the chunk and clone it so we can delete the chunk later.
         DataType* res = current_->get(field_idx)->clone();
@@ -171,11 +176,22 @@ public:
     }
 
     /** Called when all fields have been added to this DVector */
-    void done() {
+    void lock() {
         exit_if_not(!is_locked_, "DistVector is already locked");
         // Put the last chunk in the KVStore if it has any fields
         if (current_->size() > 0) store_chunk_(current_->idx());
         is_locked_ = true;
+    }
+
+    /** Called when more fields must be added to this locked DVector */
+    void unlock() {
+        exit_if_not(is_locked_, "DistVector is already unlocked");
+        // Delete the cached chunk if there is one
+        if (current_ != nullptr) delete current_;
+        // Get the last chunk from the KVStore.
+        size_t last_chunk = keys_->size() - 1;
+        retrieve_chunk_(last_chunk);
+        is_locked_ = false;
     }
 
     /** Returns a char* representation of this DVector */
