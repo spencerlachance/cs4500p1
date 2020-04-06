@@ -1,7 +1,7 @@
 // //lang::CwC
 
 #include <assert.h>
-#include "../src/serial.h"
+#include "../src/deserial.h"
 #include "../src/dataframe.h"
 
 /* Utility method for creating a DataFrame with foo values. */

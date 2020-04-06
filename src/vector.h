@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include "string.h"
-#include "serializer.h"
+#include "serial.h"
 
 // The number of chunks held initially in each vector
 #define INITIAL_CHUNK_CAPACITY 1024

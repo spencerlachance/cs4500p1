@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "serializer.h"
+#include "serial.h"
 
 /**
  * A union describing a field that could exist in a row of a dataframe.
