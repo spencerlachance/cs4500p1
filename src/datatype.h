@@ -26,7 +26,7 @@ union Type {
  */
 class DataType : public Object {
 public:
-    union Type t;
+    union Type t_;
     char type_;
 
     /**
@@ -38,7 +38,7 @@ public:
      * Destructor
      */
     ~DataType() {
-        if (type_ == 'S') delete t.s; 
+        if (type_ == 'S') delete t_.s; 
     }
 
     /**
@@ -47,23 +47,23 @@ public:
      */
     void set_int(int val) {
         exit_if_not(type_ == 'U', "This object's value has already been set to a different type.");
-        t.i = val;
+        t_.i = val;
         type_ = 'I';
     }
     void set_bool(bool val) {
         exit_if_not(type_ == 'U', "This object's value has already been set to a different type.");
-        t.b = val;
+        t_.b = val;
         type_ = 'B';
     }
     void set_float(float val) {
         exit_if_not(type_ == 'U', "This object's value has already been set to a different type.");
-        t.f = val;
+        t_.f = val;
         type_ = 'F';
     }
     // Takes ownership of the string.
     void set_string(String* val) {
         exit_if_not(type_ == 'U', "This object's value has already been set to a different type.");
-        t.s = val;
+        t_.s = val;
         type_ = 'S';
     }
 
@@ -73,22 +73,22 @@ public:
     int get_int() {
         if (type_ == 'U') set_int(0); // Return default value if missing
         exit_if_not(type_ == 'I', "This object's type does not match the type requested.");
-        return t.i;
+        return t_.i;
     }
     bool get_bool() {
         if (type_ == 'U') set_bool(0); // Return default value if missing
         exit_if_not(type_ == 'B', "This object's type does not match the type requested.");
-        return t.b;
+        return t_.b;
     }
     float get_float() {
         if (type_ == 'U') set_float(0); // Return default value if missing
         exit_if_not(type_ == 'F', "This object's type does not match the type requested.");
-        return t.f;
+        return t_.f;
     }
     String* get_string() {
         if (type_ == 'U') set_string(new String("")); // Return default value if missing
         exit_if_not(type_ == 'S', "This object's type does not match the type requested.");
-        return t.s;
+        return t_.s;
     }
 
     /** Returns a copy of this DataType. */
@@ -96,13 +96,13 @@ public:
         DataType* res = new DataType();
         switch (type_) {
             case 'I':
-                res->set_int(t.i); break;
+                res->set_int(t_.i); break;
             case 'B':
-                res->set_bool(t.b); break;
+                res->set_bool(t_.b); break;
             case 'F':
-                res->set_float(t.f); break;
+                res->set_float(t_.f); break;
             case 'S':
-                res->set_string(t.s->clone()); break;
+                res->set_string(t_.s->clone()); break;
         }
         return res;
     }
@@ -121,25 +121,25 @@ public:
         const char* serial_val;
         switch (type_) {
             case 'I': {
-                serial_val = ser.serialize_int(t.i);
+                serial_val = ser.serialize_int(t_.i);
                 buff.c(serial_val);
                 delete[] serial_val;
                 break;
             }
             case 'B': {
-                serial_val = ser.serialize_bool(t.b);
+                serial_val = ser.serialize_bool(t_.b);
                 buff.c(serial_val);
                 delete[] serial_val;
                 break;
             }
             case 'F': {
-                serial_val = ser.serialize_float(t.f);
+                serial_val = ser.serialize_float(t_.f);
                 buff.c(serial_val);
                 delete[] serial_val;
                 break;
             }
             case 'S': {
-                serial_val = t.s->serialize();
+                serial_val = t_.s->serialize();
                 buff.c(serial_val);
                 delete[] serial_val;
                 break;

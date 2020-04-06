@@ -95,19 +95,19 @@ public:
     // KeyBuff used to build each chunk's key
     KeyBuff* kbuf_;
     // Have all fields been added to this DVector?
-    bool is_locked;
+    bool is_locked_;
 
     /** Initialize an empty DistributedVector. The given Key is that of the column that owns this
      *  DVector, the keys for each chunk are built off of it. */
     DistributedVector(KVStore* kv, Key* k) : 
         size_(0), current_(new Chunk(0)), keys_(new Vector()), kv_(kv), k_(k), 
-        kbuf_(new KeyBuff(k_)), is_locked(false) { }
+        kbuf_(new KeyBuff(k_)), is_locked_(false) { }
 
     /** Initialize a DistributedVector containing the given keys. The given Key is that of the 
      *  column that owns this DVector, the keys for each chunk are built off of it. */
     DistributedVector(KVStore* kv, size_t size, Vector* keys) : 
         size_(size), current_(nullptr), keys_(keys), kv_(kv), k_(nullptr), kbuf_(nullptr),
-        is_locked(true) { }
+        is_locked_(true) { }
 
     /** Destructor */
     ~DistributedVector() { 
@@ -130,7 +130,7 @@ public:
     
     // Appends val to the end of the vector.
     void append(DataType* val) {
-        exit_if_not(!is_locked, "This DVector is locked, no more fields can be added to it.");
+        exit_if_not(!is_locked_, "This DVector is locked, no more fields can be added to it.");
         if (current_->size() == CHUNK_SIZE) {
             size_t idx = current_->idx();
             // The current chunk is full, so serialize it and put it in the KVStore
@@ -144,7 +144,7 @@ public:
     
     // Gets the field at the given index.
     DataType* get(size_t index) {
-        exit_if_not(is_locked, "DVectors can only be queryed once all fields have been added.");
+        exit_if_not(is_locked_, "DVectors can only be queryed once all fields have been added.");
         assert(index < size_);
         // The index of the chunk in the vector
         size_t chunk_idx = index / CHUNK_SIZE;
@@ -172,15 +172,15 @@ public:
 
     /** Called when all fields have been added to this DVector */
     void done() {
-        exit_if_not(!is_locked, "DistVector is already locked");
+        exit_if_not(!is_locked_, "DistVector is already locked");
         // Put the last chunk in the KVStore if it has any fields
         if (current_->size() > 0) store_chunk_(current_->idx());
-        is_locked = true;
+        is_locked_ = true;
     }
 
     /** Returns a char* representation of this DVector */
     const char* serialize() {
-        exit_if_not(is_locked, "DistVector can only be serialized once all fields have been added");
+        exit_if_not(is_locked_, "DistVector can only be serialized once all fields have been added");
         StrBuff sbuf;
         // Serialize the size
         Serializer ser;
@@ -203,7 +203,7 @@ public:
 
     /** Is this DVector equal to the given object? */
     bool equals(Object* other) {
-        exit_if_not(is_locked, "DistVector can only be compared once all fields have been added");
+        exit_if_not(is_locked_, "DistVector can only be compared once all fields have been added");
         DistributedVector* o = dynamic_cast<DistributedVector*>(other);
         if (o == nullptr) return false;
         return size_ == o->size() && keys_->equals(o->get_keys());
