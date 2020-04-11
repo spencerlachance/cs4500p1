@@ -76,7 +76,7 @@ public:
     }
 
     /** Compute a hash for this string. */
-    size_t hash() {
+    size_t hash_me() override {
         size_t hash = 0;
         for (size_t i = 0; i < size_; ++i)
             hash = cstr_[i] + (hash << 6) + (hash << 16) - hash;

@@ -148,6 +148,15 @@ class Vector : public Object {
             int inner_idx = index % CHUNK_SIZE;
             return objects_[outer_idx][inner_idx];
         }
+
+        // Removes the element at the given index.
+        void remove(size_t index) {
+            assert(index < size_);
+            int outer_idx = index / CHUNK_SIZE;
+            int inner_idx = index % CHUNK_SIZE;
+            delete objects_[outer_idx][inner_idx];
+            objects_[outer_idx][inner_idx] = nullptr;
+        }
         
         // Returns if this vector contains obj, using obj->equals().
         // If obj is null, uses == .

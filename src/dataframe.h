@@ -139,6 +139,12 @@ class DataFrame : public Object {
             Column* column = dynamic_cast<Column*>(columns_.get(col));
             return column->get_string(row);
         }
+
+        /** Returns the index of the node on which the field at the given row idx is stored. */
+        size_t get_node(size_t row) {
+            Column* column = dynamic_cast<Column*>(columns_.get(0));
+            return column->get_node(row);
+        }
         
         /** Set the fields of the given row object with values from the columns at
           * the given offset.  If the row is not form the same schema as the
@@ -214,6 +220,18 @@ class DataFrame : public Object {
             }
         }
 
+        /** Visit only the rows that are stored on the current node */
+        void local_map(Rower& r) {
+            Row row(schema_);
+            for (int i = 0; i < length_; i++) {
+                if (get_node(i) == kv_->this_node()) {
+                    row.set_idx(i);
+                    fill_row(i, row);
+                    r.accept(row);
+                }
+            }
+        }
+
         /**
          * Maps over part of the DataFrame according to which thread calls it.
          * 
@@ -258,13 +276,14 @@ class DataFrame : public Object {
                     df->add_row(row, false);
                 }
             }
-            // Since we don't know what the last row in the new df is going to be,
-            // we have to finalize all of its columns in a separate loop.
-            Vector* cols = df->get_columns();
-            for (int j = 0; j < df->ncols(); j++) {
-                dynamic_cast<Column*>(cols->get(j))->lock();
-            }
+            df->lock_columns();
             return df;
+        }
+
+        /** Locks all of this DataFrame's columns. */
+        void lock_columns() {
+            for (int j = 0; j < ncols(); j++)
+                dynamic_cast<Column*>(columns_.get(j))->lock();
         }
         
         /** Print the dataframe in SoR format to standard output. */
@@ -329,52 +348,58 @@ class DataFrame : public Object {
         }
 
         /**
+         * Builds a DataFrame from rows created by the given visitor, adds the DataFrame to the
+         * given KDStore at the given Key, and then returns the DataFrame.
+         */
+        static DataFrame* fromVisitor(Key* k, KDStore* kd, const char* scm, Writer& w);
+
+        /**
          * Builds a DataFrame with one column containing the data in the given int array, adds the
          * DataFrame to the given KDStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromIntArray(Key* k, KDStore* kv, size_t size, int* vals);
+        static DataFrame* fromIntArray(Key* k, KDStore* kd, size_t size, int* vals);
 
         /**
          * Builds a DataFrame with one column containing the data in the given bool array, adds the
          * DataFrame to the given KDStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromBoolArray(Key* k, KDStore* kv, size_t size, bool* vals);
+        static DataFrame* fromBoolArray(Key* k, KDStore* kd, size_t size, bool* vals);
 
         /**
          * Builds a DataFrame with one column containing the data in the given float array, adds the
          * DataFrame to the given KDStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromFloatArray(Key* k, KDStore* kv, size_t size, float* vals);
+        static DataFrame* fromFloatArray(Key* k, KDStore* kd, size_t size, float* vals);
 
         /**
          * Builds a DataFrame with one column containing the data in the given string array, adds
          * the DataFrame to the given KDStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromStringArray(Key* k, KDStore* kv, size_t size, String** vals);
+        static DataFrame* fromStringArray(Key* k, KDStore* kd, size_t size, String** vals);
 
         /**
          * Builds a DataFrame with one column containing the single given int, adds the DataFrame
          * to the given KDStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromIntScalar(Key* k, KDStore* kv, int val);
+        static DataFrame* fromIntScalar(Key* k, KDStore* kd, int val);
 
         /**
          * Builds a DataFrame with one column containing the single given bool, adds the DataFrame
          * to the given KDStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromBoolScalar(Key* k, KDStore* kv, bool val);
+        static DataFrame* fromBoolScalar(Key* k, KDStore* kd, bool val);
 
         /**
          * Builds a DataFrame with one column containing the single given float, adds the DataFrame
          * to the given KDStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromFloatScalar(Key* k, KDStore* kv, float val);
+        static DataFrame* fromFloatScalar(Key* k, KDStore* kd, float val);
 
         /**
          * Builds a DataFrame with one column containing the single given string, adds the DataFrame
          * to the given KDStore at the given Key, and then returns the DataFrame.
          */
-        static DataFrame* fromStringScalar(Key* k, KDStore* kv, String* val);
+        static DataFrame* fromStringScalar(Key* k, KDStore* kd, String* val);
 };
 
 // Deserializer functions defined below to avoid circular dependencies

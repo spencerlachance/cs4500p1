@@ -121,7 +121,7 @@ public:
     void store_chunk_(size_t idx) {
         kbuf_->c("-");
         kbuf_->c(idx);
-        Key* k = kbuf_->get(kv_->this_node());
+        Key* k = kbuf_->get(idx % kv_->num_nodes());
         kv_->put(*k, current_->serialize());
         keys_->append(k);
         delete current_;
@@ -168,6 +168,12 @@ public:
         // Retrieve the field from the chunk and clone it so we can delete the chunk later.
         DataType* res = current_->get(field_idx)->clone();
         return res;
+    }
+
+    /** Returns the index of the node on which the field at idx is stored. */
+    size_t get_node(size_t idx) {
+        Key* k = dynamic_cast<Key*>(keys_->get(idx / CHUNK_SIZE));
+        return k->get_home_node();
     }
     
     // Returns the number of fields in this vector. 

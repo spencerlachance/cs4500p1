@@ -47,7 +47,21 @@ class Rower : public Object {
       original object will be the last to be called join on. The join method
       is reponsible for cleaning up memory. */
   virtual void join_delete(Rower* other) { }
+};
 
-  /** Called when all fields have been seen. */
-  virtual bool done() { }
+/*******************************************************************************
+ *  Writer::
+ *  An interface for iterating through each row of a data frame and modifying it.
+ *  The intent is that this class should subclassed and the accept() method be given
+ *  a meaningful implementation.
+ */
+class Writer : public Object {
+ public:
+  /** This method is called once per row. The row object is on loan and
+      should not be retained as it is likely going to be reused in the next
+      call. */
+  virtual void visit(Row& r) = 0;
+
+  /** Called when Writer execution has completed. */
+  virtual bool done() = 0;
 };

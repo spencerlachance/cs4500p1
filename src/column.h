@@ -124,6 +124,9 @@ public:
         return res;
     }
 
+    /** Returns the index of the node on which the field at idx is stored. */
+    size_t get_node(size_t idx) { return fields_->get_node(idx); }
+
     /** Returns the number of fields in this Column. */
     size_t size() { return fields_->size(); }
 

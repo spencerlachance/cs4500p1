@@ -1,262 +1,151 @@
-//lang::CwC
-
 #pragma once
 
-#include <assert.h>
+#include "vector.h"
 
-#include "string.h"
+/**  Item_ are entries in a Map, they are not exposed, are immutable, own
+ *   they key, but the value is external.  author: jv */
+class Items_ {
+public:
+  Vector keys_; 
+  Vector vals_; 
 
-#define INITIAL_MAP_CAPACITY 64
+  Items_() : keys_(), vals_() {}
+  
+  Items_(Object *k, Object * v) : keys_(), vals_() {
+    keys_.append(k);
+    vals_.append(v);
+  }
 
-/**
- * Private Node class that represents one entry in the Map's Array.
- * 
- * Contains a next Node field which creates a linked list of Map
- * entries that have the same index.
- */
-class Node : public Object {
-  public:
-    String* key_;
-    Object* val_;
-    Node* next_;
+  bool contains_(Object& k) {
+    for (int i = 0; i < keys_.size(); i++) 
+      if (k.equals(keys_.get(i)))
+	      return true;
+    return false;
+  }
 
-    /**
-     * Constructor for Node class
-     * 
-     * @param key This Node's key
-     * @param val This Node's value
-     */
-    Node(String* key, Object* val) {
-      key_ = key;
-      val_ = val;
-      next_ = nullptr;
-    }
+  Object* get(Object& k) {
+    for (int i = 0; i < keys_.size(); i++) 
+      if (k.equals(keys_.get(i)))
+	      return vals_.get(i);
+    return nullptr;
+  }
 
-    /**
-     * Deconstructor for Node class
-     */
-    ~Node() {
-      delete key_;
-      delete val_;
-      if (next_ != nullptr) {
-        delete next_;
+  size_t put(Object& k, Object* v) {
+    for (int i = 0; i < keys_.size(); i++) 
+      if (k.equals(keys_.get(i))) {
+        vals_.set(v, i);
+        return 0;
       }
-    }
+    // The keys are owned, but the key is received as a reference, i.e. not owned so we must make a copy of it. 
+    keys_.append(k.clone());
+    vals_.append(v);
+    return 1;
+  }
 
-    /**
-     * Gets this Node's key.
-     * 
-     * @return the key
-     */
-    String* get_key() {
-      return key_;
-    }
-
-    /**
-     * Gets this Node's value.
-     * 
-     * @return the value
-     */
-    Object* get_value() {
-      return val_;
-    }
-
-    /**
-     * Gets this Node's next Node.
-     * 
-     * @return the Node
-     */
-    Node* get_next() {
-      return next_;
-    }
-
-    /**
-     * Gives this Node a new value.
-     * 
-     * @param val The new value
-     */
-    void set_value(Object* val) {
-      delete val_;
-      val_ = val;
-    }
-
-    /**
-     * Sets this Node's next Node.
-     * 
-     * @param n The Node to set as this Node's next.
-     */
-    void set_next(Node* n) {
-      next_ = n;
-    }
-
-    /**
-     * Does this Node have a next Node?
-     * 
-     * @return True if this Node has a next, False if it does not.
-     */
-    bool has_next() {
-      return next_ != nullptr;
-    }
-
-    /**
-     * Is this Node equal to the given Object?
-     */
-    bool equals(Object* o) {
-      Node* other = dynamic_cast<Node*>(o);
-      if (other == nullptr) return false;
-
-      if (this->has_next()) {
-        if (other->has_next()) {
-          return  key_->equals(other->get_key()) && 
-                  val_->equals(other->get_value()) && 
-                  next_->equals(other->get_next());
-        } else {
-          return false;
-        }
-      } else {
-        return  key_->equals(other->get_key()) && 
-                val_->equals(other->get_value()) && 
-                !other->get_next();
+  size_t remove(Object& k) {
+    for (int i = 0; i < keys_.size(); i++) 
+      if (k.equals(keys_.get(i))) {
+        keys_.remove(i);
+        vals_.remove(i);
+        return 1;
       }
-    }
+    return 0;
+  }
 };
 
-/**
- * Implementation of a Map data structure.
- * 
- * Maintains an array of Node objects containing each key, value pair.
- * Stores key, value pairs that hash to the same index in a linked list.
- */
+/** A generic map class from Object to Object. Subclasses are responsibly of
+ * making the types more specific.  author: jv */
 class Map : public Object {
-  public:
-    // Internal array of Nodes containing the key value pairs
-    Node** nodes_;
-    int capacity_;
-    int size_;
+public:      
+  size_t capacity_;
+    // TODO this was not size of the map, but number of occupied item positions in the top level
+  size_t size_ = 0;
+  Items_* items_;  // owned
 
-    // Constructor
-    Map() {
-      capacity_ = INITIAL_MAP_CAPACITY;
-      nodes_ = new Node*[capacity_];
-      for (int i = 0; i < capacity_; i++) nodes_[i] = nullptr;
-      size_ = 0;
-    }
+  Map() : Map(10) {}
 
-    // Constructor with specified inital capacity
-    Map(int init_cap) {
-      capacity_ = init_cap;
-      nodes_ = new Node*[capacity_];
-      for (int i = 0; i < capacity_; i++) nodes_[i] = nullptr;
-      size_ = 0;
-    }
+  Map(size_t cap) {
+    capacity_ = cap;
+    items_ = new Items_[capacity_];
+  }
+  
+  ~Map() { delete[] items_; }
 
-    // Destructor
-    ~Map() {
-      for (int i = 0; i < capacity_; i++) {
-        if (nodes_[i] != nullptr) {
-          delete nodes_[i];
-        }
-      }
-      delete[] nodes_;
-    }
-
-    /**
-     * Getter for this Map's Array of Nodes
-     * 
-     * @return the Array
-     */
-    Node** get_nodes() {
-      return nodes_;
-    }
-
-    /**
-     * Gets the Node from this Map's internal Array at the given index.
-     * 
-     * @param index The index of the requested Node.
-     */
-    Node* get_node(int index) {
-      return nodes_[index];
-    }
-
-    // Add an Object to the map with an Object key
-    // Takes ownership of the key and val
-    void put(String* key, Object* val) {
-      int index = key->hash() % capacity_;
-      
-      Node* current = get_node(index);
-      if (current == nullptr) {
-        nodes_[index] = new Node(key->clone(), val);
-      } else {        
-        if (current->get_key()->equals(key)) {
-          // There is already an entry in the map with this key, so replace 
-          // the existing value with the given one.
-          current->set_value(val);
-          return;
-        } else {
-          // Traverse the linked list until you find the right entry
-          while (current->has_next()) {
-            current = current->get_next();
-            if (current->get_key()->equals(key)) {
-              // There is already an entry in the map with this key, so replace 
-              // the existing value with the given one.
-              current->set_value(val);
-              return;
-            }
-          }
-          current->set_next(new Node(key->clone(), val));
-        }
-      }
-      size_++;
-    }
-
-    // Gets the value associated with the key
-    Object* get(String* key) {
-      int index = key->hash() % capacity_;
-
-      Node* current = get_node(index);
-      if (current == nullptr) return nullptr;
-
-      if (current->get_key()->equals(key)) {
-        // The matching node is the first one in the linked list.
-        return current->get_value();
-      } else {
-        // Look for it in the linked list.
-        while (current->has_next()) {
-          current = current->get_next();
-          if (current->get_key()->equals(key)) {
-            return current->get_value();
-          }
-        }
-        return nullptr;
-      }
-    }
-
-    // Is the key in the map?
-    bool containsKey(String* key) {
-      return get(key) != nullptr;
-    }
-
-    // Get the number of keys in the map
-    size_t size() {
+  /** True if the key is in the map. */
+  bool contains(Object& key)  { return items_[off_(key)].contains_(key); }
+  
+  /** Return the number of elements in the map. */
+  size_t size()  {
       return size_;
-    }
+  }
 
-    // Is this map equal to the Object?
-    bool equals(Object* o) {
-      Map* other = dynamic_cast<Map*>(o);
-      if (other == nullptr) return false;
+  size_t off_(Object& k) { return k.hash() % capacity_; }
+  
+  /** Get the value.  nullptr is allowed as a value.  */
+  Object* get(Object &key) { return items_[off_(key)].get(key); }
 
-      Node* current;
-      Node* o_current;
-      for (int i = 0; i < capacity_; i++) {
-        current = get_node(i);
-        o_current = other->get_node(i);
-        if (current == nullptr || o_current == nullptr) {
-          if (current != o_current) return false;
-        } else {
-          if (!current->equals(o_current)) return false;
+  /** Add item->val_ at item->key_ either by updating an existing Item_ or
+   * creating a new one if not found.  */
+  void put(Object &k, Object *v) {
+    if (size_ >= capacity_) grow();
+    size_ += items_[off_(k)].put(k,v);
+  }
+  
+  /** Removes element with given key from the map.  Does nothing if the
+      key is not present.  */
+  void erase(Object& k) { size_ -= items_[off_(k)].remove(k); }
+  
+  /** Resize the map, keeping all Item_s. */
+  void grow() {
+    Map newm(capacity_ * 2);
+    for (size_t i = 0; i < capacity_; i++) {
+        size_t sz = items_[i].keys_.size();
+        for (size_t j = 0; j < sz; j++) {
+            Object* k = items_[i].keys_.get(j);
+            Object* v = items_[i].vals_.get(j)->clone();
+            newm.put(*k,v);
         }
-      }
-      return true;
     }
+    delete[] items_;
+    items_ = newm.items_;
+    capacity_ = newm.capacity_;
+    assert(size_ == newm.size_);
+    newm.items_ = nullptr;
+  } 
+}; // Map
+
+class MutableString : public String {
+public:
+  MutableString() : String("", 0) {}
+  void become(const char* v) {
+    size_ = strlen(v);
+    cstr_ = (char*) v;
+    hash_ = hash_me();
+  }
 };
+
+
+/***************************************************************************
+ * 
+ **********************************************************author:jvitek */
+class Num : public Object {
+public:
+  size_t v = 0;
+  Num() {}
+  Num(size_t v) : v(v) {}
+  Num* clone() { return new Num(v); }
+};
+
+class SIMap : public Map {
+public:
+  SIMap () {}
+  Num* get(String& key) {
+    Num* res = dynamic_cast<Num*>(Map::get(key));
+    assert(res != nullptr);
+    return res;
+  }
+  void put(String& k, Num* v) { 
+    assert(v);
+    Map::put(k, v);
+  }
+}; // SIMap

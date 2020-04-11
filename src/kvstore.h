@@ -99,7 +99,7 @@ public:
         if (dst_node == idx_) {
             // If so, put the data in this KVStore's map
             mtx_.lock();
-            map_.put(k.get_keystring(), new String(v));
+            map_.put(*k.get_keystring(), new String(v));
             mtx_.unlock();
             // printf("\033[1;3%zumNode %zu: Put was successful\033[0m\n", idx_, idx_);
         } else {
@@ -132,7 +132,7 @@ public:
         if (dst_node == idx_) {
             // If so, get the data from this KVStore's map
             mtx_.lock();
-            String* serialized_data = dynamic_cast<String*>(map_.get(k.get_keystring()));
+            String* serialized_data = dynamic_cast<String*>(map_.get(*k.get_keystring()));
             assert(serialized_data != nullptr);
             mtx_.unlock();
             // Copy the data because the Map owns it
@@ -170,11 +170,11 @@ public:
         if (dst_node == idx_) {
             // If so, wait until the data is put into this node's map
             String* key_string = k.get_keystring();
-            bool contains_key = map_.containsKey(key_string);
+            bool contains_key = map_.contains(*key_string);
             // printf("\033[1;3%zumNode %zu: Waiting for put\033[0m\n", idx_, idx_);
             while (!contains_key) {
                 sleep(1);
-                contains_key = map_.containsKey(key_string);
+                contains_key = map_.contains(*key_string);
             }
             // printf("\033[1;3%zumNode %zu: Done waiting for put\033[0m\n", idx_, idx_);
             // Get the data
@@ -274,8 +274,8 @@ public:
             directory_ = new Directory();
             // printf("\033[1;3%zumNode %zu: Server is up.\033[0m\n", idx_, idx_);
         } else {
-            // Wait a second for the server to start up
-            sleep(1);
+            // Wait a bit for the server to start up
+            usleep(250000);
             // Calculate the server's IP using its node index (always 0) and use that to generate 
             // another struct
             struct addrinfo *servinfo;

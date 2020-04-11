@@ -45,6 +45,24 @@ public:
 // DataFrame functions defined below to avoid circular dependencies
 
 /**
+ * Builds a DataFrame from rows created by the given visitor, adds the DataFrame to the
+ * given KDStore at the given Key, and then returns the DataFrame.
+ */
+DataFrame* DataFrame::fromVisitor(Key* k, KDStore* kd, const char* scm, Writer& w) {
+    Schema schema(scm);
+    KVStore* kv = kd->get_kv();
+    DataFrame* res = new DataFrame(schema, kv, k);
+    Row r(schema);
+    while (!w.done()) {
+        w.visit(r);
+        res->add_row(r, false);
+    }
+    res->lock_columns();
+    kv->put(*k, res->serialize());
+    return res;
+}
+
+/**
  * Builds a DataFrame with one column containing the data in the given int array, adds the
  * DataFrame to the given KDStore at the given Key, and then returns the DataFrame.
  */
