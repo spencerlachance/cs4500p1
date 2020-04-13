@@ -58,6 +58,8 @@ public:
     std::vector<std::thread>* threads_;
     // The lock that prevents data races
     std::mutex mtx_;
+    // has this node shut down?
+    bool has_shutdown;
 
     /**
      * Constructor that initializes an empty KVStore.
@@ -107,7 +109,10 @@ public:
             const char* msg = p.serialize();
             send_to_node_(msg, dst_node);
             // Wait for an Ack confirming that the data was stored successfully
-            while (!ack_recvd_) sleep(1);
+            while (!ack_recvd_) {
+                sleep(1);
+                if (has_shutdown) exit(-1);
+            }
             ack_recvd_ = false;
             delete[] msg;
         }
@@ -141,7 +146,10 @@ public:
             const char* msg = g.serialize();
             send_to_node_(msg, dst_node);
             // Wait for a reply with the desired data
-            while (reply_data_ == nullptr) sleep(1);
+            while (reply_data_ == nullptr) {
+                sleep(1);
+                if (has_shutdown) exit(-1);
+            }
             res = reply_data_;
             reply_data_ = nullptr;
             delete[] msg;
@@ -167,6 +175,7 @@ public:
             while (!contains_key) {
                 sleep(1);
                 contains_key = map_.contains(*key_string);
+                if (has_shutdown) exit(-1);
             }
             // Get the data
             return get(k);
@@ -176,7 +185,10 @@ public:
             const char* msg = wag.serialize();
             send_to_node_(msg, dst_node);
             // Wait for a reply with the desired data
-            while (wag_reply_data_ == nullptr) sleep(1);
+            while (wag_reply_data_ == nullptr) {
+                sleep(1);
+                if (has_shutdown) exit(-1);
+            }
             const char* res = wag_reply_data_;
             wag_reply_data_ = nullptr;
             delete[] msg;
@@ -212,8 +224,6 @@ public:
     fd_set read_fds_;
     // the maxmimum fd value in the master list
     int fdmax_;
-    // has this node shut down?
-    bool has_shutdown;
 
     // The server's directory containing every client IP
     // Used by the server only
@@ -275,9 +285,11 @@ public:
             // Connect to the Server
             int cnct = connect(servfd_, servinfo->ai_addr, servinfo->ai_addrlen);
             while (cnct < 0) {
+                // Wait indefinitely until the lead node is available
                 p("Node ", idx_).p(idx_, idx_).pln(": Connection to lead node failed.", idx_);
                 sleep(1);
                 cnct = connect(servfd_, servinfo->ai_addr, servinfo->ai_addrlen);
+                if (has_shutdown) exit(-1);
             }
             p("Node ", idx_).p(idx_, idx_).pln(": Connection to lead node succeeded.", idx_);
             // Add the server fd to the fd/idx map
@@ -320,10 +332,12 @@ public:
     void send_to_node_(const char* msg, size_t dst) {
         int fd = nodes_[dst];
         while (fd == -1) {
+            // Wait indefinitely until the desired node is available
             sleep(1);
             p("Node ", idx_).p(idx_, idx_).p(": Could not find a node with index ", idx_)
                 .pln(dst, idx_);
             fd = nodes_[dst];
+            if (has_shutdown) exit(-1);
         }
         exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, "Sending msg to other client failed");
     }
@@ -396,7 +410,9 @@ public:
                             return;
                         } else {
                             buff.c(buffer_, nbytes);
-                            if (buffer_[nbytes - 2] != '\n') continue; // The message was split up
+                            // Serialized messages are terminated with newlines, so if the buffer
+                            // does not end with a newline, the message was chunked
+                            if (buffer_[nbytes - 2] != '\n') continue;
                             // Figure out what kind of message was received
                             char* serial_msg = buff.c_str();
                             Deserializer ds(serial_msg);

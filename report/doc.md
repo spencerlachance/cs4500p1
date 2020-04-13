@@ -122,11 +122,14 @@ Table containing columns of a specific type
 * Getters for specific fields (one for each type)
 * `void add_column(Column* col)` - Adds the given column to the DataFrame. Pads either the given column or every other column with missing fields, whichever's length is smaller.
 * `void add_row(Row& row, bool last_row)` - Adds the given row to the bottom of the DataFrame. If `last_row` is true, it calls every column's `lock()` method.
-* `void map(Rower& r)`
-* `void pmap(Rower& r)`
-* `DataFrame* filter(Rower& r)`
+* `void map(Rower& r)` - Visits every row of the DataFrame.
+* `void pmap(Rower& r)` - Visits every row of the DataFrame in parallel.
+* `void local_map(Rower& r)` - Visits every row of the DataFrame that is stored on the current node.
+* `DataFrame* filter(Rower& r)` - Builds and returns a new DataFrame containing rows which the given visitor accepted.
 * `static DataFrame* fromTypeArray(Key* k, KDStore* kd, size_t size, type* vals)` - Static method that generates a new DataFrame with one column containing `size` values from `vals`, serializes the dataframe and puts it in `kd` at `k`, and then returns the DataFrame.
 * `static DataFrame* fromTypeScalar(Key* k, KDStore* kd, type val)` - Static method that generates a new DataFrame with one column and row containing `val`, serializes the dataframe and puts it in `kd` at `k`, and then returns the DataFrame.
+* `static DataFrame* fromVisitor(Key* k, KDStore* kd, const char* scm, Writer& w)` - Builds a DataFrame with the given schema using the given Writer visitor, serializes the dataframe and puts it in `kd` at `k`, and then returns the DataFrame.
+* `static DataFrame* fromFile(const char* filename, Key* k, KDStore* kd, char* len)` - Builds a DataFrame from `len` bytes of the given input file using the Sorer, serializes the dataframe and puts it in `kd` at `k`, and then returns the DataFrame.
 
 
 ## KDStore
@@ -258,9 +261,9 @@ public:
 * Implemented serialization and deserialization of Object, String, all vectors, columns, Message subclasses, and DataFrame.
 * Implemented the KVStore and Application classes. They now run properly on a single node.
 * The network layer was integrated into the KVStore class. Now an application can run with multiple nodes and nodes correctly share data between their KVStores. However, entire dataframes are still being serialized and put into KVStores which isn't scalable.
-* Implemented the DistributedVector class so that DataFrames' contents are all serialized and kept in the KVStore.
+* Implemented the DistributedVector class so that DataFrames' contents are all serialized and distributed across each nodes' KVStores.
 * Implemented the KDStore class so the Application layer can still put and get DataFrames.
+* Got the word count and degress of Linus applications working.
 ## What is left to do:
-* Get the word count and degress of Linus applications working.
-* Maybe add logic so that the Chunks are stored on different nodes, right now they're all stored on the same node as the DataFrame. If this hurts performance, I'll skip it because the system is already pretty slow.
 * Revamp serialization, it's pretty ugly right now.
+* Clean up unused code

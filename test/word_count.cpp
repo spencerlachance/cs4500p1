@@ -218,6 +218,7 @@ public:
     }
     p("Different words: ", this_node()).pln(map.size(), this_node());
     delete own;
+    sleep(1);
     done();
   }
  
