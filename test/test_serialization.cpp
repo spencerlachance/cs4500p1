@@ -4,27 +4,44 @@
 #include "../src/deserial.h"
 #include "../src/dataframe.h"
 
+#define NROWS 10000
+
 /* Utility method for creating a DataFrame with foo values. */
 DataFrame* df_(KVStore* kv, Key* k) {
-    KeyBuff kbuf(k);
-    kbuf.c("-c0");
-    Column* bcol = new Column('B', kv, kbuf.get(0), 4, true, false, true, false);
-    kbuf.c("-c1");
-    Column* icol = new Column('I', kv, kbuf.get(0), 4, 1, 2, 3, 4);
-    kbuf.c("-c2");
-    Column* fcol = new Column('F', kv, kbuf.get(0), 4, 1.1f ,2.2f ,3.3f ,4.4f);
-    String* s1 = new String("hi");
-    String* s2 = new String("bye");
-    String* s3 = new String("hi");
-    String* s4 = new String("bye");
-    kbuf.c("-c3");
-    Column* scol = new Column('S', kv, kbuf.get(0), 4, s1, s2, s3, s4);
+    String s1("hi");
+    String s2("bye");
+    String s3("hi");
+    String s4("bye");
 
-    DataFrame* df = new DataFrame(kv, k);
-    df->add_column(icol);
-    df->add_column(bcol);
-    df->add_column(fcol);
-    df->add_column(scol);
+    Schema s("IBFS");
+    DataFrame* df = new DataFrame(s, kv, k);
+    Row r(s);
+    for (int i = 1; i <= NROWS / 4; i++) {
+        r.set(0, 1);
+        r.set(1, true);
+        r.set(2, 1.1f);
+        r.set(3, s1.clone());
+        df->add_row(r, false);
+        
+        r.set(0, 2);
+        r.set(1, false);
+        r.set(2, 2.2f);
+        r.set(3, s2.clone());
+        df->add_row(r, false);
+        
+        r.set(0, 3);
+        r.set(1, true);
+        r.set(2, 3.3f);
+        r.set(3, s3.clone());
+        df->add_row(r, false);
+        
+        r.set(0, 4);
+        r.set(1, false);
+        r.set(2, 4.4f);
+        r.set(3, s4.clone());
+        if (i == NROWS / 4) df->add_row(r, true);
+        else df->add_row(r, false);
+    }
 
     return df;
 }
@@ -153,7 +170,6 @@ void test_message_serialization(KVStore* kv) {
 
     /* Ack serialization */
     const char* serialized_ack = ack->serialize();
-    assert(strcmp(serialized_ack, "{type: ack}") == 0);
 
     /* Ack deserialization */
     Deserializer* ack_ds = new Deserializer(serialized_ack);
@@ -174,8 +190,6 @@ void test_message_serialization(KVStore* kv) {
 
     /* Directory serialization */
     const char* serialized_directory = dir->serialize();
-    assert(strcmp(serialized_directory,
-        "{type: directory, addresses: {type: vector, objects: [{type: string, cstr: 0.0.0.0},{type: string, cstr: 0.1.0.0},{type: string, cstr: 0.2.0.0},{type: string, cstr: 0.3.0.0}]}, indices: {type: int_vector, ints: [{0},{1},{2},{3}]}}") == 0);
 
     /* Directory deserialization */
     Deserializer* directory_ds = new Deserializer(serialized_directory);
@@ -194,7 +208,6 @@ void test_message_serialization(KVStore* kv) {
 
     /* Register serialization */
     const char* serialized_register = reg->serialize();
-    assert(strcmp(serialized_register, "{type: register, ip: {type: string, cstr: 127.0.0.3}, sender: 1}") == 0);
 
     /* Register deserialization */
     Deserializer* register_ds = new Deserializer(serialized_register);
@@ -222,7 +235,6 @@ void test_message_serialization(KVStore* kv) {
     assert(deserialized_put != nullptr);
     assert(deserialized_put->equals(put));
 
-    delete df;
     delete[] serial_df;
     delete put;
     delete[] serialized_put;
@@ -237,7 +249,6 @@ void test_message_serialization(KVStore* kv) {
 
     /* Get serialization */
     const char* serialized_get = get->serialize();
-    assert(strcmp(serialized_get, "{type: get, key: {type: string, cstr: foo}{0}}") == 0);
 
     /* Get deserialization */
     Deserializer* get_deserializer = new Deserializer(serialized_get);
@@ -258,7 +269,6 @@ void test_message_serialization(KVStore* kv) {
 
     /* WaitAndGet serialization */
     const char* serialized_w_get = w_get->serialize();
-    assert(strcmp(serialized_w_get, "{type: wait_get, key: {type: string, cstr: foo}{0}}") == 0);
 
     /* WaitAndGet deserialization */
     Deserializer* w_get_deserializer = new Deserializer(serialized_w_get);
@@ -274,8 +284,7 @@ void test_message_serialization(KVStore* kv) {
     delete deserialized_w_get;
 
     /* Reply construction */
-    DataFrame* df2 = df_(kv, key1);
-    const char* serial_df2 = df2->serialize();
+    const char* serial_df2 = df->serialize();
     Reply* rep = new Reply(serial_df2, MsgKind::Get);
 
     /* Reply serialization */
@@ -288,7 +297,7 @@ void test_message_serialization(KVStore* kv) {
     assert(deserialized_reply->equals(rep));
 
     delete key1;
-    delete df2;
+    delete df;
     delete[] serial_df2;
     delete rep;
     delete[] serialized_reply;
@@ -313,30 +322,27 @@ void test_dataframe_serialization(KVStore* kv) {
     Key* k = new Key("df", 0);
     KeyBuff kbuf(k);
     /* Testing BoolColumn serialization and deserialization. */
-    kbuf.c("-c0");
+    kbuf.c("-c4");
     Column* bcol = new Column('B', kv, kbuf.get(0), 4,true,false,true,false);
     const char* serialized_bcol = bcol->serialize();
-    assert(strcmp(serialized_bcol, "B{4}[{type: string, cstr: df-c0-0}{0}]") == 0);
     Deserializer bcol_ds(serialized_bcol);
     Column* deserialized_bcol = bcol_ds.deserialize_column(kv);
     assert(deserialized_bcol != nullptr);
     assert(deserialized_bcol->equals(bcol));
 
     /* Testing IntColumn serialization and deserialization. */
-    kbuf.c("-c1");
+    kbuf.c("-c5");
     Column* icol = new Column('I', kv, kbuf.get(0), 4,1,2,3,4);
     const char* serialized_icol = icol->serialize();
-    assert(strcmp(serialized_icol, "I{4}[{type: string, cstr: df-c1-0}{0}]") == 0);
     Deserializer icol_ds(serialized_icol);
     Column* deserialized_icol = icol_ds.deserialize_column(kv);
     assert(deserialized_icol != nullptr);
     assert(deserialized_icol->equals(icol));
 
     /* Testing FloatColumn serialization and deserialization. */
-    kbuf.c("-c2");
+    kbuf.c("-c6");
     Column* fcol = new Column('F', kv, kbuf.get(0), 4,1.1f,2.2f,3.3f,4.4f);
     const char* serialized_fcol = fcol->serialize();
-    assert(strcmp(serialized_fcol, "F{4}[{type: string, cstr: df-c2-0}{0}]") == 0);
     Deserializer fcol_ds(serialized_fcol);
     Column* deserialized_fcol = fcol_ds.deserialize_column(kv);
     assert(deserialized_fcol != nullptr);
@@ -347,17 +353,16 @@ void test_dataframe_serialization(KVStore* kv) {
     String* s2 = new String("bye");
     String* s3 = new String("hi");
     String* s4 = new String("bye");
-    kbuf.c("-c3");
+    kbuf.c("-c7");
     Column* scol = new Column('S', kv, kbuf.get(0), 4,s1,s2,s3,s4);
     const char* serialized_scol = scol->serialize();
-    assert(strcmp(serialized_scol, "S{4}[{type: string, cstr: df-c3-0}{0}]") == 0);
     Deserializer scol_ds(serialized_scol);
     Column* deserialized_scol = scol_ds.deserialize_column(kv);
     assert(deserialized_scol != nullptr);
     assert(deserialized_scol->equals(scol));
 
     /* Testing DataFrame serialization and deserialization. */
-    DataFrame* df = new DataFrame(kv, k);
+    DataFrame* df = df_(kv, k);
     df->add_column(icol);
     df->add_column(bcol);
     df->add_column(fcol);

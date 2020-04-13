@@ -354,6 +354,12 @@ class DataFrame : public Object {
         static DataFrame* fromVisitor(Key* k, KDStore* kd, const char* scm, Writer& w);
 
         /**
+         * Builds a DataFrame from an input file, adds the DataFrame to the given KDStore at the 
+         * given Key, and then returns the DataFrame.
+         */
+        static DataFrame* fromFile(const char* filename, Key* k, KDStore* kd, char* len);
+
+        /**
          * Builds a DataFrame with one column containing the data in the given int array, adds the
          * DataFrame to the given KDStore at the given Key, and then returns the DataFrame.
          */
@@ -407,9 +413,10 @@ class DataFrame : public Object {
 /** Builds and returns a Chunk from the bytestream. */
 Chunk* Deserializer::deserialize_chunk() {
     size_t idx = deserialize_int();
+    size_t size = deserialize_int();
     Chunk* c = new Chunk(idx);
     assert(step() == '[');
-    while (current() != ']') {
+    for (int i = 0; i < size; i++) {
         DataType* dt = deserialize_datatype();
         c->append(dt);
     }

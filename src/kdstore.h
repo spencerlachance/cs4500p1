@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "dataframe.h"
+#include "parser_main.h"
 
 /**
  * This class is a middle man between the Applications which give and receive DataFrames and the
@@ -59,6 +59,28 @@ DataFrame* DataFrame::fromVisitor(Key* k, KDStore* kd, const char* scm, Writer& 
     }
     res->lock_columns();
     kv->put(*k, res->serialize());
+    return res;
+}
+
+/**
+ * Builds a DataFrame from an input SoR file, adds the DataFrame to the given KDStore at the 
+ * given Key, and then returns the DataFrame.
+ */
+DataFrame* DataFrame::fromFile(const char* filename, Key* k, KDStore* kd, char* len) {
+    KVStore* kv = kd->get_kv();
+    // Spoof the command line arguments that ParserMain expects
+    size_t argc = 5;
+    const char** argv = new const char*[argc];
+    argv[0] = "foo";
+    argv[1] = "-f";
+    argv[2] = filename;
+    argv[3] = "-len";
+    argv[4] = len;
+
+    ParserMain pf(argc, argv, kv, k);
+    DataFrame* res = pf.get_dataframe();
+    kv->put(*k, res->serialize());
+    delete[] argv;
     return res;
 }
 

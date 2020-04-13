@@ -8,7 +8,7 @@
 // The number of chunks held initially in each vector
 #define INITIAL_CHUNK_CAPACITY 1024
 // The number of items that each chunk holds
-#define CHUNK_SIZE 1024
+#define CHUNK_SIZE 5000
 
 /**
  * Represents an vector (Java: ArrayList) of objects.
@@ -102,7 +102,7 @@ class Vector : public Object {
                 }
                 chunk_count_++;
             } else {
-                objects_[chunk_count_ - 1][size_ % CHUNK_SIZE] = val;
+                objects_[size_ / CHUNK_SIZE][size_ % CHUNK_SIZE] = val;
             }
             size_++;
         }

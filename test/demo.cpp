@@ -3,7 +3,7 @@
 
 // Constants that allow us to use a different number of fields when running valgrind
 bool valgrind = false;
-size_t size = 10000;
+size_t size = 100000;
 size_t valgrind_size = 2000;
 
 class Demo : public Application {
@@ -47,7 +47,7 @@ public:
         DataFrame* v = kd_.wait_and_get(*main);
         float sum = 0;
         for (size_t i = 0; i < SZ; ++i) sum += v->get_float(0,i);
-        p("The sum is ").pln(sum);
+        p("The sum is ", this_node()).pln(sum, this_node());
         delete DataFrame::fromFloatScalar(verify, &kd_, sum);
         delete v;
     }
@@ -55,7 +55,7 @@ public:
     void summarizer() {
         DataFrame* result = kd_.wait_and_get(*verify);
         DataFrame* expected = kd_.wait_and_get(*check);
-        pln(expected->get_float(0,0)==result->get_float(0,0) ? "SUCCESS":"FAILURE");
+        pln(expected->get_float(0,0)==result->get_float(0,0) ? "SUCCESS":"FAILURE", this_node());
         done();
         delete result; delete expected;
     }

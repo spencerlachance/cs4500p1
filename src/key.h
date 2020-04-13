@@ -67,6 +67,9 @@ public:
         if (other == nullptr) return false;
         return idx_ == other->get_home_node() && key_->equals(other->get_keystring());
     }
+
+    /** Returns a copy of this Key. */
+    Key* clone() { return new Key(key_->c_str(), idx_); }
 };
 
 /** 

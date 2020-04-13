@@ -184,14 +184,16 @@ public:
    *  which then joins them one by one. */
   Key* mk_key(size_t idx) {
       Key * k = kbuf.c(idx).get(0);
-      p("Node ").p(this_node()).p(": Created key ").pln(k->get_keystring()->c_str());
+      p("Node ", this_node()).p(this_node(), this_node()).p(": Created key ", this_node())
+        .pln(k->get_keystring()->c_str(), this_node());
       return k;
   }
  
   /** Compute word counts on the local node and build a data frame. */
   void local_count() {
     DataFrame* words = (kd_.wait_and_get(in));
-    p("Node ").p(this_node()).pln(": starting local count...");
+    p("Node ", this_node()).p(this_node(), this_node())
+      .pln(": starting local count...", this_node());
     SIMap map;
     Adder add(map);
     words->local_map(add);
@@ -205,7 +207,7 @@ public:
   /** Merge the data frames of all nodes */
   void reduce() {
     if (this_node() != 0) return;
-    pln("Node 0: reducing counts...");
+    pln("Node 0: reducing counts...", this_node());
     SIMap map;
     Key* own = mk_key(0);
     merge(kd_.get(*own), map);
@@ -214,7 +216,7 @@ public:
       merge(kd_.wait_and_get(*ok), map);
       delete ok;
     }
-    p("Different words: ").pln(map.size());
+    p("Different words: ", this_node()).pln(map.size(), this_node());
     delete own;
     done();
   }

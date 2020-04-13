@@ -43,9 +43,9 @@ class ParserMain {
         /**
          * The Constructor, formerly the main function.
          */
-        ParserMain(int argc, char* argv[], KVStore* kv, Key* k) {
+        ParserMain(int argc, const char* argv[], KVStore* kv, Key* k) {
             // Parse arguments
-            char* filename = nullptr;
+            const char* filename = nullptr;
             // -1 represents argument not provided
             ssize_t start = -1;
             ssize_t len = -1;
@@ -120,7 +120,7 @@ class ParserMain {
          * @param arg_loc The location of the ssize_t to work with
          * @param arg A string containing a long to parse
          */
-        void parse_size_t_arg(ssize_t* arg_loc, char* arg) {
+        void parse_size_t_arg(ssize_t* arg_loc, const char* arg) {
             cli_assert(*arg_loc == -1);
             *arg_loc = atol(arg);
         }
@@ -137,7 +137,7 @@ class ParserMain {
          * @param col_idx_col, col_idx_off Pointer to result of parsing -print_col_idx
          * @param missing_idx_col, missing_idx_off Pointer to result of parsing -is_missing_idx
          */
-        void parse_args(int argc, char* argv[], char** file, ssize_t* start, ssize_t* len,
+        void parse_args(int argc, const char* argv[], const char** file, ssize_t* start, ssize_t* len,
                         ssize_t* col_type, ssize_t* col_idx_col, ssize_t* col_idx_off,
                         ssize_t* missing_idx_col, ssize_t* missing_idx_off) {
             *file = nullptr;
@@ -153,7 +153,7 @@ class ParserMain {
             ParseState state = ParseState::DEFAULT;
 
             for (int i = 1; i < argc; i++) {
-                char* arg = argv[i];
+                const char* arg = argv[i];
                 switch (state) {
                     case ParseState::DEFAULT:
                         if (strcmp(arg, "-f") == 0) {

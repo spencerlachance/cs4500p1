@@ -162,7 +162,7 @@ void test_filter(DataFrame* df) {
  * This test is meant to measure performance and correct data parsing, 
  * so it does not verify that the sum is correct.
  */
-void test_datafile(int argc, char** argv, KVStore* kv) {
+void test_datafile(int argc, const char** argv, KVStore* kv) {
     // Upon construction, this class reads the command line arguments and builds a dataframe
     // containing fields from a datafile.
     Key* k2 = new Key("bar", 0);
@@ -245,18 +245,18 @@ void test_rows_cols(DataFrame* df, KVStore* kv, Key* k) {
     printf("Rows and columns test passed\n");
 }
 
-int main(int argc, char** argv) {
+int main(int argc, const char** argv) {
     Schema s("IS");
     KVStore* kv = new KVStore(0, 1);
     Key* k1 = new Key("foo", 0);
     DataFrame* df = new DataFrame(s, kv, k1);
-    Row* r = new Row(s);
+    Row r(s);
     String* str = new String("foo");
     for (int i = 1; i <= NROWS; i++) {
-        r->set(0, i);
-        r->set(1, str->clone());
-        if (i == NROWS) df->add_row(*r, true);
-        else            df->add_row(*r, false);
+        r.set(0, i);
+        r.set(1, str->clone());
+        if (i == NROWS) df->add_row(r, true);
+        else            df->add_row(r, false);
     }
 
     test_map(df);
@@ -268,7 +268,6 @@ int main(int argc, char** argv) {
     delete kv;
     delete k1;
     delete df;
-    delete r;
     delete str;
     return 0;
 }

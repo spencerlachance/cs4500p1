@@ -5,6 +5,8 @@
 #include <cstring>
 #include <iostream>
 
+#define RESET "\033[0m"
+
 /** Helper class providing some C++ functionality and convenience
  *  functions. This class has no data, constructors, destructors or
  *  virtual functions. Inheriting from it is zero cost.
@@ -12,22 +14,55 @@
 class Sys {
  public:
 
+  std::string color_code(size_t idx) {
+    if (idx == 0) return RESET;
+    else return "\033[3" + std::to_string(idx) + "m";
+  }
+
   // Printing functions
-  Sys& p(char* c) { std::cout << c; return *this; }
-  Sys& p(bool c) { std::cout << c; return *this; }
-  Sys& p(float c) { std::cout << c; return *this; }  
-  Sys& p(int i) { std::cout << i;  return *this; }
-  Sys& p(size_t i) { std::cout << i;  return *this; }
-  Sys& p(const char* c) { std::cout << c;  return *this; }
-  Sys& p(char c) { std::cout << c;  return *this; }
+  Sys& p(char* c, size_t idx = 0) { 
+    std::cout << color_code(idx) << c << RESET; return *this;
+  }
+  Sys& p(bool c, size_t idx = 0) { 
+    std::cout << color_code(idx) << c << RESET; return *this;
+  }
+  Sys& p(float c, size_t idx = 0) { 
+    std::cout << color_code(idx) << c << RESET; return *this;
+  }  
+  Sys& p(int i, size_t idx = 0) { 
+    std::cout << color_code(idx) << i << RESET;  return *this;
+  }
+  Sys& p(size_t i, size_t idx = 0) { 
+    std::cout << color_code(idx) << i << RESET;  return *this;
+  }
+  Sys& p(const char* c, size_t idx = 0) { 
+    std::cout << color_code(idx) << c << RESET;  return *this;
+  }
+  Sys& p(char c, size_t idx = 0) { 
+    std::cout << color_code(idx) << c << RESET;  return *this;
+  }
   Sys& pln() { std::cout << "\n";  return *this; }
-  Sys& pln(int i) { std::cout << i << "\n";  return *this; }
-  Sys& pln(char* c) { std::cout << c << "\n";  return *this; }
-  Sys& pln(bool c) { std::cout << c << "\n";  return *this; }  
-  Sys& pln(char c) { std::cout << c << "\n";  return *this; }
-  Sys& pln(float x) { std::cout << x << "\n";  return *this; }
-  Sys& pln(size_t x) { std::cout << x << "\n";  return *this; }
-  Sys& pln(const char* c) { std::cout << c << "\n";  return *this; }
+  Sys& pln(int i, size_t idx = 0) { 
+    std::cout << color_code(idx) << i << "\n" << RESET;  return *this;
+  }
+  Sys& pln(char* c, size_t idx = 0) { 
+    std::cout << color_code(idx) << c << "\n" << RESET;  return *this;
+  }
+  Sys& pln(bool c, size_t idx = 0) { 
+    std::cout << color_code(idx) << c << "\n" << RESET;  return *this;
+  }  
+  Sys& pln(char c, size_t idx = 0) { 
+    std::cout << color_code(idx) << c << "\n" << RESET;  return *this;
+  }
+  Sys& pln(float x, size_t idx = 0) { 
+    std::cout << color_code(idx) << x << "\n" << RESET;  return *this;
+  }
+  Sys& pln(size_t x, size_t idx = 0) { 
+    std::cout << color_code(idx) << x << "\n" << RESET;  return *this;
+  }
+  Sys& pln(const char* c, size_t idx = 0) { 
+    std::cout << color_code(idx) << c << "\n" << RESET;  return *this;
+  }
 
   // Copying strings
   char* duplicate(const char* s) {

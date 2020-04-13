@@ -26,7 +26,7 @@
 // The fixed number of nodes that this network supports (1 server, the rest are clients)
 #define BACKLOG 6
 // The size of the string buffer used to send messages
-#define BUF_SIZE 1000000
+#define BUF_SIZE 10000
 
 /**
  * This class represents a key/value store maintained on one node from a larger distributed system.
@@ -101,17 +101,13 @@ public:
             mtx_.lock();
             map_.put(*k.get_keystring(), new String(v));
             mtx_.unlock();
-            // printf("\033[1;3%zumNode %zu: Put was successful\033[0m\n", idx_, idx_);
         } else {
             // If not, send a Put message to the correct node
             Put p(&k, v);
-            // printf("\033[1;3%zumNode %zu: Sending Put\033[0m\n", idx_, idx_);
             const char* msg = p.serialize();
             send_to_node_(msg, dst_node);
             // Wait for an Ack confirming that the data was stored successfully
-            // printf("\033[1;3%zumNode %zu: Waiting for Ack\033[0m\n", idx_, idx_);
             while (!ack_recvd_) sleep(1);
-            // printf("\033[1;3%zumNode %zu: Done waiting for Ack\033[0m\n", idx_, idx_);
             ack_recvd_ = false;
             delete[] msg;
         }
@@ -142,13 +138,10 @@ public:
         } else {
             // If not, send a Get message to the correct node
             Get g(&k);
-            // printf("\033[1;3%zumNode %zu: Sending Get\033[0m\n", idx_, idx_);
             const char* msg = g.serialize();
             send_to_node_(msg, dst_node);
             // Wait for a reply with the desired data
-            // printf("\033[1;3%zumNode %zu: Waiting for Reply\033[0m\n", idx_, idx_);
             while (reply_data_ == nullptr) sleep(1);
-            // printf("\033[1;3%zumNode %zu: Done waiting for Reply\033[0m\n", idx_, idx_);
             res = reply_data_;
             reply_data_ = nullptr;
             delete[] msg;
@@ -171,24 +164,19 @@ public:
             // If so, wait until the data is put into this node's map
             String* key_string = k.get_keystring();
             bool contains_key = map_.contains(*key_string);
-            // printf("\033[1;3%zumNode %zu: Waiting for put\033[0m\n", idx_, idx_);
             while (!contains_key) {
                 sleep(1);
                 contains_key = map_.contains(*key_string);
             }
-            // printf("\033[1;3%zumNode %zu: Done waiting for put\033[0m\n", idx_, idx_);
             // Get the data
             return get(k);
         } else {
             // If not, send a WaitAndGet message to the correct node
             WaitAndGet wag(&k);
-            // printf("\033[1;3%zumNode %zu: Sending WaitAndGet\033[0m\n", idx_, idx_);
             const char* msg = wag.serialize();
             send_to_node_(msg, dst_node);
             // Wait for a reply with the desired data
-            // printf("\033[1;3%zumNode %zu: Waiting for Reply\033[0m\n", idx_, idx_);
             while (wag_reply_data_ == nullptr) sleep(1);
-            // printf("\033[1;3%zumNode %zu: Done waiting for Reply\033[0m\n", idx_, idx_);
             const char* res = wag_reply_data_;
             wag_reply_data_ = nullptr;
             delete[] msg;
@@ -272,7 +260,6 @@ public:
         freeaddrinfo(info);
         if (is_server()) {
             directory_ = new Directory();
-            // printf("\033[1;3%zumNode %zu: Server is up.\033[0m\n", idx_, idx_);
         } else {
             // Wait a bit for the server to start up
             usleep(250000);
@@ -286,15 +273,19 @@ public:
             exit_if_not((servfd_ = socket(servinfo->ai_family, servinfo->ai_socktype, 
                 servinfo->ai_protocol)) >= 0, "Call to socket() failed");
             // Connect to the Server
-            exit_if_not(connect(servfd_, servinfo->ai_addr, servinfo->ai_addrlen) >= 0, 
-                "Call to connect() failed");
+            int cnct = connect(servfd_, servinfo->ai_addr, servinfo->ai_addrlen);
+            while (cnct < 0) {
+                p("Node ", idx_).p(idx_, idx_).pln(": Connection to lead node failed.", idx_);
+                sleep(1);
+                cnct = connect(servfd_, servinfo->ai_addr, servinfo->ai_addrlen);
+            }
+            p("Node ", idx_).p(idx_, idx_).pln(": Connection to lead node succeeded.", idx_);
             // Add the server fd to the fd/idx map
             nodes_[0] = servfd_;
             freeaddrinfo(servinfo);
             // Send IP to server in a Register message
             Register reg(new String(ip_), idx_);
             const char* msg = reg.serialize();
-            // printf("\033[1;3%zumNode %zu: Sending my IP \"%s\" to the server for registration.\033[0m\n", idx_, idx_, ip_);
             exit_if_not(send(servfd_, msg, strlen(msg) + 1, 0) > 0, "Sending IP to server failed");
             delete[] msg; delete[] serv_ip;
         }
@@ -307,7 +298,6 @@ public:
      * Closes all sockets and deletes all fields.
      */
     void shutdown() {
-        // printf("\033[1;3%zumNode %zu: Shutting down\033[0m\n", idx_, idx_);
         has_shutdown = true;
         if (is_server()) {
             delete directory_;
@@ -329,11 +319,13 @@ public:
      */
     void send_to_node_(const char* msg, size_t dst) {
         int fd = nodes_[dst];
-        if (fd == -1) {
-            printf("\033[1;3%zumNode %zu: Could not find a node index %zu\033[0m\n", idx_, idx_, dst);
-        } else {
-            exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, "Sending msg to other client failed");
+        while (fd == -1) {
+            sleep(1);
+            p("Node ", idx_).p(idx_, idx_).p(": Could not find a node with index ", idx_)
+                .pln(dst, idx_);
+            fd = nodes_[dst];
         }
+        exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, "Sending msg to other client failed");
     }
 
     /**
@@ -351,6 +343,8 @@ public:
         struct timeval tv;
         tv.tv_sec = 3;
         tv.tv_usec = 0;
+        // Used to concat messages bigger than BUFSIZE
+        StrBuff buff;
         // Clear the two fd lists
         FD_ZERO(&master_);
         FD_ZERO(&read_fds_);
@@ -378,7 +372,8 @@ public:
                         // Found a new connection
                         if (num_nodes + 1 > BACKLOG) {
                             // The network is full, do not accept this connection
-                            printf("\033[1;3%zumNode %zu: Network is full, cannot accept new connection.\033[0m\n", idx_, idx_);
+                            p("Node ", idx_).p(idx_, idx_)
+                                .pln(": Network is full, cannot accept new connection.", idx_);
                             continue;
                         }
                         num_nodes++;
@@ -392,7 +387,6 @@ public:
                         if (their_fd_ > fdmax_) {
                             fdmax_ = their_fd_;
                         }
-                        // printf("\033[1;3%zumNode %zu: New connection on socket %d\033[0m\n", idx_, idx_, their_fd_);
                     } else {
                         // Receiving a message
                         if ((nbytes = recv(i, buffer_, BUF_SIZE, 0)) <= 0) {
@@ -401,11 +395,15 @@ public:
                             shutdown();
                             return;
                         } else {
+                            buff.c(buffer_, nbytes);
+                            if (buffer_[nbytes - 2] != '\n') continue; // The message was split up
                             // Figure out what kind of message was received
-                            Deserializer ds(buffer_);
+                            char* serial_msg = buff.c_str();
+                            Deserializer ds(serial_msg);
                             Message* m = dynamic_cast<Message*>(ds.deserialize());
                             assert(m != nullptr);
                             process_message_(m, i);
+                            delete[] serial_msg;
                         }
                     }
                 }
@@ -422,43 +420,36 @@ public:
     void process_message_(Message* m, int fd) {
         switch (m->kind()) {
             case MsgKind::Directory: {
-                // printf("\033[1;3%zumNode %zu: Received Directory\033[0m\n", idx_, idx_);
                 // Client received directory update from server
                 process_directory_(m->as_directory());
                 break;
             }
             case MsgKind::Register: {
-                // printf("\033[1;3%zumNode %zu: Received Register\033[0m\n", idx_, idx_);
                 Register* r = m->as_register();
                 char* new_ip = r->get_ip()->c_str();
                 size_t new_idx = r->get_sender();
                 if (is_server()) {
                     // A client is registering with the server
-                    // printf("\033[1;3%zumNode %zu: Received IP \"%s\" from new client at socket %d\033[0m\n", idx_, idx_, new_ip, fd);
                     // Add the new IP to the directory
                     directory_->add_client(new_ip, new_idx);
                     // Send the updated directory back to the client
                     const char* serial_directory = directory_->serialize();
-                    // printf("\033[1;3%zumNode %zu: Sending updated directory back to client\033[0m\n", idx_, idx_);
                     exit_if_not(send(fd, serial_directory, strlen(serial_directory) + 1, 0) > 0,
                         "Call to send() failed");
                     delete[] serial_directory;
                 }
                 // Keep track of the sender's socket fd and node index
                 nodes_[new_idx] = fd;
-                // print_map_();
                 delete r;
                 break;
             }
             case MsgKind::Ack: {
-                // printf("\033[1;3%zumNode %zu: Received Ack\033[0m\n", idx_, idx_);
                 // Set the value that put() is waiting for above
                 ack_recvd_ = true;
                 delete m;
                 break;
             }
             case MsgKind::Reply: {
-                // printf("\033[1;3%zumNode %zu: Received Reply\033[0m\n", idx_, idx_);
                 Reply* rep = m->as_reply();
                 MsgKind req = rep->get_request();
                 const char* v = rep->get_value();
@@ -513,7 +504,6 @@ public:
      * @param fd The socket fd to send the Ack back to
      */
     void process_put_(Put* p, int fd) {
-        // printf("\033[1;3%zumNode %zu: Received Put\033[0m\n", idx_, idx_);
         Key* k = p->get_key();
         const char* v = p->get_value();
         // Ensure that this message was sent to the right node
@@ -531,7 +521,6 @@ public:
      * Starts the get operation in a separate thread
      */
     void process_get_(Get* g, int fd) {
-        // printf("\033[1;3%zumNode %zu: Received Get\033[0m\n", idx_, idx_);
         Key* k = g->get_key();
         // Ensure that this message was sent to the right node
         exit_if_not(k->get_home_node() == idx_, "Put was sent to incorrect node");
@@ -548,7 +537,6 @@ public:
      * Starts the wait_and_get operation in a separate thread
      */
     void process_wag_(WaitAndGet* wag, int fd) {
-        // printf("\033[1;3%zumNode %zu: Received WaitAndGet\033[0m\n", idx_, idx_);
         Key* k = wag->get_key();
         // Ensure that this message was sent to the right node
         exit_if_not(k->get_home_node() == idx_, "Put was sent to incorrect node");
@@ -575,18 +563,20 @@ public:
         memset(&hints_, 0, sizeof(hints_));
         hints_.ai_family = AF_INET;
         hints_.ai_socktype = SOCK_STREAM;
-        exit_if_not(getaddrinfo(ip, PORT, &hints_, &client_info) == 0, "Call to getaddrinfo() failed");
+        exit_if_not(getaddrinfo(ip, PORT, &hints_, &client_info) == 0, 
+            "Call to getaddrinfo() failed");
         // Create a socket to connect to the client
-        exit_if_not((client_fd = socket(client_info->ai_family, client_info->ai_socktype, client_info->ai_protocol)) >= 0,
-            "Call to socket() failed");
+        exit_if_not((client_fd = socket(client_info->ai_family, client_info->ai_socktype, 
+            client_info->ai_protocol)) >= 0, "Call to socket() failed");
         // Connect to the client
-        exit_if_not(connect(client_fd, client_info->ai_addr, client_info->ai_addrlen) >= 0, "Call to connect() failed");
+        exit_if_not(connect(client_fd, client_info->ai_addr, client_info->ai_addrlen) >= 0, 
+            "Call to connect() failed");
         freeaddrinfo(client_info);
         // Send the client a Register message
         Register reg(new String(ip_), idx_);
         const char* msg = reg.serialize();
-        // printf("\033[1;3%zumNode %zu: Sending Register to other client at %s, socket %d\033[0m\n", idx_, idx_, ip, client_fd);
-        exit_if_not(send(client_fd, msg, strlen(msg) + 1, 0) > 0, "Sending greeting to other client failed");
+        exit_if_not(send(client_fd, msg, strlen(msg) + 1, 0) > 0, 
+            "Sending Register to other client failed");
         // Add the fd to the master list
         FD_SET(client_fd, &master_);
         // Update the max fd value
@@ -595,7 +585,6 @@ public:
         }
         // Keep track of the client's fd and node index
         nodes_[idx] = client_fd;
-        // print_map_();
         delete[] msg;
     }
 
@@ -610,20 +599,6 @@ public:
                 nodes_[i] = -1;
             }
         }
-    }
-
-    /**
-     * Prints the nodes_ map
-     */
-    void print_map_() {
-        // printf("\033[1;3%zumNode %zu: Map: \033[0m", idx_, idx_);
-        for (int i = 0; i < BACKLOG; i++) {
-            int fd = nodes_[i];
-            if (fd != -1) {
-                // printf("\033[1;3%zum{fd: %d, idx: %d} \033[0m", idx_, fd, i);
-            }
-        }
-        // printf("\n");
     }
 
     /**

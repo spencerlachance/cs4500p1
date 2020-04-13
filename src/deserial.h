@@ -261,11 +261,11 @@ class Deserializer : public Object {
             assert(step() == ' ');
             // Extract the blob of serialized data
             StrBuff buff;
-            while (i_ < strlen(stream_) - 1) {
+            while (current() != '\n') {
                 *x_ = step();
                 buff.c(x_);
             }
-            assert(step() == '}');
+            assert(step() == '\n');
             return new Put(k, buff.c_str());
         }
 
@@ -326,10 +326,11 @@ class Deserializer : public Object {
             assert(step() == ' ');
             // Extract the serialized data
             StrBuff buff;
-            while (i_ < strlen(stream_) - 1) {
+            while (current() != '\n') {
                 *x_ = step();
                 buff.c(x_);
             }
+            assert(step() == '\n');
             return new Reply(buff.c_str(), req);
         }
 

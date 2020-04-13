@@ -1,3 +1,5 @@
+#include "../src/application.h"
+
 /**
  * The input data is a processed extract from GitHub.
  *
@@ -23,14 +25,15 @@ class Set {
 public:  
   bool* vals_;  // owned; data
   size_t size_; // number of elements
+  size_t true_; // number of true elements
 
   /** Creates a set of the same size as the dataframe. */ 
   Set(DataFrame* df) : Set(df->nrows()) {}
 
   /** Creates a set of the given size. */
-  Set(size_t sz) :  vals_(new bool[sz]), size_(sz) {
-      for(size_t i = 0; i < size_; i++)
-          vals_[i] = false; 
+  Set(size_t sz) :  vals_(new bool[sz]), size_(sz), true_(0) {
+    for(size_t i = 0; i < size_; i++)
+      vals_[i] = false; 
   }
 
   ~Set() { delete[] vals_; }
@@ -41,7 +44,8 @@ public:
    */
   void set(size_t idx) {
     if (idx >= size_ ) return; // ignoring out of bound writes
-    vals_[idx] = true;       
+    vals_[idx] = true;
+    true_++;
   }
 
   /** Is idx in the set?  See comment for set(). */
@@ -52,11 +56,13 @@ public:
 
   size_t size() { return size_; }
 
+  size_t num_true() { return true_; }
+
   /** Performs set union in place. */
   void union_(Set& from) {
     for (size_t i = 0; i < from.size_; i++) 
       if (from.test(i))
-	set(i);
+	      set(i);
   }
 };
 
@@ -65,7 +71,7 @@ public:
  * A SetUpdater is a reader that gets the first column of the data frame and
  * sets the corresponding value in the given set.
  ******************************************************************************/
-class SetUpdater : public Reader {
+class SetUpdater : public Rower {
 public:
   Set& set_; // set to update
   
@@ -74,8 +80,7 @@ public:
   /** Assume a row with at least one column of type I. Assumes that there
    * are no missing. Reads the value and sets the corresponding position.
    * The return value is irrelevant here. */
-  bool visit(Row & row) { set_.set(row.get_int(0));  return false; }
-
+  bool accept(Row & row) { set_.set(row.get_int(0));  return false; }
 };
 
 /*****************************************************************************
@@ -109,7 +114,7 @@ public:
  * of Linus, then the project is added to the set. If the project was
  * already tagged then it is not added to the set of newProjects.
  *************************************************************************/
-class ProjectsTagger : public Reader {
+class ProjectsTagger : public Rower {
 public:
   Set& uSet; // set of collaborator 
   Set& pSet; // set of projects of collaborators
@@ -121,12 +126,12 @@ public:
   /** The data frame must have at least two integer columns. The newProject
    * set keeps track of projects that were newly tagged (they will have to
    * be communicated to other nodes). */
-  bool visit(Row & row) override {
+  bool accept(Row & row) override {
     int pid = row.get_int(0);
     int uid = row.get_int(1);
     if (uSet.test(uid)) 
       if (!pSet.test(pid)) {
-    	pSet.set(pid);
+    	  pSet.set(pid);
         newProjects.set(pid);
       }
     return false;
@@ -141,7 +146,7 @@ public:
  * where the pid is the idefntifier of a project and the uids are the
  * identifiers of the author and committer. 
  *************************************************************************/
-class UsersTagger : public Reader {
+class UsersTagger : public Rower {
 public:
   Set& pSet;
   Set& uSet;
@@ -150,13 +155,13 @@ public:
   UsersTagger(Set& pSet,Set& uSet, DataFrame* users):
     pSet(pSet), uSet(uSet), newUsers(users->nrows()) { }
 
-  bool visit(Row & row) override {
+  bool accept(Row & row) override {
     int pid = row.get_int(0);
     int uid = row.get_int(1);
     if (pSet.test(pid)) 
-      if(!uSet.test(uid)) {
-	uSet.set(uid);
-	newUsers.set(uid);
+      if (!uSet.test(uid)) {
+        uSet.set(uid);
+        newUsers.set(uid);
       }
     return false;
   }
@@ -171,21 +176,41 @@ class Linus : public Application {
 public:
   int DEGREES = 4;  // How many degrees of separation form linus?
   int LINUS = 4967;   // The uid of Linus (offset in the user df)
-  const char* PROJ = "datasets/projects.ltgt";
-  const char* USER = "datasets/users.ltgt";
-  const char* COMM = "datasets/commits.ltgt";
+  const char* PROJ = "data/projects.ltgt";
+  const char* USER = "data/users.ltgt";
+  const char* COMM = "data/commits.ltgt";
   DataFrame* projects; //  pid x project name
   DataFrame* users;  // uid x user name
   DataFrame* commits;  // pid x uid x uid 
   Set* uSet; // Linus' collaborators
   Set* pSet; // projects of collaborators
+  size_t num_nodes;
+  char* len; // number of byes to read from the datafiles
+  char* key_str; // temporary buffer that holds key strings
+  Key* linus_key; // the key to the df containing Linus' id
 
-  Linus(size_t idx, NetworkIfc& net): Application(idx, net) {}
+  Linus(size_t idx, size_t nodes, char* len): Application(idx, nodes), num_nodes(nodes), len(len),
+    linus_key(new Key("users-0-0", 0)) {
+    run_();
+  }
+
+  ~Linus() {
+    delete projects;
+    delete users;
+    delete commits;
+    delete linus_key;
+    delete uSet;
+    delete pSet;
+  }
 
   /** Compute DEGREES of Linus.  */
   void run_() override {
     readInput();
     for (size_t i = 0; i < DEGREES; i++) step(i);
+    if (this_node() == 0) {
+      sleep(3);
+      done();
+    }
   }
 
   /** Node 0 reads three files, cointainng projects, users and commits, and
@@ -195,37 +220,39 @@ public:
    *  'tagged' users. At this point the dataframe consists of only
    *  Linus. **/
   void readInput() {
-    Key pK("projs");
-    Key uK("usrs");
-    Key cK("comts");
-    if (index == 0) {
+    Key pK("projs", 0);
+    Key uK("usrs", 0);
+    Key cK("comts", 0);
+    if (this_node() == 0) {
       pln("Reading...");
-      projects = DataFrame::fromFile(PROJ, pK.clone(), &kv);
+      projects = DataFrame::fromFile(PROJ, &pK, &kd_, len);
       p("    ").p(projects->nrows()).pln(" projects");
-      users = DataFrame::fromFile(USER, uK.clone(), &kv);
+      users = DataFrame::fromFile(USER, &uK, &kd_, len);
       p("    ").p(users->nrows()).pln(" users");
-      commits = DataFrame::fromFile(COMM, cK.clone(), &kv);
-       p("    ").p(commits->nrows()).pln(" commits");
-       // This dataframe contains the id of Linus.
-       delete DataFrame::fromScalarInt(new Key("users-0-0"), &kv, LINUS);
+      commits = DataFrame::fromFile(COMM, &cK, &kd_, len);
+      p("    ").p(commits->nrows()).pln(" commits");
+      // This dataframe contains the id of Linus.
+      delete DataFrame::fromIntScalar(linus_key, &kd_, LINUS);
     } else {
-       projects = dynamic_cast<DataFrame*>(kv.waitAndGet(pK));
-       users = dynamic_cast<DataFrame*>(kv.waitAndGet(uK));
-       commits = dynamic_cast<DataFrame*>(kv.waitAndGet(cK));
+      projects = dynamic_cast<DataFrame*>(kd_.wait_and_get(pK));
+      users = dynamic_cast<DataFrame*>(kd_.wait_and_get(uK));
+      commits = dynamic_cast<DataFrame*>(kd_.wait_and_get(cK));
     }
     uSet = new Set(users);
     pSet = new Set(projects);
- }
+  }
 
  /** Performs a step of the linus calculation. It operates over the three
   *  datafrrames (projects, users, commits), the sets of tagged users and
   *  projects, and the users added in the previous round. */
   void step(int stage) {
-    p("Stage ").pln(stage);
+    p("Stage ", this_node()).pln(stage, this_node());
     // Key of the shape: users-stage-0
-    Key uK(StrBuff("users-").c(stage).c("-0").get());
+    key_str = StrBuff("users-").c(stage).c("-0").c_str();
+    Key uK(key_str, 0);
+    delete[] key_str;
     // A df with all the users added on the previous round
-    DataFrame* newUsers = dynamic_cast<DataFrame*>(kv.waitAndGet(uK));    
+    DataFrame* newUsers = dynamic_cast<DataFrame*>(kd_.wait_and_get(uK));    
     Set delta(users);
     SetUpdater upd(delta);  
     newUsers->map(upd); // all of the new users are copied to delta.
@@ -238,9 +265,9 @@ public:
     commits->local_map(utagger);
     merge(utagger.newUsers, "users-", stage + 1);
     uSet->union_(utagger.newUsers);
-    p("    after stage ").p(stage).pln(":");
-    p("        tagged projects: ").pln(pSet->size());
-    p("        tagged users: ").pln(uSet->size());
+    p("    after stage ", this_node()).p(stage, this_node()).pln(":", this_node());
+    p("        tagged projects: ", this_node()).pln(pSet->num_true(), this_node());
+    p("        tagged users: ", this_node()).pln(uSet->num_true(), this_node());
   }
 
   /** Gather updates to the given set from all the nodes in the systems.
@@ -251,30 +278,70 @@ public:
    */ 
   void merge(Set& set, char const* name, int stage) {
     if (this_node() == 0) {
-      for (size_t i = 1; i < arg.num_nodes; ++i) {
-	Key nK(StrBuff(name).c(stage).c("-").c(i).get());
-	DataFrame* delta = dynamic_cast<DataFrame*>(kv.waitAndGet(nK));
-	p("    received delta of ").p(delta->nrows())
-	  .p(" elements from node ").pln(i);
-	SetUpdater upd(set);
-	delta->map(upd);
-	delete delta;
+      for (size_t i = 1; i < num_nodes; ++i) {
+        key_str = StrBuff(name).c(stage).c("-").c(i).c_str();
+        Key nK(key_str, 0);
+        delete[] key_str;
+        DataFrame* delta = dynamic_cast<DataFrame*>(kd_.wait_and_get(nK));
+        p("    received delta of ", this_node()).p(delta->nrows())
+          .p(" elements from node ", this_node()).pln(i);
+        SetUpdater upd(set);
+        delta->map(upd);
+        delete delta;
       }
-      p("    storing ").p(set.size()).pln(" merged elements");
+      p("    storing ", this_node()).p(set.num_true(), this_node())
+        .pln(" merged elements", this_node());
       SetWriter writer(set);
-      Key k(StrBuff(name).c(stage).c("-0").get());
-      delete DataFrame::fromVisitor(&k, &kv, "I", writer);
+      key_str = StrBuff(name).c(stage).c("-0").c_str();
+      Key k(key_str, 0);
+      delete[] key_str;
+      delete DataFrame::fromVisitor(&k, &kd_, "I", writer);
     } else {
-      p("    sending ").p(set.size()).pln(" elements to master node");
+      p("    sending ", this_node()).p(set.num_true(), this_node())
+        .pln(" elements to master node", this_node());
       SetWriter writer(set);
-      Key k(StrBuff(name).c(stage).c("-").c(index).get());
-      delete DataFrame::fromVisitor(&k, &kv, "I", writer);
-      Key mK(StrBuff(name).c(stage).c("-0").get());
-      DataFrame* merged = dynamic_cast<DataFrame*>(kv.waitAndGet(mK));
-      p("    receiving ").p(merged->nrows()).pln(" merged elements");
+      key_str = StrBuff(name).c(stage).c("-").c(this_node()).c_str();
+      Key k(key_str, 0);
+      delete[] key_str;
+      delete DataFrame::fromVisitor(&k, &kd_, "I", writer);
+      key_str = StrBuff(name).c(stage).c("-0").c_str();
+      Key mK(key_str, 0);
+      delete[] key_str;
+      DataFrame* merged = dynamic_cast<DataFrame*>(kd_.wait_and_get(mK));
+      p("    receiving ", this_node()).p(merged->nrows(), this_node())
+        .pln(" merged elements", this_node());
       SetUpdater upd(set);
       merged->map(upd);
       delete merged;
     }
   }
 }; // Linus
+
+int main(int argc, char** argv) {
+  Sys s;
+  size_t node_idx = 0;
+  size_t num_nodes = 1;
+  // number of byes to read from the datafiles
+  // defaults to 0, in which case the entire files will be read
+  char* len = 0;
+  int c;
+
+  while ((c = getopt(argc, argv, "i:n:l:")) != -1) {
+    switch (c) {
+      case 'i':
+        node_idx = atoi(optarg);
+        break;
+      case 'n':
+        num_nodes = atoi(optarg);
+        break;
+      case 'l':
+        len = optarg;
+        break;
+      default:
+        fprintf(stderr, "Invalid command line args.");
+        return 1;
+    }
+  }
+
+  Linus(node_idx, num_nodes, len);
+}

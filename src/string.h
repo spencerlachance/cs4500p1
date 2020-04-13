@@ -108,6 +108,11 @@ public:
         val_ = new char[capacity_ = 10];
         size_ = 0;
     }
+    StrBuff(const char* str) {
+        val_ = new char[capacity_ = 10];
+        size_ = 0;
+        c(str);
+    }
     ~StrBuff() { delete[] val_; }
     void grow_by_(size_t step) {
         if (step + size_ < capacity_) return;
@@ -118,8 +123,8 @@ public:
         memcpy(val_, oldV, size_);
         delete[] oldV;
     }
-    StrBuff& c(const char* str) {
-        size_t step = strlen(str);
+    StrBuff& c(const char* str, size_t len = 0) {
+        size_t step = len == 0 ? strlen(str) : len;
         grow_by_(step);
         memcpy(val_+size_, str, step);
         size_ += step;

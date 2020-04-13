@@ -60,7 +60,7 @@ class Ack : public Message {
 
         /* Returns a serialized representation of this acknowledge. */
         const char* serialize() {
-            return "{type: ack}";
+            return "{type: ack}\n";
         }
 
         /* Returns this Ack */
@@ -142,6 +142,7 @@ class Register : public Message {
             buff.c(", sender: ");
             buff.c(sender_);
             buff.c("}");
+            buff.c("\n");
 
             delete[] serial_ip;
             return buff.c_str();
@@ -246,6 +247,7 @@ class Directory : public Message {
             buff.c(", indices: ");
             buff.c(serial_ivec);
             buff.c("}");
+            buff.c("\n");
 
             delete[] serial_vec;
             delete[] serial_ivec;
@@ -323,7 +325,7 @@ class Put : public Message {
             buff.c(serial_k);
             buff.c(", value: ");
             buff.c(v_);
-            buff.c("}");
+            buff.c("\n");
             delete[] serial_k;
             return buff.c_str();
         }
@@ -397,6 +399,7 @@ class Get : public Message {
             buff.c("{type: get, key: ");
             buff.c(serialized_k);
             buff.c("}");
+            buff.c("\n");
 
             delete[] serialized_k;
             return buff.c_str();
@@ -474,6 +477,7 @@ class WaitAndGet : public Message {
             buff.c("{type: wait_get, key: ");
             buff.c(serialized_k);
             buff.c("}");
+            buff.c("\n");
 
             delete[] serialized_k;
             return buff.c_str();
@@ -555,7 +559,7 @@ public:
         buff.c(serial_req);
         buff.c(", value: ");
         buff.c(v_);
-        buff.c("}");
+        buff.c("\n");
         delete[] serial_req;
         return buff.c_str();
     }

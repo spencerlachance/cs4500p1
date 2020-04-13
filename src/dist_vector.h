@@ -6,7 +6,7 @@
 #include "kvstore.h"
 
 // The number of items that each chunk holds
-#define CHUNK_SIZE 1024
+#define CHUNK_SIZE 5000
 
 /**
  * This class represents a unit of the DistributedVector, i.e. a fixed-size array of fields.
@@ -60,6 +60,10 @@ public:
         const char* serial_idx = ser.serialize_int(idx_);
         buff.c(serial_idx);
         delete[] serial_idx;
+        // Serialize the size
+        const char* serial_size = ser.serialize_int(size_);
+        buff.c(serial_size);
+        delete[] serial_size;
         // Serialize the fields
         buff.c("[");
         for (int i = 0; i < size_; i++) {
