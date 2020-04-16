@@ -6,7 +6,7 @@
 #include "../src/helper.h"
 
 // The number of rows in the DataFrame we build below.
-#define NROWS 1000
+#define NROWS 10000
 
 /*................................................................................................*/
 /*...........................IMPLEMENTATION OF ROWERS AND FIELDERS................................*/
@@ -139,7 +139,7 @@ class AboveRower : public Rower {
 void test_map(DataFrame* df) {
     SumRower* sr = new SumRower();
     df->map(*sr);
-    assert(sr->get_total() == 500500);
+    assert(sr->get_total() == (NROWS + 1)*(NROWS / 2));
     printf("Map test passed\n");
     delete sr;
 }
@@ -191,7 +191,7 @@ void test_rows_cols(DataFrame* df, KVStore* kv, Key* k) {
 
     KeyBuff kbuf(k);
     // Build a bool column with NROWS / 2 values alternating between true and false.
-    kbuf.c("-c4");
+    kbuf.c("-c3");
     Column* b_col = new Column('B', kv, kbuf.get(0));
     for (int i = 1; i <= NROWS / 2; i++) {
         bool b = i%2;
@@ -200,7 +200,7 @@ void test_rows_cols(DataFrame* df, KVStore* kv, Key* k) {
     b_col->lock();
 
     // Build a float column with NROWS values from 1.1 to NROWS.1, increasing by 1.
-    kbuf.c("-c3");
+    kbuf.c("-c2");
     Column* f_col = new Column('F', kv, kbuf.get(0));
     for (int i = 1; i <= NROWS; i++) {
         f_col->push_back(i+0.1f);

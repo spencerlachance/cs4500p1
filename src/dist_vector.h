@@ -127,7 +127,7 @@ public:
         kbuf_->c(idx);
         Key* k = kbuf_->get(idx % kv_->num_nodes());
         kv_->put(*k, current_->serialize());
-        keys_->append(k);
+        keys_->set(k, idx);
         delete current_;
         current_ = nullptr;
     }

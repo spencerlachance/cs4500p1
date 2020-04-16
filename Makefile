@@ -44,6 +44,14 @@ valgrind:
 clean:
 	rm dataf serial map trivial demo word linus data/datafile.*
 
+df:
+	g++ -pthread -g -std=c++11 -o dataf test/test_dataframe.cpp
+	wget https://raw.githubusercontent.com/spencerlachance/cs4500datafile/master/datafile.zip
+	mv datafile.zip data
+	unzip data/datafile.zip -d data
+	./dataf -f data/datafile.txt -len 1000000
+	rm dataf data/datafile.*
+
 map:
 	g++ -pthread -g -std=c++11 -o map test/test_map.cpp
 	./map
