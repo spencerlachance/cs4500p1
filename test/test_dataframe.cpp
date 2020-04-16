@@ -17,27 +17,27 @@
  * @author Spencer LaChance <lachance.s@northeastern.edu>
  */
 class SumFielder : public Fielder {
-    public:
-        long total_;
+public:
+    long total_;
 
-        void start(size_t r) { total_ = 0; }
-        void done() { }
+    void start(size_t r) { total_ = 0; }
+    void done() { }
 
-        SumFielder(long total) {
-            total_ = total;
-        }
-        ~SumFielder() { }
+    SumFielder(long total) {
+        total_ = total;
+    }
+    ~SumFielder() { }
 
-        void accept(bool b) { }
-        void accept(float f) { }
-        void accept(String* s) { }
-        void accept(int i) {
-            total_ += i;
-        }
+    void accept(bool b) { }
+    void accept(float f) { }
+    void accept(String* s) { }
+    void accept(int i) {
+        total_ += i;
+    }
 
-        long get_total() {
-            return total_;
-        }
+    long get_total() {
+        return total_;
+    }
 };
 
 /**
@@ -47,34 +47,34 @@ class SumFielder : public Fielder {
  * @author Spencer LaChance <lachance.s@northeastern.edu>
  */
 class SumRower : public Rower {
-    public:
-        SumFielder* sf_;
-        long total_;
+public:
+    SumFielder* sf_;
+    long total_;
 
-        SumRower() {
-            total_ = 0;
-            sf_ = new SumFielder(total_);
-        }
-        ~SumRower() { delete sf_; }
+    SumRower() {
+        total_ = 0;
+        sf_ = new SumFielder(total_);
+    }
+    ~SumRower() { delete sf_; }
 
-        bool accept(Row& r) {
-            r.visit(r.get_idx(), *sf_);
-            total_ += sf_->get_total();
-        }
+    bool accept(Row& r) {
+        r.visit(r.get_idx(), *sf_);
+        total_ += sf_->get_total();
+    }
 
-        long get_total() {
-            return total_;
-        }
+    long get_total() {
+        return total_;
+    }
 
-        void join_delete(Rower* other) {
-            SumRower* o = dynamic_cast<SumRower*>(other);
-            total_ += o->get_total();
-            delete o;
-        }
+    void join_delete(Rower* other) {
+        SumRower* o = dynamic_cast<SumRower*>(other);
+        total_ += o->get_total();
+        delete o;
+    }
 
-        Object* clone() {
-            return new SumRower();
-        }
+    Object* clone() {
+        return new SumRower();
+    }
 };
 
 /**
@@ -84,28 +84,28 @@ class SumRower : public Rower {
  * @author Spencer LaChance <lachance.s@northeastern.edu>
  */
 class AboveFielder : public Fielder {
-    public:
-        bool passes_;
-        int thresh_;
+public:
+    bool passes_;
+    int thresh_;
 
-        void start(size_t r) {passes_ = true;}
-        void done() { }
+    void start(size_t r) {passes_ = true;}
+    void done() { }
 
-        AboveFielder(int thresh) {
-            thresh_ = thresh;
-        }
-        ~AboveFielder() { }
+    AboveFielder(int thresh) {
+        thresh_ = thresh;
+    }
+    ~AboveFielder() { }
 
-        void accept(bool b) { }
-        void accept(float f) { }
-        void accept(String* s) { }
-        void accept(int i) {
-            if (i <= thresh_) passes_ = false;
-        }
+    void accept(bool b) { }
+    void accept(float f) { }
+    void accept(String* s) { }
+    void accept(int i) {
+        if (i <= thresh_) passes_ = false;
+    }
 
-        bool check_pass() {
-            return passes_;
-        }
+    bool check_pass() {
+        return passes_;
+    }
 };
 
 /**
@@ -115,21 +115,21 @@ class AboveFielder : public Fielder {
  * @author Spencer LaChance <lachance.s@northeastern.edu>
  */
 class AboveRower : public Rower {
-    public:
-        AboveFielder* af_;
+public:
+    AboveFielder* af_;
 
-        AboveRower(int thresh) {
-            af_ = new AboveFielder(thresh);
-        }
+    AboveRower(int thresh) {
+        af_ = new AboveFielder(thresh);
+    }
 
-        ~AboveRower() { delete af_; }
+    ~AboveRower() { delete af_; }
 
-        bool accept(Row& r) {
-            r.visit(r.get_idx(), *af_);
-            return af_->check_pass();
-        }
+    bool accept(Row& r) {
+        r.visit(r.get_idx(), *af_);
+        return af_->check_pass();
+    }
 
-        void join_delete(Rower* other) { }
+    void join_delete(Rower* other) { }
 };
 
 /**

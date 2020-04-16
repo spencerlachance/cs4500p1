@@ -25,78 +25,78 @@ class Ack; class Register; class Directory; class Reply; class Put; class Get; c
  * @author David Mberingabo <mberingabo.d@husky.neu.edu>
  */ 
 class Message : public Object {
-    public:
-        MsgKind kind_;  // the message kind
-        
-        /* A method for checking message class equality */
-        virtual bool equals(Object* other) {
-            Message* other_m = dynamic_cast<Message*>(other);
-            if (other_m == nullptr) return false;
-            return other_m->kind() == kind_; // Member fields equality
-        }
+public:
+    MsgKind kind_;  // the message kind
+    
+    /* A method for checking message class equality */
+    virtual bool equals(Object* other) {
+        Message* other_m = dynamic_cast<Message*>(other);
+        if (other_m == nullptr) return false;
+        return other_m->kind() == kind_; // Member fields equality
+    }
 
-        /* Returns this message's kind */
-        MsgKind kind() { return kind_; }
+    /* Returns this message's kind */
+    MsgKind kind() { return kind_; }
 
-        /** Type converters: Return same column under its actual type, or
-         *  nullptr if of the wrong type.  */
-        virtual Ack* as_ack() = 0;
-        virtual Register* as_register() = 0;
-        virtual Directory* as_directory() = 0;
-        virtual Reply* as_reply() = 0;
-        virtual Put* as_put() = 0;
-        virtual Get* as_get() = 0;
-        virtual WaitAndGet* as_wait_and_get() = 0;
+    /** Type converters: Return same column under its actual type, or
+     *  nullptr if of the wrong type.  */
+    virtual Ack* as_ack() = 0;
+    virtual Register* as_register() = 0;
+    virtual Directory* as_directory() = 0;
+    virtual Reply* as_reply() = 0;
+    virtual Put* as_put() = 0;
+    virtual Get* as_get() = 0;
+    virtual WaitAndGet* as_wait_and_get() = 0;
 };
  
 
 class Ack : public Message {
-    public:
-        
-        /* Constructor. */
-        Ack() {
-            kind_ = MsgKind::Ack;
-        }
+public:
+    
+    /* Constructor. */
+    Ack() {
+        kind_ = MsgKind::Ack;
+    }
 
-        /* Returns a serialized representation of this acknowledge. */
-        const char* serialize() {
-            return "{type: ack}\n";
-        }
+    /* Returns a serialized representation of this acknowledge. */
+    const char* serialize() {
+        return "{type: ack}\n";
+    }
 
-        /* Returns this Ack */
-        Ack* as_ack() {
-            return this;
-        }
+    /* Returns this Ack */
+    Ack* as_ack() {
+        return this;
+    }
 
-        /* Returns nullptr because this is not a Register */
-        Register* as_register() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Register */
+    Register* as_register() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Directory */
-        Directory* as_directory() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Directory */
+    Directory* as_directory() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Reply */
-        Reply* as_reply() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Reply */
+    Reply* as_reply() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Put */
-        Put* as_put() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Put */
+    Put* as_put() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Get */
-        Get* as_get() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Get */
+    Get* as_get() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a WaitAndGet */
-        WaitAndGet* as_wait_and_get() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a WaitAndGet */
+    WaitAndGet* as_wait_and_get() {
+        return nullptr;
+    }
 };
 
 /**
@@ -104,426 +104,426 @@ class Ack : public Message {
  * connect with each other.
  */
 class Register : public Message {
-    public:
-        // The IP address of the node that sent this message
-        String* ip_;
-        // The index of the node that sent this message
-        size_t sender_;
+public:
+    // The IP address of the node that sent this message
+    String* ip_;
+    // The index of the node that sent this message
+    size_t sender_;
 
-        /* Constructor */
-        Register(String* ip, size_t sender) : ip_(ip), sender_(sender) {
-            kind_ = MsgKind::Register;
-        }
+    /* Constructor */
+    Register(String* ip, size_t sender) : ip_(ip), sender_(sender) {
+        kind_ = MsgKind::Register;
+    }
 
-        /* Destructor */
-        ~Register() {
-            delete ip_;
-        }
+    /* Destructor */
+    ~Register() {
+        delete ip_;
+    }
 
-        bool equals(Object* other) {
-            Register* o = dynamic_cast<Register*>(other);
-            if (o == nullptr) return false;
-            return o->get_ip()->equals(ip_) && o->kind() == kind_ && o->get_sender() == sender_;
-        }
+    bool equals(Object* other) {
+        Register* o = dynamic_cast<Register*>(other);
+        if (o == nullptr) return false;
+        return o->get_ip()->equals(ip_) && o->kind() == kind_ && o->get_sender() == sender_;
+    }
 
-        /* Returns this register's ip */
-        String* get_ip() { return ip_; }
+    /* Returns this register's ip */
+    String* get_ip() { return ip_; }
 
-        /* Returns this register's sender idx */
-        size_t get_sender() { return sender_; }
+    /* Returns this register's sender idx */
+    size_t get_sender() { return sender_; }
 
-        /* Returns a serial representation of this register. */
-        const char* serialize() {
-            StrBuff buff;
-            const char* serial_ip = ip_->serialize();
+    /* Returns a serial representation of this register. */
+    const char* serialize() {
+        StrBuff buff;
+        const char* serial_ip = ip_->serialize();
 
-            buff.c("{type: register, ip: ");
-            buff.c(serial_ip);
-            buff.c(", sender: ");
-            buff.c(sender_);
-            buff.c("}");
-            buff.c("\n");
+        buff.c("{type: register, ip: ");
+        buff.c(serial_ip);
+        buff.c(", sender: ");
+        buff.c(sender_);
+        buff.c("}");
+        buff.c("\n");
 
-            delete[] serial_ip;
-            return buff.c_str();
-        }
+        delete[] serial_ip;
+        return buff.c_str();
+    }
 
-        /* Returns nullptr because this is not an Ack */
-        Ack* as_ack() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not an Ack */
+    Ack* as_ack() {
+        return nullptr;
+    }
 
-        /* Returns this Register */
-        Register* as_register() {
-            return this;
-        }
+    /* Returns this Register */
+    Register* as_register() {
+        return this;
+    }
 
-        /* Returns nullptr because this is not a Directory */
-        Directory* as_directory() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Directory */
+    Directory* as_directory() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Reply */
-        Reply* as_reply() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Reply */
+    Reply* as_reply() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Put */
-        Put* as_put() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Put */
+    Put* as_put() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Get */
-        Get* as_get() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Get */
+    Get* as_get() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a WaitAndGet */
-        WaitAndGet* as_wait_and_get() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a WaitAndGet */
+    WaitAndGet* as_wait_and_get() {
+        return nullptr;
+    }
 };
  
 class Directory : public Message {
-   public:
-        // Clients' IP addresses
-        Vector* addresses_; //owned
-        // Clients' node indices
-        IntVector* indices_;
-        
-        /* Constructor */
-        Directory(Vector* addresses, IntVector* indices) : 
-            addresses_(addresses), indices_(indices) {
-            kind_ = MsgKind::Directory;
-        }
+public:
+    // Clients' IP addresses
+    Vector* addresses_; //owned
+    // Clients' node indices
+    IntVector* indices_;
+    
+    /* Constructor */
+    Directory(Vector* addresses, IntVector* indices) : 
+        addresses_(addresses), indices_(indices) {
+        kind_ = MsgKind::Directory;
+    }
 
-        /* Constructor that assigns empty array for ports and addresses */
-        Directory() {
-            kind_ = MsgKind::Directory;
-            addresses_ = new Vector();
-            indices_ = new IntVector();
-        }
+    /* Constructor that assigns empty array for ports and addresses */
+    Directory() {
+        kind_ = MsgKind::Directory;
+        addresses_ = new Vector();
+        indices_ = new IntVector();
+    }
 
-        /* Destructor */
-        ~Directory() {
-            delete addresses_;
-            delete indices_;
-        }
+    /* Destructor */
+    ~Directory() {
+        delete addresses_;
+        delete indices_;
+    }
 
-        /**
-         * Adds a client to the directory.
-         * 
-         * @param adr The client's IP address
-         * @param idx The client's node index
-         */
-        void add_client(const char* adr, size_t idx) {
-            String* s = new String(adr);
-            addresses_->append(s);
-            indices_->append(idx);
-        }
+    /**
+     * Adds a client to the directory.
+     * 
+     * @param adr The client's IP address
+     * @param idx The client's node index
+     */
+    void add_client(const char* adr, size_t idx) {
+        String* s = new String(adr);
+        addresses_->append(s);
+        indices_->append(idx);
+    }
 
-        /* Is this directory equal to the given object? */
-        bool equals(Object* other) {
-            Directory* o = dynamic_cast<Directory*>(other);
-            if (o == nullptr) return false;
-            return o->get_addresses()->equals(addresses_) && o->kind() == kind_ &&
-                o->get_indices()->equals(indices_);
-        }
+    /* Is this directory equal to the given object? */
+    bool equals(Object* other) {
+        Directory* o = dynamic_cast<Directory*>(other);
+        if (o == nullptr) return false;
+        return o->get_addresses()->equals(addresses_) && o->kind() == kind_ &&
+            o->get_indices()->equals(indices_);
+    }
 
-        /* Returns this directory's addresses field */
-        Vector* get_addresses() { return addresses_; }
+    /* Returns this directory's addresses field */
+    Vector* get_addresses() { return addresses_; }
 
-        /* Returns this directory's indices field */
-        IntVector* get_indices() { return indices_; }
+    /* Returns this directory's indices field */
+    IntVector* get_indices() { return indices_; }
 
-        /* Returns a serialized representation of this directory message */
-        const char* serialize() {
-            StrBuff buff; // Use this buffer to build serial representation
-            const char* serial_vec = addresses_->serialize();
-            const char* serial_ivec = indices_->serialize();
+    /* Returns a serialized representation of this directory message */
+    const char* serialize() {
+        StrBuff buff; // Use this buffer to build serial representation
+        const char* serial_vec = addresses_->serialize();
+        const char* serial_ivec = indices_->serialize();
 
-            buff.c("{type: directory, addresses: ");
-            buff.c(serial_vec);
-            buff.c(", indices: ");
-            buff.c(serial_ivec);
-            buff.c("}");
-            buff.c("\n");
+        buff.c("{type: directory, addresses: ");
+        buff.c(serial_vec);
+        buff.c(", indices: ");
+        buff.c(serial_ivec);
+        buff.c("}");
+        buff.c("\n");
 
-            delete[] serial_vec;
-            delete[] serial_ivec;
-            return buff.c_str();
-        }
+        delete[] serial_vec;
+        delete[] serial_ivec;
+        return buff.c_str();
+    }
 
-        /**
-         * Empties the directory
-         */
-        void clear() {
-            delete addresses_;
-            delete indices_;
-            addresses_ = new Vector();
-            indices_ = new IntVector();
-        }
+    /**
+     * Empties the directory
+     */
+    void clear() {
+        delete addresses_;
+        delete indices_;
+        addresses_ = new Vector();
+        indices_ = new IntVector();
+    }
 
-        /* Returns nullptr because this is not an Ack */
-        Ack* as_ack() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not an Ack */
+    Ack* as_ack() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Register */
-        Register* as_register() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Register */
+    Register* as_register() {
+        return nullptr;
+    }
 
-        /* Returns this Directory */
-        Directory* as_directory() {
-            return this;
-        }
+    /* Returns this Directory */
+    Directory* as_directory() {
+        return this;
+    }
 
-        /* Returns nullptr because this is not a Reply */
-        Reply* as_reply() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Reply */
+    Reply* as_reply() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Put */
-        Put* as_put() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Put */
+    Put* as_put() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Get */
-        Get* as_get() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Get */
+    Get* as_get() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a WaitAndGet */
-        WaitAndGet* as_wait_and_get() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a WaitAndGet */
+    WaitAndGet* as_wait_and_get() {
+        return nullptr;
+    }
 };
 
 /* Put is a message subclass used to store a blob of serialized data at a key. */
 class Put : public Message {
-    public:
-        Key* k_;   // external
-        const char* v_; // external
+public:
+    Key* k_;   // external
+    const char* v_; // external
 
-        /* Constructor */
-        Put(Key* k, const char* v) : k_(k), v_(v) {
-            kind_ = MsgKind::Put;
-        }
+    /* Constructor */
+    Put(Key* k, const char* v) : k_(k), v_(v) {
+        kind_ = MsgKind::Put;
+    }
 
-        /* Returns this put message's key */
-        Key* get_key() { return k_; }
+    /* Returns this put message's key */
+    Key* get_key() { return k_; }
 
-        /* Returns this put message's value */
-        const char* get_value() { return v_; }
+    /* Returns this put message's value */
+    const char* get_value() { return v_; }
 
-        /* Returns a serialized representation of this put message */
-        const char* serialize() {
-            StrBuff buff;
-            const char* serial_k = k_->serialize();
-            buff.c("{type: put, key: ");
-            buff.c(serial_k);
-            buff.c(", value: ");
-            buff.c(v_);
-            buff.c("\n");
-            delete[] serial_k;
-            return buff.c_str();
-        }
+    /* Returns a serialized representation of this put message */
+    const char* serialize() {
+        StrBuff buff;
+        const char* serial_k = k_->serialize();
+        buff.c("{type: put, key: ");
+        buff.c(serial_k);
+        buff.c(", value: ");
+        buff.c(v_);
+        buff.c("\n");
+        delete[] serial_k;
+        return buff.c_str();
+    }
 
-        /* Return true if this put message equals the given object, and false if not. */
-        bool equals(Object* o) {
-            Put* other = dynamic_cast<Put*>(o);
-            if (other == nullptr) return false;
-            return other->get_key()->equals(k_) && strcmp(v_, other->get_value()) == 0;
-        }
+    /* Return true if this put message equals the given object, and false if not. */
+    bool equals(Object* o) {
+        Put* other = dynamic_cast<Put*>(o);
+        if (other == nullptr) return false;
+        return other->get_key()->equals(k_) && strcmp(v_, other->get_value()) == 0;
+    }
 
-        /* Returns nullptr because this is not an Ack */
-        Ack* as_ack() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not an Ack */
+    Ack* as_ack() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Register */
-        Register* as_register() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Register */
+    Register* as_register() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Directory */
-        Directory* as_directory() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Directory */
+    Directory* as_directory() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Reply */
-        Reply* as_reply() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Reply */
+    Reply* as_reply() {
+        return nullptr;
+    }
 
-        /* Returns this Put */
-        Put* as_put() {
-            return this;
-        }
+    /* Returns this Put */
+    Put* as_put() {
+        return this;
+    }
 
-        /* Returns nullptr because this is not a Get */
-        Get* as_get() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Get */
+    Get* as_get() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a WaitAndGet */
-        WaitAndGet* as_wait_and_get() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a WaitAndGet */
+    WaitAndGet* as_wait_and_get() {
+        return nullptr;
+    }
 };
 
 /**
  *  Get is a Message subclass that is used to request a value using a key. 
  */
 class Get : public Message {
-    public:
-        Key* k_;
+public:
+    Key* k_;
 
-        /* Constructor, takes ownership of the given Key */
-        Get(Key* k) {
-            kind_ = MsgKind::Get;
-            k_ = k;
-        }
+    /* Constructor, takes ownership of the given Key */
+    Get(Key* k) {
+        kind_ = MsgKind::Get;
+        k_ = k;
+    }
 
-        /* Return this Get message's key */
-        Key* get_key() {
-            return k_;
-        }
+    /* Return this Get message's key */
+    Key* get_key() {
+        return k_;
+    }
 
-        /* Returns a serialized representation of this get message */
-        const char* serialize() {
-            StrBuff buff;
-            const char* serialized_k = k_->serialize();
+    /* Returns a serialized representation of this get message */
+    const char* serialize() {
+        StrBuff buff;
+        const char* serialized_k = k_->serialize();
 
-            buff.c("{type: get, key: ");
-            buff.c(serialized_k);
-            buff.c("}");
-            buff.c("\n");
+        buff.c("{type: get, key: ");
+        buff.c(serialized_k);
+        buff.c("}");
+        buff.c("\n");
 
-            delete[] serialized_k;
-            return buff.c_str();
-        }
+        delete[] serialized_k;
+        return buff.c_str();
+    }
 
-        /* Return true if this get message equals the given object, and false if not. */
-        bool equals(Object* o) {
-            Get* other = dynamic_cast<Get*>(o);
-            if (other == nullptr) return false;
-            return (other->get_key()->equals(k_));
-        }
+    /* Return true if this get message equals the given object, and false if not. */
+    bool equals(Object* o) {
+        Get* other = dynamic_cast<Get*>(o);
+        if (other == nullptr) return false;
+        return (other->get_key()->equals(k_));
+    }
 
-        /* Returns nullptr because this is not an Ack */
-        Ack* as_ack() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not an Ack */
+    Ack* as_ack() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Register */
-        Register* as_register() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Register */
+    Register* as_register() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Directory */
-        Directory* as_directory() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Directory */
+    Directory* as_directory() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Reply */
-        Reply* as_reply() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Reply */
+    Reply* as_reply() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Put */
-        Put* as_put() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Put */
+    Put* as_put() {
+        return nullptr;
+    }
 
-        /* Returns this Get */
-        Get* as_get() {
-            return this;
-        }
+    /* Returns this Get */
+    Get* as_get() {
+        return this;
+    }
 
-        /* Returns nullptr because this is not a WaitAndGet */
-        WaitAndGet* as_wait_and_get() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a WaitAndGet */
+    WaitAndGet* as_wait_and_get() {
+        return nullptr;
+    }
 };
 
 /**
  * WaitAndGet is a Message subclass that is used to request a value using a key.
  */
 class WaitAndGet : public Message {
-    public:
-        Key* k_;
+public:
+    Key* k_;
 
-        /* Constructor, takes ownership of the given Key */
-        WaitAndGet(Key* k) {
-            kind_ = MsgKind::WaitAndGet;
-            k_ = k;
-        }
+    /* Constructor, takes ownership of the given Key */
+    WaitAndGet(Key* k) {
+        kind_ = MsgKind::WaitAndGet;
+        k_ = k;
+    }
 
-        /* Desrtuctor */
-        ~WaitAndGet() { }
+    /* Desrtuctor */
+    ~WaitAndGet() { }
 
-        /* Return this Get message's key */
-        Key* get_key() {
-            return k_;
-        }
+    /* Return this Get message's key */
+    Key* get_key() {
+        return k_;
+    }
 
-        /* Returns a serialized representation of this WaitAndGet message */
-        const char* serialize() {
-            StrBuff buff;
-            const char* serialized_k = k_->serialize();
+    /* Returns a serialized representation of this WaitAndGet message */
+    const char* serialize() {
+        StrBuff buff;
+        const char* serialized_k = k_->serialize();
 
-            buff.c("{type: wait_get, key: ");
-            buff.c(serialized_k);
-            buff.c("}");
-            buff.c("\n");
+        buff.c("{type: wait_get, key: ");
+        buff.c(serialized_k);
+        buff.c("}");
+        buff.c("\n");
 
-            delete[] serialized_k;
-            return buff.c_str();
-        }
+        delete[] serialized_k;
+        return buff.c_str();
+    }
 
-        /* Return true if this get message equals the given object, and false if not. */
-        bool equals(Object* o) {
-            WaitAndGet* other = dynamic_cast<WaitAndGet*>(o);
-            if (other == nullptr) return false;
-            return (other->get_key()->equals(k_));
-        }
+    /* Return true if this get message equals the given object, and false if not. */
+    bool equals(Object* o) {
+        WaitAndGet* other = dynamic_cast<WaitAndGet*>(o);
+        if (other == nullptr) return false;
+        return (other->get_key()->equals(k_));
+    }
 
-        /* Returns nullptr because this is not an Ack */
-        Ack* as_ack() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not an Ack */
+    Ack* as_ack() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Register */
-        Register* as_register() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Register */
+    Register* as_register() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Directory */
-        Directory* as_directory() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Directory */
+    Directory* as_directory() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Reply */
-        Reply* as_reply() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Reply */
+    Reply* as_reply() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Put */
-        Put* as_put() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Put */
+    Put* as_put() {
+        return nullptr;
+    }
 
-        /* Returns nullptr because this is not a Get */
-        Get* as_get() {
-            return nullptr;
-        }
+    /* Returns nullptr because this is not a Get */
+    Get* as_get() {
+        return nullptr;
+    }
 
-        /* Returns this WaitAndGet */
-        WaitAndGet* as_wait_and_get() {
-            return this;
-        }
+    /* Returns this WaitAndGet */
+    WaitAndGet* as_wait_and_get() {
+        return this;
+    }
 };
 
 /**

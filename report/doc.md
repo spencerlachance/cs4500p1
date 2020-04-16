@@ -180,7 +180,7 @@ delete sr;
 This code builds a DataFrame with one column of floats, adds it to a KVStore, gets it back from the store, and ensures that the floats' values remain consistent.
 ```
 class Trivial : public Application {
-    public:
+public:
     Trivial(size_t idx) : Application(idx) { }
     void run_() {
         size_t SZ = 1000*1000;

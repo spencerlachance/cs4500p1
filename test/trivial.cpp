@@ -14,7 +14,7 @@ size_t valgrind_size = 10000;
  * the sum of the DataFrame's values remains consistent.
  */
 class Trivial : public Application {
-    public:
+public:
     Trivial(size_t idx, size_t nodes) : Application(idx, nodes) {
         run_();
     }
