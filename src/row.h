@@ -111,12 +111,6 @@ public:
         return col_types_->size();
     }
     
-    /** Type of the field at the given position. An idx >= width is  undefined. */
-    char col_type(size_t idx) {
-        exit_if_not(idx < width(), "Column type index out of bounds.");
-        return col_types_->get(idx);
-    }
-    
     /** Given a Fielder, visit every field of this row. The first argument is
         * index of the row in the dataframe.
         * Calling this method before the row's fields have been set is undefined. */

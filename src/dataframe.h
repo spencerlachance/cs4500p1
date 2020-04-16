@@ -232,39 +232,6 @@ public:
         }
     }
 
-    /**
-     * Maps over part of the DataFrame according to which thread calls it.
-     * 
-     * @param x The id of the thread
-     */
-    void map_x(int x, Rower* r) {
-        int start, end;
-        Row row(schema_);
-        if (x == 1) {
-            start = 0;
-            end = length_ / 2;
-        } else {
-            start = length_ / 2;
-            end = length_;
-        }
-        for (int i = start; i < end; i++) {
-            row.set_idx(i);
-            fill_row(i, row);
-            r->accept(row);
-        }
-    }
-
-    /** This method clones the Rower and executes the map in parallel. Join is
-         * used at the end to merge the results. */
-    void pmap(Rower& r) {
-        Rower* r2 = dynamic_cast<Rower*>(r.clone());
-        std::thread t1(&DataFrame::map_x, this, 1, &r);
-        std::thread t2(&DataFrame::map_x, this, 2, r2);
-        t1.join();
-        t2.join();
-        r.join_delete(r2);
-    }
-    
     /** Create a new dataframe, constructed from rows for which the given Rower
          * returned true from its accept method. */
     DataFrame* filter(Rower& r) {

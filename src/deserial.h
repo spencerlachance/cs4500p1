@@ -143,15 +143,9 @@ public:
         } else if (strcmp(type, "vector") == 0) {
             delete type_str;
             return deserialize_string_vector();
-        } else if (strcmp(type, "float_vector") == 0) {
-            delete type_str;
-            return deserialize_float_vector();
         } else if (strcmp(type, "int_vector") == 0) {
             delete type_str;
             return deserialize_int_vector();
-        } else if (strcmp(type, "bool_vector") == 0) {
-            delete type_str;
-            return deserialize_bool_vector();
         } else {
             exit_if_not(false, "Unknown type");
         }
@@ -385,33 +379,6 @@ public:
         return vec;
     }
 
-    /* Builds and returns a FloatVector from the bytestream
-    *  Create a new FlaotVector(), fill it with floats from the stream and return it.
-    * */
-    FloatVector* deserialize_float_vector() {
-        StrBuff buff;
-        // stream's initial 11 chars should be ", floats: ["
-        assert(step() == ','); 
-        assert(step() == ' '); 
-        assert(step() == 'f'); 
-        assert(step() == 'l'); 
-        assert(step() == 'o'); 
-        assert(step() == 'a'); 
-        assert(step() == 't'); 
-        assert(step() == 's'); 
-        assert(step() == ':'); 
-        assert(step() == ' '); 
-        assert(step() == '['); // Now iterating over vector elements.
-
-        // New FloatVector we will return once we have filled it with corresponding floats
-        FloatVector* fvec = new FloatVector();
-        while (current() != ']') {
-            fvec->append(deserialize_float());
-            if (current() == ',') { step(); } // Step over the ','
-        }
-        return fvec;
-    }
-
     /* Builds and returns an IntVector from the bytestream */
     IntVector* deserialize_int_vector() {
         StrBuff buff;
@@ -434,30 +401,6 @@ public:
             if (current() == ',') { step(); } // Step over the ','
         }
         return ivec;
-    }
-
-    /* Builds and returns an BoolVector from the bytestream */
-    BoolVector* deserialize_bool_vector() {
-        StrBuff buff;
-        // stream's initial 9 chars should be ", bools: ["
-        assert(step() == ',');
-        assert(step() == ' ');
-        assert(step() == 'b');
-        assert(step() == 'o');
-        assert(step() == 'o');
-        assert(step() == 'l');
-        assert(step() == 's');
-        assert(step() == ':');
-        assert(step() == ' ');
-        assert(step() == '['); // Now iterating over vector elements.
-
-        // New BoolVector we will return once we have filled it with corresponding bools
-        BoolVector* bvec = new BoolVector();
-        while (current() != ']') {
-            bvec->append(deserialize_bool());
-            if (current() == ',') { step(); } // Step over the ','
-        }
-        return bvec;
     }
 
     /** Builds and returns a DataType from the bytestream. */

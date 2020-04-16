@@ -52,8 +52,8 @@ An array of objects split into fixed-size chunks. When it fills up, it grows, al
 * `Object* get(size_t idx)` - Returns the object in the vector at the given index.
 
 
-## IntVector, BoolVector, FloatVector
-Similar to the Vector class, but hold primitives instead of objects.
+## IntVector
+Similar to the Vector class, but holds int primitives instead of objects.
 
 
 ## DataType
@@ -123,7 +123,6 @@ Table containing columns of a specific type
 * `void add_column(Column* col)` - Adds the given column to the DataFrame. Pads either the given column or every other column with missing fields, whichever's length is smaller.
 * `void add_row(Row& row, bool last_row)` - Adds the given row to the bottom of the DataFrame. If `last_row` is true, it calls every column's `lock()` method.
 * `void map(Rower& r)` - Visits every row of the DataFrame.
-* `void pmap(Rower& r)` - Visits every row of the DataFrame in parallel.
 * `void local_map(Rower& r)` - Visits every row of the DataFrame that is stored on the current node.
 * `DataFrame* filter(Rower& r)` - Builds and returns a new DataFrame containing rows which the given visitor accepted.
 * `static DataFrame* fromTypeArray(Key* k, KDStore* kd, size_t size, type* vals)` - Static method that generates a new DataFrame with one column containing `size` values from `vals`, serializes the dataframe and puts it in `kd` at `k`, and then returns the DataFrame.

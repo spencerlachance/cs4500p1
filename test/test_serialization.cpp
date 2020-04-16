@@ -46,32 +46,6 @@ DataFrame* df_(KVStore* kv, Key* k) {
     return df;
 }
 
-/** Testing BoolVector serialization and deserialization. */
-void test_bool_vector_serialization() {
-    BoolVector* bvec = new BoolVector();
-    bvec->append(1);
-    bvec->append(0); 
-    bvec->append(1); 
-    bvec->append(0); 
-    bvec->append(1);
-
-    // BoolVector serialization
-    const char* serialized_bvec = bvec->serialize();
-    assert(strcmp(serialized_bvec, "{type: bool_vector, bools: [{1},{0},{1},{0},{1}]}") == 0);
-    
-
-    //BoolVector deserialization
-    Deserializer* bvec_ds = new Deserializer(serialized_bvec);
-    BoolVector* deserialized_bvec = dynamic_cast<BoolVector*>(bvec_ds->deserialize());
-    assert(deserialized_bvec != nullptr);
-    assert(deserialized_bvec->equals(bvec));
-
-    delete bvec;
-    delete[] serialized_bvec;
-    delete bvec_ds;
-    delete deserialized_bvec;
-}
-
 /** Testing IntVector serialization and deserialization. */
 void test_int_vector_serialization() {
     IntVector* ivec = new IntVector();
@@ -96,32 +70,6 @@ void test_int_vector_serialization() {
     delete[] serialized_ivec;
     delete ivec_ds;
     delete deserialized_ivec;
-}
-
-/** Testing FloatVector serialization and deserialization. */
-void test_float_vector_serialization() {
-    // Deserializer serial;
-    FloatVector* fvec = new FloatVector();
-    fvec->append(1.1f);
-    fvec->append(1.11113f); // 5 decimals
-    fvec->append(1.111115f); // 6 decimals
-    fvec->append(1.1111116f); // 7 decimals
-    fvec->append(1.11111156f); // 8 decimals
-
-    // FloatVector serialization
-    const char* serialized_fvec = fvec->serialize();
-    assert(strcmp(serialized_fvec, "{type: float_vector, floats: [{1.1000000},{1.1111300},{1.1111150},{1.1111116},{1.1111115}]}") == 0);
-
-    //FloatVector deserialization
-    Deserializer* fvec_ds = new Deserializer(serialized_fvec);
-    FloatVector* deserialized_fvec = dynamic_cast<FloatVector*>(fvec_ds->deserialize());
-    assert(deserialized_fvec != nullptr);
-    assert(deserialized_fvec->equals(fvec));
-
-    delete fvec;
-    delete[] serialized_fvec;
-    delete deserialized_fvec;
-    delete fvec_ds;
 }
 
 /* Testings Vector serialization and deserialization */
@@ -412,9 +360,7 @@ int main() {
     KVStore* kv = new KVStore(0, 1);
 
     test_object_serialization();
-    test_bool_vector_serialization();
     test_int_vector_serialization();
-    test_float_vector_serialization();
     test_string_vector_serialization();
     test_key_serialization();
     test_dataframe_serialization(kv);
