@@ -123,7 +123,8 @@ public:
     
     // Sets the element at index to val.
     // If index == size(), appends to the end of the vector.
-    void set(Object* val, size_t index) {
+    // If delete_val is true, the existing value at index will be deleted.
+    void set(Object* val, size_t index, bool delete_val = true) {
         assert(index <= size_);
 
         if (index == size_) {
@@ -133,10 +134,10 @@ public:
 
         int outer_idx = index / CHUNK_SIZE;
         int inner_idx = index % CHUNK_SIZE;
-        // Delete the object at this index if there is one
-        Object* replace_me = dynamic_cast<Object*>(objects_[outer_idx][inner_idx]);
-        if (replace_me != nullptr) {
-            delete replace_me;
+        if (delete_val) {
+            // Delete the object at this index if there is one
+            Object* replace_me = dynamic_cast<Object*>(objects_[outer_idx][inner_idx]);
+            if (replace_me != nullptr) delete replace_me;
         }
         objects_[outer_idx][inner_idx] = val;
     }

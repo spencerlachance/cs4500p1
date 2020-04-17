@@ -102,8 +102,10 @@ public:
         size_t sz = items_[i].keys_.size();
         for (size_t j = 0; j < sz; j++) {
             Object* k = items_[i].keys_.get(j);
-            Object* v = items_[i].vals_.get(j)->clone();
+            Object* v = items_[i].vals_.get(j);
             newm.put(*k,v);
+            // otherwise the values would get deleted (if the array's destructor was doing its job I found later:)
+            items_[i].vals_.set(nullptr, j, false);
         }
     }
     delete[] items_;

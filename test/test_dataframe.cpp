@@ -140,7 +140,7 @@ void test_map(DataFrame* df) {
     SumRower* sr = new SumRower();
     df->map(*sr);
     assert(sr->get_total() == (NROWS + 1)*(NROWS / 2));
-    printf("Map test passed\n");
+    printf("DataFrame map() test passed\n");
     delete sr;
 }
 
@@ -152,7 +152,7 @@ void test_filter(DataFrame* df) {
     AboveRower* ar = new AboveRower(NROWS / 2);
     DataFrame* filtered_df = df->filter(*ar);
     assert(filtered_df->nrows() == NROWS / 2);
-    printf("Filter test passed\n");
+    printf("DataFrame filter() test passed\n");
     delete ar;
     delete filtered_df;
 }
