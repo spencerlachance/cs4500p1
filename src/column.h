@@ -101,7 +101,7 @@ public:
     bool get_bool(size_t idx) {
         exit_if_not(type_ = 'B', "Column type is not boolean");
         DataType* dt = fields_->get(idx);
-        int res = dt->get_bool();
+        bool res = dt->get_bool();
         delete dt;
         return res;
     }
@@ -110,7 +110,7 @@ public:
     float get_float(size_t idx) {
         exit_if_not(type_ = 'F', "Column type is not float");
         DataType* dt = fields_->get(idx);
-        int res = dt->get_float();
+        float res = dt->get_float();
         delete dt;
         return res;
     }
