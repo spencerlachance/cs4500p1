@@ -2,7 +2,7 @@
 #include <assert.h>
 
 int main() {
-    Map* map = new Map(2); // A map with a capacity of one.
+    Map* map = new Map(1); // A map with a capacity of one.
     String* k = new String("key"); // String key in our key-value pair.
     Object* val1 = new String("value"); // Object value in our key-value pair.
     Object* val2 = new String("value");
@@ -19,7 +19,7 @@ int main() {
     // Testing containsKey() and get() after putting a key value pair (k, val1)
     assert(map->contains(*k)); // returns true because there is now a key k.
     assert(map->size() == 1);
-    String* get_val1 = dynamic_cast<String*>(map->get(*k));
+    String* get_val1 = dynamic_cast<String*>(map->get(*k)); // get_val1 is still owned by map.
     assert(get_val1 != nullptr);
     assert(get_val1->equals(val1));
 
@@ -27,18 +27,18 @@ int main() {
     assert(map->size() == 1);
 
     // Erasing val1 from the map
-    map->erase(*val1);
+    map->erase(*val1); // Deletes both val1 and get_val1
 
     assert(map->get(*val1) == nullptr); // returns nullptr when map does not have the requested key s1.
     printf("%zu\n", map->size());
     // assert(map->size() == 0);
 
     // Putting a second key-value pair in the map, which would grow the map's capacity.
-    map->put(*k, val2); // You cannot put val1 back because it was deleted by erase.
+    map->put(*k, val2); 
     map->put(*k, val3);
     map->put(*k, val4);
 
-    delete map; // This also deletes the value (val1 and get_val1).
+    delete map; // This also deletes the values (val2, val3 and val4).
     delete k; // Must manually delete key.
     printf("Map tests passed.\n");
     return 0;
