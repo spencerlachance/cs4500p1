@@ -157,6 +157,7 @@ public:
         int inner_idx = index % CHUNK_SIZE;
         delete objects_[outer_idx][inner_idx];
         objects_[outer_idx][inner_idx] = nullptr;
+        size_--;
     }
     
     // Returns the number of elements in this vector. 

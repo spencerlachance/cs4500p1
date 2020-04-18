@@ -2,12 +2,12 @@
 #include <assert.h>
 
 int main() {
-    Map* map = new Map(1); // A map with a capacity of one.
+    Map* map = new Map(1); // A map with an initial capacity of one.
     String* k = new String("key"); // String key in our key-value pair.
-    Object* val1 = new String("value"); // Object value in our key-value pair.
-    Object* val2 = new String("value");
-    Object* val3 = new String("value");
-    Object* val4 = new String("value");
+    String* val1 = new String("value"); // Object value in our key-value pair.
+    String* val2 = new String("value");
+    String* val3 = new String("value");
+    String* val4 = new String("value");
 
     // Testing contains(), get() and erase() before puting any key-values in the map.
     assert(!map->contains(*k)); // returns false because there is no key k.
@@ -27,18 +27,19 @@ int main() {
     assert(map->size() == 1);
 
     // Erasing val1 from the map
-    map->erase(*val1); // Deletes both val1 and get_val1
+    map->erase(*k); // Deletes both val1 and get_val1
 
-    assert(map->get(*val1) == nullptr); // returns nullptr when map does not have the requested key s1.
+    assert(map->get(*k) == nullptr); // returns nullptr when map does not have the requested key s1.
     printf("%zu\n", map->size());
-    // assert(map->size() == 0);
+    assert(map->size() == 0);
 
     // Putting a second key-value pair in the map, which would grow the map's capacity.
     map->put(*k, val2); 
     map->put(*k, val3);
     map->put(*k, val4);
+    assert(map->size() == 1);
 
-    delete map; // This also deletes the values (val2, val3 and val4).
+    delete map;
     delete k; // Must manually delete key.
     printf("Map tests passed.\n");
     return 0;
