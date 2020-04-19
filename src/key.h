@@ -54,8 +54,7 @@ public:
         buff.c(serial_k);
         delete[] serial_k;
         // Serialize the node index
-        Serializer ser;
-        const char* serial_idx = ser.serialize_int(idx_);
+        const char* serial_idx = Serializer::serialize_size_t(idx_);
         buff.c(serial_idx);
         delete[] serial_idx;
         return buff.c_str();

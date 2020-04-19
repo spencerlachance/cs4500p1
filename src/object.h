@@ -30,7 +30,6 @@ public:
 
     /** Returns a serialized representation of this object. */
     virtual const char* serialize() { 
-        const char* s = "{type: object}";
-        return s;
+        return "{type: object}";
     }
 }; 

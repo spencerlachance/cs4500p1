@@ -57,18 +57,15 @@ void test_int_vector_serialization() {
 
     // IntVector serialization
     const char* serialized_ivec = ivec->serialize();
-    assert(strcmp(serialized_ivec, "{type: int_vector, ints: [{1},{2},{3},{4},{5}]}") == 0);
     
-
     // IntVector deserialization
-    Deserializer* ivec_ds = new Deserializer(serialized_ivec);
-    IntVector* deserialized_ivec = dynamic_cast<IntVector*>(ivec_ds->deserialize());
+    Deserializer ivec_ds(serialized_ivec);
+    IntVector* deserialized_ivec = ivec_ds.deserialize_int_vector();
     assert(deserialized_ivec != nullptr);
     assert(deserialized_ivec->equals(ivec));
 
     delete ivec;
     delete[] serialized_ivec;
-    delete ivec_ds;
     delete deserialized_ivec;
 }
 
@@ -81,8 +78,8 @@ void test_string_vector_serialization() {
 
     // String serialization and deserialization 
     const char* serialized_str = s1->serialize();
-    Deserializer* string_ds = new Deserializer(serialized_str);
-    String* deserialized_str = dynamic_cast<String*>(string_ds->deserialize());
+    Deserializer string_ds(serialized_str);
+    String* deserialized_str = string_ds.deserialize_string();
     assert(deserialized_str != nullptr);
     assert(s1->equals(deserialized_str));
 
@@ -94,11 +91,10 @@ void test_string_vector_serialization() {
 
     /* Vector serialization */
     const char* serialized_vec = vec->serialize();
-    assert(strcmp(serialized_vec, "{type: vector, objects: [{type: string, cstr: abc},{type: string, cstr: abcd},{type: string, cstr: abcdefghi},{type: string, cstr: abcdefghij}]}") == 0);
     
     /* Vector desserialization */
-    Deserializer* svec_ds = new Deserializer(serialized_vec);
-    Vector* deserialized_vec = dynamic_cast<Vector*>(svec_ds->deserialize());
+    Deserializer svec_ds(serialized_vec);
+    Vector* deserialized_vec = svec_ds.deserialize_string_vector();
     assert(deserialized_vec != nullptr);
     assert(deserialized_vec->equals(vec));
 
@@ -106,8 +102,6 @@ void test_string_vector_serialization() {
     delete[] serialized_str;
     delete[] serialized_vec;
     delete vec;
-    delete string_ds;
-    delete svec_ds;
     delete deserialized_str;
     delete deserialized_vec;
 }
@@ -120,14 +114,14 @@ void test_message_serialization(KVStore* kv) {
     const char* serialized_ack = ack->serialize();
 
     /* Ack deserialization */
-    Deserializer* ack_ds = new Deserializer(serialized_ack);
-    Ack* deserialized_ack = dynamic_cast<Ack*>(ack_ds->deserialize());
+    Deserializer ack_ds(serialized_ack);
+    Ack* deserialized_ack = ack_ds.deserialize_message()->as_ack();
     assert(deserialized_ack != nullptr);
     assert(deserialized_ack->equals(ack)); // Testing acknowledge equality.
 
     delete ack;
+    delete[] serialized_ack;
     delete deserialized_ack;
-    delete ack_ds;
 
     /* Directory construction */
     Directory* dir = new Directory();
@@ -140,15 +134,14 @@ void test_message_serialization(KVStore* kv) {
     const char* serialized_directory = dir->serialize();
 
     /* Directory deserialization */
-    Deserializer* directory_ds = new Deserializer(serialized_directory);
-    Directory* deserialized_directory = dynamic_cast<Directory*>(directory_ds->deserialize());
+    Deserializer directory_ds(serialized_directory);
+    Directory* deserialized_directory = directory_ds.deserialize_message()->as_directory();
     assert(deserialized_directory != nullptr);
     assert(deserialized_directory->equals(dir)); // Testing directory equality
 
     delete dir;
     delete[] serialized_directory;
     delete deserialized_directory;
-    delete directory_ds;
 
     /* Register construction */
     String* ip = new String("127.0.0.3");
@@ -158,15 +151,14 @@ void test_message_serialization(KVStore* kv) {
     const char* serialized_register = reg->serialize();
 
     /* Register deserialization */
-    Deserializer* register_ds = new Deserializer(serialized_register);
-    Register* deserialized_register = dynamic_cast<Register*>(register_ds->deserialize());
+    Deserializer register_ds(serialized_register);
+    Register* deserialized_register = register_ds.deserialize_message()->as_register();
     assert(deserialized_register != nullptr);
     assert(deserialized_register->equals(reg));
 
     delete reg;
     delete[] serialized_register;
     delete deserialized_register;
-    delete register_ds;
 
     /* Put construction */
     Key* key1 = new Key("foo",0);
@@ -178,15 +170,14 @@ void test_message_serialization(KVStore* kv) {
     const char* serialized_put = put->serialize();
 
     /* Put deserialization */
-    Deserializer* put_deserializer = new Deserializer(serialized_put);
-    Put* deserialized_put = dynamic_cast<Put*>(put_deserializer->deserialize());
+    Deserializer put_deserializer(serialized_put);
+    Put* deserialized_put = put_deserializer.deserialize_message()->as_put();
     assert(deserialized_put != nullptr);
     assert(deserialized_put->equals(put));
 
     delete[] serial_df;
     delete put;
     delete[] serialized_put;
-    delete put_deserializer;
     delete[] deserialized_put->get_value();
     delete deserialized_put->get_key();
     delete deserialized_put;
@@ -199,15 +190,14 @@ void test_message_serialization(KVStore* kv) {
     const char* serialized_get = get->serialize();
 
     /* Get deserialization */
-    Deserializer* get_deserializer = new Deserializer(serialized_get);
-    Get* deserialized_get = dynamic_cast<Get*>(get_deserializer->deserialize());
+    Deserializer get_deserializer(serialized_get);
+    Get* deserialized_get = get_deserializer.deserialize_message()->as_get();
     assert(deserialized_get != nullptr);
     assert(deserialized_get->equals(get));
 
     delete key2;
     delete get;
     delete[] serialized_get;
-    delete get_deserializer;
     delete deserialized_get->get_key();
     delete deserialized_get;
 
@@ -219,15 +209,14 @@ void test_message_serialization(KVStore* kv) {
     const char* serialized_w_get = w_get->serialize();
 
     /* WaitAndGet deserialization */
-    Deserializer* w_get_deserializer = new Deserializer(serialized_w_get);
-    WaitAndGet* deserialized_w_get = dynamic_cast<WaitAndGet*>(w_get_deserializer->deserialize());
+    Deserializer w_get_deserializer(serialized_w_get);
+    WaitAndGet* deserialized_w_get = w_get_deserializer.deserialize_message()->as_wait_and_get();
     assert(deserialized_w_get != nullptr);
     assert(deserialized_w_get->equals(w_get));
 
     delete key3;
     delete w_get;
     delete[] serialized_w_get;
-    delete w_get_deserializer;
     delete deserialized_w_get->get_key();
     delete deserialized_w_get;
 
@@ -239,8 +228,8 @@ void test_message_serialization(KVStore* kv) {
     const char* serialized_reply = rep->serialize();
 
     /* Reply deserialization */
-    Deserializer* reply_deserializer = new Deserializer(serialized_reply);
-    Reply* deserialized_reply = dynamic_cast<Reply*>(reply_deserializer->deserialize());
+    Deserializer reply_deserializer(serialized_reply);
+    Reply* deserialized_reply = reply_deserializer.deserialize_message()->as_reply();
     assert(deserialized_reply != nullptr);
     assert(deserialized_reply->equals(rep));
 
@@ -249,7 +238,6 @@ void test_message_serialization(KVStore* kv) {
     delete[] serial_df2;
     delete rep;
     delete[] serialized_reply;
-    delete reply_deserializer;
     delete[] deserialized_reply->get_value();
     delete deserialized_reply;
 }
@@ -257,13 +245,13 @@ void test_message_serialization(KVStore* kv) {
 void test_object_serialization() {
     Object* o = new Object();
     const char* serialized_object = o->serialize();
-    assert(strcmp(serialized_object, "{type: object}") == 0);
 
-    Deserializer* object_ds = new Deserializer(serialized_object);
-    Object* deserialized_object = object_ds->deserialize();
+    Deserializer object_ds(serialized_object);
+    // the assert statement within deserialize_object() proves that this test passes
+    Object* deserialized_object = object_ds.deserialize_object();
+
     delete o;
     delete deserialized_object;
-    delete object_ds;
 }
 
 void test_dataframe_serialization(KVStore* kv) {
@@ -341,8 +329,6 @@ void test_key_serialization() {
 
     /* Key serialization */
     const char* serialized_key = k->serialize();
-    // printf("%s\n", serialized_key);
-    assert(strcmp(serialized_key, "{type: string, cstr: Key 1}{0}") == 0);
 
     /* Key deserialization */
     Deserializer key_deserializer(serialized_key);

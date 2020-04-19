@@ -416,7 +416,7 @@ public:
                             // Figure out what kind of message was received
                             char* serial_msg = buff.c_str();
                             Deserializer ds(serial_msg);
-                            Message* m = dynamic_cast<Message*>(ds.deserialize());
+                            Message* m = ds.deserialize_message();
                             assert(m != nullptr);
                             process_message_(m, i);
                             delete[] serial_msg;
@@ -530,7 +530,7 @@ public:
         Ack* a = new Ack();
         const char* msg = a->serialize();
         exit_if_not(send(fd, msg, strlen(msg) + 1, 0) > 0, "Call to send() failed");
-        delete p; delete k; delete a;
+        delete p; delete k; delete a; delete[] msg;
     }
 
     /**

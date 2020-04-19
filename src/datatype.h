@@ -116,7 +116,6 @@ public:
     const char* serialize() {
         StrBuff buff;
         // Serialize the type char
-        Serializer ser;
         char* c_type = new char[2];
         c_type[0] = type_;
         c_type[1] = '\0';
@@ -126,19 +125,19 @@ public:
         const char* serial_val;
         switch (type_) {
             case 'I': {
-                serial_val = ser.serialize_int(t_.i);
+                serial_val = Serializer::serialize_int(t_.i);
                 buff.c(serial_val);
                 delete[] serial_val;
                 break;
             }
             case 'B': {
-                serial_val = ser.serialize_bool(t_.b);
+                serial_val = Serializer::serialize_bool(t_.b);
                 buff.c(serial_val);
                 delete[] serial_val;
                 break;
             }
             case 'F': {
-                serial_val = ser.serialize_float(t_.f);
+                serial_val = Serializer::serialize_float(t_.f);
                 buff.c(serial_val);
                 delete[] serial_val;
                 break;

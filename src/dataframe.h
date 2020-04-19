@@ -379,8 +379,8 @@ public:
 
 /** Builds and returns a Chunk from the bytestream. */
 Chunk* Deserializer::deserialize_chunk() {
-    size_t idx = deserialize_int();
-    size_t size = deserialize_int();
+    size_t idx = deserialize_size_t();
+    size_t size = deserialize_size_t();
     Chunk* c = new Chunk(idx);
     assert(step() == '[');
     for (int i = 0; i < size; i++) {
@@ -393,7 +393,7 @@ Chunk* Deserializer::deserialize_chunk() {
 /** Builds and returns a DistributedVector from the bytestream. */
 DistributedVector* Deserializer::deserialize_dist_vector(KVStore* kv) {
     StrBuff buff;
-    size_t size = deserialize_int();
+    size_t size = deserialize_size_t();
     assert(step() == '[');
     Vector* keys = new Vector();
     while (current() != ']')

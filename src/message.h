@@ -60,7 +60,13 @@ public:
 
     /* Returns a serialized representation of this acknowledge. */
     const char* serialize() {
-        return "{type: ack}\n";
+        StrBuff buff;
+        // serialize the MsgKind
+        char* serial_kind = Serializer::serialize_size_t((size_t)kind_);
+        buff.c(serial_kind);
+        buff.c("\n");
+        delete[] serial_kind;
+        return buff.c_str();
     }
 
     /* Returns this Ack */
@@ -135,16 +141,19 @@ public:
     /* Returns a serial representation of this register. */
     const char* serialize() {
         StrBuff buff;
+        // serialize the MsgKind
+        char* serial_kind = Serializer::serialize_size_t((size_t)kind_);
+        buff.c(serial_kind);
+        delete[] serial_kind;
+        // serialize the sender's IP
         const char* serial_ip = ip_->serialize();
-
-        buff.c("{type: register, ip: ");
         buff.c(serial_ip);
-        buff.c(", sender: ");
-        buff.c(sender_);
-        buff.c("}");
-        buff.c("\n");
-
         delete[] serial_ip;
+        // serialize the sender's node index
+        char* serial_sender = Serializer::serialize_size_t(sender_);
+        buff.c(serial_sender);
+        delete[] serial_sender;
+        buff.c("\n");
         return buff.c_str();
     }
 
@@ -238,19 +247,20 @@ public:
 
     /* Returns a serialized representation of this directory message */
     const char* serialize() {
-        StrBuff buff; // Use this buffer to build serial representation
+        StrBuff buff;
+        // serialize the MsgKind
+        const char* serial_kind = Serializer::serialize_size_t((size_t)kind_);
+        buff.c(serial_kind);
+        delete[] serial_kind;
+        // serialize IP addresses list
         const char* serial_vec = addresses_->serialize();
-        const char* serial_ivec = indices_->serialize();
-
-        buff.c("{type: directory, addresses: ");
         buff.c(serial_vec);
-        buff.c(", indices: ");
-        buff.c(serial_ivec);
-        buff.c("}");
-        buff.c("\n");
-
         delete[] serial_vec;
+        // serialize node indices list
+        const char* serial_ivec = indices_->serialize();
+        buff.c(serial_ivec);
         delete[] serial_ivec;
+        buff.c("\n");
         return buff.c_str();
     }
 
@@ -320,13 +330,17 @@ public:
     /* Returns a serialized representation of this put message */
     const char* serialize() {
         StrBuff buff;
+        // serialize the MsgKind
+        const char* serial_kind = Serializer::serialize_size_t((size_t)kind_);
+        buff.c(serial_kind);
+        delete[] serial_kind;
+        // serialize the key
         const char* serial_k = k_->serialize();
-        buff.c("{type: put, key: ");
         buff.c(serial_k);
-        buff.c(", value: ");
+        delete[] serial_k;
+        // write the serialized value
         buff.c(v_);
         buff.c("\n");
-        delete[] serial_k;
         return buff.c_str();
     }
 
@@ -394,14 +408,15 @@ public:
     /* Returns a serialized representation of this get message */
     const char* serialize() {
         StrBuff buff;
+        // serialize the MsgKind
+        const char* serial_kind = Serializer::serialize_size_t((size_t)kind_);
+        buff.c(serial_kind);
+        delete[] serial_kind;
+        // serialize the key
         const char* serialized_k = k_->serialize();
-
-        buff.c("{type: get, key: ");
         buff.c(serialized_k);
-        buff.c("}");
-        buff.c("\n");
-
         delete[] serialized_k;
+        buff.c("\n");
         return buff.c_str();
     }
 
@@ -472,14 +487,15 @@ public:
     /* Returns a serialized representation of this WaitAndGet message */
     const char* serialize() {
         StrBuff buff;
+        // serialize the MsgKind
+        const char* serial_kind = Serializer::serialize_size_t((size_t)kind_);
+        buff.c(serial_kind);
+        delete[] serial_kind;
+        // serialize the key
         const char* serialized_k = k_->serialize();
-
-        buff.c("{type: wait_get, key: ");
         buff.c(serialized_k);
-        buff.c("}");
-        buff.c("\n");
-
         delete[] serialized_k;
+        buff.c("\n");
         return buff.c_str();
     }
 
@@ -553,14 +569,17 @@ public:
     /* Returns a serialized representation of this reply message */
     const char* serialize() {
         StrBuff buff;
-        Serializer ser;
-        const char* serial_req = ser.serialize_int((size_t)request_);
-        buff.c("{type: reply, request: ");
+        // serialize the MsgKind
+        const char* serial_kind = Serializer::serialize_size_t((size_t)kind_);
+        buff.c(serial_kind);
+        delete[] serial_kind;
+        // serialize the request MsgKind
+        const char* serial_req = Serializer::serialize_size_t((size_t)request_);
         buff.c(serial_req);
-        buff.c(", value: ");
+        delete[] serial_req;
+        // write the serialized value
         buff.c(v_);
         buff.c("\n");
-        delete[] serial_req;
         return buff.c_str();
     }
 

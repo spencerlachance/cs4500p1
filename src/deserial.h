@@ -35,8 +35,7 @@ public:
 
     /* Returns the current character in the stream. */
     char current() {
-        char rtrn = stream_[i_];
-        return rtrn;
+        return stream_[i_];
     }
 
     /* Return the current character in the stream and step forward by 1. */
@@ -58,6 +57,22 @@ public:
         char* c_int = buff.c_str();
         int res = atoi(c_int);
         delete[] c_int;
+        return res;
+    }
+
+    /* Builds and returns a size_t from the bytestream. */
+    size_t deserialize_size_t() {
+        StrBuff buff;
+        assert(step() == '{');
+        while (current() != '}') {
+            *x_ = step();
+            buff.c(x_);
+        }
+        assert(step() == '}');
+        char* c_size_t = buff.c_str();
+        size_t res = 0;
+        assert(sscanf(c_size_t, "%zu", &res) == 1);
+        delete[] c_size_t;
         return res;
     }
 
@@ -91,168 +106,58 @@ public:
         return res;
     }
 
-    /* Builds and returns an object from the bytestream. */
-    Object* deserialize() {
-        // stream's initial 6 chars should be "{type: "
-        assert(step() == '{');
-        assert(step() == 't');
-        assert(step() == 'y');
-        assert(step() == 'p');
-        assert(step() == 'e');
-        assert(step() == ':');
-        assert(step() == ' ');
-
-        // Fill a buffer with the type of object to create
-        // either "object", "string", "vector" or "FloatVector".
-        StrBuff buff;
-        while (current() != ',' && current() != '}') {
-            *x_ = step();
-            buff.c(x_);
-        }
-
-        String* type_str = buff.get();
-        char* type = type_str->c_str();
-
-        if (strcmp(type, "object") == 0) {
-            delete type_str;
-            return new Object();
-        } else if (strcmp(type, "ack") == 0) {
-            delete type_str;
-            return new Ack();
-        } else if (strcmp(type, "directory") == 0) {
-            delete type_str;
-            return deserialize_directory();
-        } else if (strcmp(type, "register") == 0) {
-            delete type_str;
-            return deserialize_register();
-        } else if (strcmp(type, "put") == 0) {
-            delete type_str;
-            return deserialize_put();
-        } else if ((strcmp(type, "get") == 0)) {
-            delete type_str;
-            return deserialize_get();
-        } else if (strcmp(type, "wait_get") == 0) {
-            delete type_str;
-            return deserialize_wait_get();
-        } else if (strcmp(type, "reply") == 0) {
-            delete type_str;
-            return deserialize_reply();
-        } else if (strcmp(type, "string") == 0) {
-            delete type_str;
-            return deserialize_string();
-        } else if (strcmp(type, "vector") == 0) {
-            delete type_str;
-            return deserialize_string_vector();
-        } else if (strcmp(type, "int_vector") == 0) {
-            delete type_str;
-            return deserialize_int_vector();
-        } else {
-            exit_if_not(false, "Unknown type");
-        }
+    Object* deserialize_object() {
+        char* serial_obj = new char[15];
+        strncpy(serial_obj, stream_, 14);
+        serial_obj[14] = '\0';
+        assert(strcmp(serial_obj, "{type: object}") == 0);
+        delete[] serial_obj;
+        return new Object();
     }
 
-    /* Builds and returns a Key from the given bytestream. */
-    // {type: key, key: {type: string, cstr: foo}, idx: 0}
+    /* Builds and returns a Key from the bytestream. */
     Key* deserialize_key() {
-        String* key_str = dynamic_cast<String*>(deserialize());
+        String* key_str = deserialize_string();
         assert(key_str != nullptr);
-        int idx = deserialize_int();
+        size_t idx = deserialize_size_t();
         const char* key = key_str->c_str();
         Key* rtrn = new Key(key, idx);
         delete key_str;
         return rtrn;
-    }        
+    }
 
-    /* Builds and returns a Directory from the given bytestream. */
+    Message* deserialize_message() {
+        MsgKind kind = (MsgKind)deserialize_size_t();
+        switch (kind) {
+            case MsgKind::Ack:          return new Ack();
+            case MsgKind::Register:     return deserialize_register();
+            case MsgKind::Directory:    return deserialize_directory();
+            case MsgKind::Reply:        return deserialize_reply();
+            case MsgKind::Put:          return deserialize_put();
+            case MsgKind::Get:          return deserialize_get();
+            case MsgKind::WaitAndGet:   return deserialize_wait_get();
+        }
+    }
+
+    /* Builds and returns a Directory from the bytestream. */
     Directory* deserialize_directory() {
-        assert(step() == ',');
-        assert(step() == ' ');
-        assert(step() == 'a');
-        assert(step() == 'd');
-        assert(step() == 'd');
-        assert(step() == 'r');
-        assert(step() == 'e');
-        assert(step() == 's');
-        assert(step() == 's');
-        assert(step() == 'e');
-        assert(step() == 's');
-        assert(step() == ':');
-        assert(step() == ' ');
-        Vector* addresses = dynamic_cast<Vector*>(deserialize());
-        assert(addresses != nullptr);
-
-        assert(step() == ']');
-        assert(step() == '}');
-        assert(step() == ',');
-        assert(step() == ' ');
-        assert(step() == 'i');
-        assert(step() == 'n');
-        assert(step() == 'd');
-        assert(step() == 'i');
-        assert(step() == 'c');
-        assert(step() == 'e');
-        assert(step() == 's');
-        assert(step() == ':');
-        assert(step() == ' ');
-        IntVector* indices = dynamic_cast<IntVector*>(deserialize());
-        assert(indices != nullptr);
-
+        Vector* addresses = deserialize_string_vector();
+        IntVector* indices = deserialize_int_vector();
+        assert(step() == '\n');
         return new Directory(addresses, indices);
     }
 
-    /* Builds and returns a Register from the given bytestream. */
+    /* Builds and returns a Register from the bytestream. */
     Register* deserialize_register() {
-        
-        // Selecting the sin_family, sin_port and sin_addr fields from the bytestream.
-        assert(step() == ',');
-        assert(step() == ' ');
-        assert(step() == 'i');
-        assert(step() == 'p');
-        assert(step() == ':');
-        assert(step() == ' ');
-        String* ip = dynamic_cast<String*>(deserialize());
-        assert(ip != nullptr);
-        
-        assert(step() == ',');
-        assert(step() == ' ');
-        assert(step() == 's');
-        assert(step() == 'e');
-        assert(step() == 'n');
-        assert(step() == 'd');
-        assert(step() == 'e');
-        assert(step() == 'r');
-        assert(step() == ':');
-        assert(step() == ' ');
-        StrBuff buff;
-        while (current() != '}') {
-            *x_ = step();
-            buff.c(x_);
-        }
-        String* sender_str = buff.get();
-        size_t sender = atoi(sender_str->c_str());
-        delete sender_str;
+        String* ip = deserialize_string();
+        size_t sender = deserialize_size_t();
+        assert(step() == '\n');
         return new Register(ip, sender);
     }
 
-    /* Builds and returns a Put message from the given bytestream. */
+    /* Builds and returns a Put message from the bytestream. */
     Put* deserialize_put() {
-        assert(step() == ',');
-        assert(step() == ' ');
-        assert(step() == 'k');
-        assert(step() == 'e');
-        assert(step() == 'y');
-        assert(step() == ':');
-        assert(step() == ' ');
         Key* k = deserialize_key();
-        assert(step() == ',');
-        assert(step() == ' ');
-        assert(step() == 'v');
-        assert(step() == 'a');
-        assert(step() == 'l');
-        assert(step() == 'u');
-        assert(step() == 'e');
-        assert(step() == ':');
-        assert(step() == ' ');
         // Extract the blob of serialized data
         StrBuff buff;
         while (current() != '\n') {
@@ -263,61 +168,23 @@ public:
         return new Put(k, buff.c_str());
     }
 
-    /* BUilds and returns a Get message from the given bytestream. */
-    //e.g.: {type: get, key: {type: key, key: {type: string, cstr: foo}, idx: 0}}
+    /* Builds and returns a Get message from the bytestream. */
     Get* deserialize_get() {
-        assert(step() == ',');
-        assert(step() == ' ');
-        assert(step() == 'k');
-        assert(step() == 'e');
-        assert(step() == 'y');
-        assert(step() == ':');
-        assert(step() == ' ');
         Key* k = deserialize_key();
-        assert(step() == '}');
+        assert(step() == '\n');
         return new Get(k);
     }
 
-    /* BUilds and returns a WaitAndGet message from the given bytestream. */
-    //e.g.: {type: wait_get, key: {type: key, key: {type: string, cstr: foo}, idx: 0}}
+    /* Builds and returns a WaitAndGet message from the bytestream. */
     WaitAndGet* deserialize_wait_get() {
-        assert(step() == ',');
-        assert(step() == ' ');
-        assert(step() == 'k');
-        assert(step() == 'e');
-        assert(step() == 'y');
-        assert(step() == ':');
-        assert(step() == ' ');
         Key* k = deserialize_key();
-        assert(step() == '}');
-        
-        WaitAndGet* rtrn = new WaitAndGet(k);
-        return rtrn;
+        assert(step() == '\n');
+        return new WaitAndGet(k);
     }
 
-    /* Builds and returns a Reply message from the given bytestream. */
+    /* Builds and returns a Reply message from the bytestream. */
     Reply* deserialize_reply() {
-        assert(step() == ',');
-        assert(step() == ' ');
-        assert(step() == 'r');
-        assert(step() == 'e');
-        assert(step() == 'q');
-        assert(step() == 'u');
-        assert(step() == 'e');
-        assert(step() == 's');
-        assert(step() == 't');
-        assert(step() == ':');
-        assert(step() == ' ');
-        MsgKind req = (MsgKind)deserialize_int();
-        assert(step() == ',');
-        assert(step() == ' ');
-        assert(step() == 'v');
-        assert(step() == 'a');
-        assert(step() == 'l');
-        assert(step() == 'u');
-        assert(step() == 'e');
-        assert(step() == ':');
-        assert(step() == ' ');
+        MsgKind req = (MsgKind)deserialize_size_t();
         // Extract the serialized data
         StrBuff buff;
         while (current() != '\n') {
@@ -328,77 +195,41 @@ public:
         return new Reply(buff.c_str(), req);
     }
 
-    /* Builds and returns a String from the given bytestream. */
+    /* Builds and returns a String from the bytestream. */
     String* deserialize_string() {
-        StrBuff buff;
-        // Sellecing the c_str
-        assert(step() == ',');
-        assert(step() == ' '); 
-        assert(step() == 'c'); 
-        assert(step() == 's'); 
-        assert(step() == 't'); 
-        assert(step() == 'r'); 
-        assert(step() == ':');
-        assert(step() == ' ');  
-        // Iterating over the string characters.
-        while (current() != '}') {
-            *x_ = step();
-            buff.c(x_);
+        size_t size = deserialize_size_t();
+        char* c_str = new char[size + 1];
+        for (size_t i = 0; i < size; i++) {
+            c_str[i] = step();
         }
-        assert(step() == '}');
-
-        String* deserial_str = buff.get();
-        return deserial_str;
+        c_str[size] = '\0';
+        String* res = new String(c_str);
+        delete[] c_str;
+        return res;
     }
 
-    /* Builds and returns an vector representation of the given bytestream. 
+    /* Builds and returns a vector from the bytestream. 
     *  Our Vector class can hold objects of all kinds, but here we are deserializing one that
     *  only holds strings.
     *  Create an vector, append strings from the stream to it and return it.
     */
     Vector* deserialize_string_vector() {
-        assert(step() == ',');
-        assert(step() == ' '); 
-        assert(step() == 'o'); 
-        assert(step() == 'b'); 
-        assert(step() == 'j'); 
-        assert(step() == 'e'); 
-        assert(step() == 'c'); 
-        assert(step() == 't'); 
-        assert(step() == 's'); 
-        assert(step() == ':'); 
-        assert(step() == ' '); 
-        assert(step() == '[');
         Vector* vec = new Vector();
-        while (current() != ']') {
-            String* element = dynamic_cast<String*>(deserialize());
-            assert(element != nullptr);
+        size_t size = deserialize_size_t();
+        for (size_t i = 0; i < size; i++) {
+            String* element = deserialize_string();
             vec->append(element);
-            if (current() == ',') { step(); } // Step over the ','
         }
         return vec;
     }
 
     /* Builds and returns an IntVector from the bytestream */
     IntVector* deserialize_int_vector() {
-        StrBuff buff;
-
-        // stream's initial 9 chars should be ", ints: ["
-        assert(step() == ','); 
-        assert(step() == ' '); 
-        assert(step() == 'i'); 
-        assert(step() == 'n'); 
-        assert(step() == 't'); 
-        assert(step() == 's'); 
-        assert(step() == ':'); 
-        assert(step() == ' '); 
-        assert(step() == '[');  // Now iterating over vector elements.
-
-        // New IntVector we will return once we have filled it with corresponding ints
         IntVector* ivec = new IntVector();
-        while (current() != ']') {
-            ivec->append(deserialize_int());
-            if (current() == ',') { step(); } // Step over the ','
+        size_t size = deserialize_size_t();
+        for (size_t i = 0; i < size; i++) {
+            int element = deserialize_int();
+            ivec->append(element);
         }
         return ivec;
     }
@@ -415,7 +246,7 @@ public:
             case 'F':
                 dt->set_float(deserialize_float()); break;
             case 'S':
-                dt->set_string(dynamic_cast<String*>(deserialize())); break;
+                dt->set_string(deserialize_string()); break;
         }
         return dt;
     }

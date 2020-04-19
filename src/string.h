@@ -84,16 +84,7 @@ public:
     }
 
     /** Returns a serialized representation of this string */
-    const char* serialize() {
-        const char* s = "{type: string, cstr: ";
-        int x = strlen(s) + strlen(cstr_) + 2;
-        char* return_val = new char[x];
-        strcpy(return_val, s);
-        strcat(return_val, cstr_);
-        strcat(return_val, "}");
-        assert(strlen(return_val) == x - 1);
-        return return_val;
-    }
+    const char* serialize();
  };
 
 /** A string buffer builds a string from various pieces.

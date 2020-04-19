@@ -24,6 +24,17 @@ public:
     }
 
     /** 
+     * Converts a size_t to a char*
+     */
+    static char* serialize_size_t(size_t n) {
+        StrBuff buff;
+        buff.c("{");
+        buff.c(n);
+        buff.c("}");
+        return buff.c_str();
+    }
+
+    /** 
      * Converts a float to a char*
      */
     static char* serialize_float(float f) {
@@ -62,3 +73,17 @@ public:
         return buff.c_str();
     }
 };
+
+/** Returns a serialized representation of this string.
+ *  Declared here to avoid circular dependency. */
+const char* String::serialize() {
+    // serialize the length and c string value
+    char* serial_len = Serializer::serialize_size_t(size_);
+    // resulting char* needs to be big enough to hold the serialized length, cstr_, and a null
+    // terminator
+    char* res = new char[strlen(serial_len) + size_ + 1];
+    strcpy(res, serial_len);
+    strcat(res, cstr_);
+    delete[] serial_len;
+    return res;
+}

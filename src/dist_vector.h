@@ -56,12 +56,11 @@ public:
     const char* serialize() {
         StrBuff buff;
         // Serialize the index
-        Serializer ser;
-        const char* serial_idx = ser.serialize_int(idx_);
+        const char* serial_idx = Serializer::serialize_size_t(idx_);
         buff.c(serial_idx);
         delete[] serial_idx;
         // Serialize the size
-        const char* serial_size = ser.serialize_int(size_);
+        const char* serial_size = Serializer::serialize_size_t(size_);
         buff.c(serial_size);
         delete[] serial_size;
         // Serialize the fields
@@ -209,8 +208,7 @@ public:
         exit_if_not(is_locked_, "DistVector can only be serialized once all fields have been added");
         StrBuff sbuf;
         // Serialize the size
-        Serializer ser;
-        const char* serial_size = ser.serialize_int(size_);
+        const char* serial_size = Serializer::serialize_size_t(size_);
         sbuf.c(serial_size);
         delete[] serial_size;
         // Serialize the keys

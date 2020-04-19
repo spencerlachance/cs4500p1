@@ -182,17 +182,16 @@ public:
      */
     const char* serialize() {
         StrBuff buff;
-        buff.c("{type: vector, objects: [");
-        // Appending serialized strings in the array to buff
+        // serialize the size
+        char* serial_size = Serializer::serialize_size_t(size_);
+        buff.c(serial_size);
+        delete[] serial_size;
+        // serialize the objects
         for (int i = 0; i < size_; i++) {
             const char* serial_obj = get(i)->serialize();
             buff.c(serial_obj);
             delete[] serial_obj;
-            if (i < size_ - 1) {
-                    buff.c(",");
-            }
         }
-        buff.c("]}");
         return buff.c_str();
     }
 };
@@ -338,17 +337,16 @@ public:
      */
     const char* serialize() {
         StrBuff buff;
-        Serializer ser;
-        buff.c("{type: int_vector, ints: [");
+        // serialize the size
+        char* serial_size = Serializer::serialize_size_t(size_);
+        buff.c(serial_size);
+        delete[] serial_size;
+        // serialize the ints
         for (int i = 0; i < size_; i++) {
-            char* serial_int = ser.serialize_int(get(i));
+            char* serial_int = Serializer::serialize_int(get(i));
             buff.c(serial_int);
             delete[] serial_int;
-            if (i < size_ - 1) {
-                    buff.c(",");
-            }
         }
-        buff.c("]}");
         return buff.c_str();
     }
 };
