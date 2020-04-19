@@ -418,82 +418,32 @@ public:
                             Deserializer ds(serial_msg);
                             Message* m = ds.deserialize_message();
                             assert(m != nullptr);
-                            process_message_(m, i);
+                            switch (m->kind()) {
+                                case MsgKind::Directory: process_directory_(m->as_directory()); break;
+                                case MsgKind::Register: process_register_(m->as_register(), i); break;
+                                case MsgKind::Reply: process_reply_(m->as_reply()); break;
+                                case MsgKind::Ack: {
+                                    // Set the value that put() is waiting for above
+                                    ack_recvd_ = true;
+                                    delete m;
+                                    break;
+                                }
+                                case MsgKind::Put:
+                                    threads_->push_back(std::thread(&KVStore::process_put_, this, m->as_put(), i));
+                                    break;
+                                case MsgKind::Get:
+                                    threads_->push_back(std::thread(&KVStore::process_get_, this, m->as_get(), i));
+                                    break;
+                                case MsgKind::WaitAndGet:
+                                    threads_->push_back(std::thread(&KVStore::process_wag_, this, m->as_wait_and_get(), i));
+                                    break;
+                                default: shutdown();
+                            }
                             delete[] serial_msg;
                         }
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * Figure out what kind of message was sent and process it accordingly
-     * 
-     * @param m  The message
-     * @param fd The file descriptor of the socket over which the message was sent
-     */
-    void process_message_(Message* m, int fd) {
-        switch (m->kind()) {
-            case MsgKind::Directory: {
-                // Client received directory update from server
-                process_directory_(m->as_directory());
-                break;
-            }
-            case MsgKind::Register: {
-                Register* r = m->as_register();
-                char* new_ip = r->get_ip()->c_str();
-                size_t new_idx = r->get_sender();
-                if (is_server()) {
-                    // A client is registering with the server
-                    // Add the new IP to the directory
-                    directory_->add_client(new_ip, new_idx);
-                    // Send the updated directory back to the client
-                    const char* serial_directory = directory_->serialize();
-                    exit_if_not(send(fd, serial_directory, strlen(serial_directory) + 1, 0) > 0,
-                        "Call to send() failed");
-                    delete[] serial_directory;
-                }
-                // Keep track of the sender's socket fd and node index
-                nodes_[new_idx] = fd;
-                delete r;
-                break;
-            }
-            case MsgKind::Ack: {
-                // Set the value that put() is waiting for above
-                ack_recvd_ = true;
-                delete m;
-                break;
-            }
-            case MsgKind::Reply: {
-                Reply* rep = m->as_reply();
-                MsgKind req = rep->get_request();
-                const char* v = rep->get_value();
-                // Set the values that get() and wait_and_get() wait for above
-                if (req == MsgKind::WaitAndGet) {
-                    wag_reply_data_ = v;
-                } else {
-                    reply_data_ = v;
-                }
-                delete rep;
-                break;
-            }
-            case MsgKind::Put: {
-                threads_->push_back(
-                    std::thread(&KVStore::process_put_, this, m->as_put(), fd));
-                break;
-            }
-            case MsgKind::Get: {
-                threads_->push_back(
-                    std::thread(&KVStore::process_get_, this, m->as_get(), fd));
-                break;
-            }
-            case MsgKind::WaitAndGet: {
-                threads_->push_back(
-                    std::thread(&KVStore::process_wag_, this, m->as_wait_and_get(), fd));
-                break;
-            }
-            default: shutdown();
         }
     }
 
@@ -511,6 +461,38 @@ public:
             if (strcmp(ip, ip_) != 0) connect_to_client_(ip, indices->get(i));
         }
         delete directory;
+    }
+
+    /**
+     * Process the given Register message sent by another node wanting to connect with this one.
+     */
+    void process_register_(Register* reg, int fd) {
+        char* new_ip = reg->get_ip()->c_str();
+        size_t new_idx = reg->get_sender();
+        if (is_server()) {
+            // A client is registering with the server
+            // Add the new IP to the directory
+            directory_->add_client(new_ip, new_idx);
+            // Send the updated directory back to the client
+            const char* serial_directory = directory_->serialize();
+            exit_if_not(send(fd, serial_directory, strlen(serial_directory) + 1, 0) > 0,
+                "Call to send() failed");
+            delete[] serial_directory;
+        }
+        // Keep track of the sender's socket fd and node index
+        nodes_[new_idx] = fd;
+        delete reg;
+    }
+
+    void process_reply_(Reply* rep) {
+        MsgKind req = rep->get_request();
+        const char* v = rep->get_value();
+        // Set the values that get() and wait_and_get() wait for above
+        if (req == MsgKind::WaitAndGet)
+            wag_reply_data_ = v;
+        else
+            reply_data_ = v;
+        delete rep;
     }
 
     /**
