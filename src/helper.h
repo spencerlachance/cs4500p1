@@ -79,7 +79,10 @@ class Sys {
   // Function to terminate execution with a message
   void exit_if_not(bool b, const char* c) {
     if (b) return;
-    perror(c);
+    if (errno != 0)
+      perror(c);
+    else
+      p("Exit message: ").pln(c);
     exit(-1);
   }
   

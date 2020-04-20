@@ -2,16 +2,18 @@
 
 #include "../src/kdstore.h"
 
+#define NROWS 10000
+
 int main() {
 
     /* Arrays to be stored in KDStore. */
-    float* floats = new float[1000];
-    bool* bools = new bool[1000];
-    int* ints = new int[1000];
-    String* strings[1000];
+    float floats[NROWS];
+    bool bools[NROWS];
+    int ints[NROWS];
+    String* strings[NROWS];
 
     /* Populating the arrays. */
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < NROWS; i++) {
         floats[i] = i + 0.1f;
         bools[i] = i % 2;
         ints[i] = i;
@@ -29,7 +31,7 @@ int main() {
 
     // /* Testing storing scalars and arrays in a KDStore. */
     Key key1("float",0);
-    Key key2("bool",1);
+    Key key2("bool",0);
     Key key3("int",0);
     Key key4("string",0);
     Key key5("float array",0);
@@ -42,10 +44,10 @@ int main() {
     DataFrame* df_i = DataFrame::fromIntScalar(&key3, kd_, i);
     DataFrame* df_s = DataFrame::fromStringScalar(&key4, kd_,  s.clone()); // clone the string because kd_ takes ownership of value
 
-    DataFrame* df_floats = DataFrame::fromFloatArray(&key5, kd_, 1000, floats);
-    DataFrame* df_bools = DataFrame::fromBoolArray(&key6, kd_, 1000, bools);
-    DataFrame* df_ints = DataFrame::fromIntArray(&key7, kd_, 1000, ints);
-    // DataFrame* df_strings = DataFrame::fromStringArray(&key8, kd_, 1000, strings);
+    DataFrame* df_floats = DataFrame::fromFloatArray(&key5, kd_, NROWS, floats);
+    DataFrame* df_bools = DataFrame::fromBoolArray(&key6, kd_, NROWS, bools);
+    DataFrame* df_ints = DataFrame::fromIntArray(&key7, kd_, NROWS, ints);
+    DataFrame* df_strings = DataFrame::fromStringArray(&key8, kd_, NROWS, strings);
 
     /* Testing if the same values are contained in the dataframe
      * and if the dataframe has the right amount of columns and rows. */
@@ -70,51 +72,69 @@ int main() {
     assert(s_->equals(&s));
 
     assert(df_floats->ncols() == 1);
-    assert(df_floats->nrows() == 1000);
-    for (int i = 0; i > 1000; i++) {
+    assert(df_floats->nrows() == NROWS);
+    for (int i = 0; i > NROWS; i++) {
         assert(df_floats->get_float(0, i) == floats[i]);
     }
 
     assert(df_bools->ncols() == 1);
-    assert(df_bools->nrows() == 1000);
-    for (int i = 0; i > 1000; i++) {
+    assert(df_bools->nrows() == NROWS);
+    for (int i = 0; i > NROWS; i++) {
         assert(df_bools->get_bool(0, i) == bools[i]);
     }
 
     assert(df_ints->ncols() == 1);
-    assert(df_ints->nrows() == 1000);
-    for (int i = 0; i > 1000; i++) {
+    assert(df_ints->nrows() == NROWS);
+    for (int i = 0; i > NROWS; i++) {
         assert(df_ints->get_int(0, i) == ints[i]);
     }
 
-    // assert(df_strings->ncols() == 1);
-    // assert(df_strings->nrows() == 1000);
-    // for (int i = 0; i > 1000; i++) {
-    //     assert(df_strings->get_string(0, i) == strings[i]);
-    // }
+    assert(df_strings->ncols() == 1);
+    assert(df_strings->nrows() == NROWS);
+    for (int i = 0; i > NROWS; i++) {
+        assert(df_strings->get_string(0, i) == strings[i]);
+    }
 
     /* Testing methods get() and wantAndGet() in kdstore. */
-    assert(kd_->get(key1)->equals(df_f));
-    assert(kd_->get(key2)->equals(df_b));
-    assert(kd_->get(key3)->equals(df_i));
-    assert(kd_->get(key4)->equals(df_s));
-    assert(kd_->get(key5)->equals(df_floats));
-    assert(kd_->get(key6)->equals(df_bools)); 
-    assert(kd_->get(key7)->equals(df_ints));
-    // assert(kd_->get(key8)->equals(df_strings)); 
+    DataFrame* get_df1 = kd_->get(key1);
+    assert(get_df1->equals(df_f));
+    delete get_df1;
+
+    DataFrame* get_df2 = kd_->get(key2);
+    assert(get_df2->equals(df_b));
+    delete get_df2;
+
+    DataFrame* get_df3 = kd_->get(key3);
+    assert(get_df3->equals(df_i));
+    delete get_df3;
+
+    DataFrame* get_df4 = kd_->get(key4);
+    assert(get_df4->equals(df_s));
+    delete get_df4;
+
+    DataFrame* get_df5 = kd_->get(key5);
+    assert(get_df5->equals(df_floats));
+    delete get_df5;
+
+    DataFrame* get_df6 = kd_->get(key6);
+    assert(get_df6->equals(df_bools));
+    delete get_df6;
+
+    DataFrame* get_df7 = kd_->get(key7);
+    assert(get_df7->equals(df_ints));
+    delete get_df7;
+
+    DataFrame* get_df8 = kd_->get(key8);
+    assert(get_df8->equals(df_strings));
+    delete get_df8;
 
     kd_->done();
 
     delete kd_; 
-    delete df_f; delete df_i; delete df_b; delete df_s; delete df_floats; delete df_bools;
-    delete df_ints; //delete df_strings;
-    delete s_; 
-    delete[] floats, delete[] ints, delete[] bools; 
+    delete df_f; delete df_i; delete df_b; delete df_s; 
+    delete df_floats; delete df_bools; delete df_ints; delete df_strings;
+    delete s_;
 
-    // delete s;
-    for (int i = 0; i < 1000; i++) {
-        delete strings[i];
-    }
     printf("kvstore test was SUCCESSFUL\n");
     return 0;
 }

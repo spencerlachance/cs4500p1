@@ -4,8 +4,9 @@
 int main() {
     Map* map = new Map(1); // A map with an initial capacity of one.
     String* k = new String("key"); // String key in our key-value pair.
-    String* k2 = new String("key");
-    String* k3 = new String("key");
+    String* k2 = new String("key2");
+    String* k3 = new String("key3");
+    String* k4 = new String("key4");
     String* val1 = new String("value"); // Object value in our key-value pair.
     String* val2 = new String("value");
     String* val3 = new String("value");
@@ -37,11 +38,11 @@ int main() {
     // Putting a second key-value pair in the map, which would grow the map's capacity.
     map->put(*k2, val2); 
     map->put(*k3, val3);
-    // map->put(*k4, val4);
-    assert(map->size() == 2);
+    map->put(*k4, val4);
+    assert(map->size() == 3);
 
     delete map;
-    delete k; // Must manually delete key.
+    delete k; delete k2; delete k3; delete k4;
     printf("Map tests passed.\n");
     return 0;
 }

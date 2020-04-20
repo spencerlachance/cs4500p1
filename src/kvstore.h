@@ -236,9 +236,7 @@ public:
     /**
      * Is this node running the role of the server?
      */
-    bool is_server() {
-        return idx_ == 0;
-    }
+    bool is_server() { return idx_ == 0; }
 
     /**
      * Startup protocol.
@@ -330,6 +328,7 @@ public:
      * @param dst The index of the destination node
      */
     void send_to_node_(const char* msg, size_t dst) {
+        exit_if_not(dst < num_nodes_, "Invalid dst node index");
         int fd = nodes_[dst];
         while (fd == -1) {
             // Wait indefinitely until the desired node is available

@@ -2,8 +2,8 @@
 
 #include "vector.h"
 
-/**  Item_ are entries in a Map, they are not exposed, are immutable, own
- *   they key, but the value is external.  author: jv */
+/** Item_ are entries in a Map, they are not exposed, and are immutable.
+ *  author: jv */
 class Items_ {
 public:
   Vector keys_; 

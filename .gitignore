@@ -12,3 +12,6 @@ data/*.ltgt
 linus
 map
 word
+test/test_map
+test/test_kvstore
+kvstore
