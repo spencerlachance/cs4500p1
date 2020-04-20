@@ -5,9 +5,6 @@
 #include "datatype.h"
 #include "kvstore.h"
 
-// The number of items that each chunk holds
-#define CHUNK_SIZE 5000
-
 /**
  * This class represents a unit of the DistributedVector, i.e. a fixed-size array of fields.
  * 

@@ -5,6 +5,7 @@ build:
 	g++ -pthread -g -std=c++11 -o serial test/test_serialization.cpp
 	g++ -pthread -g -std=c++11 -o map test/test_map.cpp
 	g++ -pthread -g -std=c++11 -o kvstore test/test_kvstore.cpp
+	g++ -pthread -g -std=c++11 -o lmap test/test_local_map.cpp
 	g++ -pthread -g -std=c++11 -o trivial test/trivial.cpp
 	g++ -pthread -g -std=c++11 -o demo test/demo.cpp
 	g++ -pthread -g -std=c++11 -o word test/word_count.cpp
@@ -18,6 +19,9 @@ run:
 	./serial
 	./map
 	./kvstore
+	./lmap -i 0 &
+	./lmap -i 1 &
+	./lmap -i 2
 	./trivial
 	./demo -idx 1 &
 	./demo -idx 2 &
@@ -35,6 +39,9 @@ valgrind:
 	valgrind --leak-check=full ./serial
 	valgrind --leak-check=full ./map
 	valgrind --leak-check=full ./kvstore
+	valgrind --leak-check=full ./lmap -i 0 &
+	valgrind --leak-check=full ./lmap -i 1 &
+	valgrind --leak-check=full ./lmap -i 2
 	valgrind --leak-check=full ./trivial -v
 	valgrind --leak-check=full ./demo -v -idx 1 &
 	valgrind --leak-check=full ./demo -v -idx 2 &
@@ -45,7 +52,7 @@ valgrind:
 	valgrind --leak-check=full ./linus -i 0 -n 2 -l 100000
 
 clean:
-	rm dataf serial map kvstore trivial demo word linus data/datafile.*
+	rm dataf serial map kvstore lmap trivial demo word linus data/datafile.*
 
 df:
 	g++ -pthread -g -std=c++11 -o dataf test/test_dataframe.cpp
@@ -69,6 +76,13 @@ kv:
 	g++ -pthread -g -std=c++11 -o kvstore test/test_kvstore.cpp
 	./kvstore
 	rm kvstore
+
+lm:
+	g++ -pthread -g -std=c++11 -o lmap test/test_local_map.cpp
+	./lmap -i 0 &
+	./lmap -i 1 &
+	./lmap -i 2
+	rm lmap
 
 demo:
 	g++ -pthread -g -std=c++11 -o demo test/demo.cpp
