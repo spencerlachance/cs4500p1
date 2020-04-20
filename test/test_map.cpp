@@ -4,6 +4,8 @@
 int main() {
     Map* map = new Map(1); // A map with an initial capacity of one.
     String* k = new String("key"); // String key in our key-value pair.
+    String* k2 = new String("key");
+    String* k3 = new String("key");
     String* val1 = new String("value"); // Object value in our key-value pair.
     String* val2 = new String("value");
     String* val3 = new String("value");
@@ -30,14 +32,13 @@ int main() {
     map->erase(*k); // Deletes both val1 and get_val1
 
     assert(map->get(*k) == nullptr); // returns nullptr when map does not have the requested key s1.
-    printf("%zu\n", map->size());
     assert(map->size() == 0);
 
     // Putting a second key-value pair in the map, which would grow the map's capacity.
-    map->put(*k, val2); 
-    map->put(*k, val3);
-    map->put(*k, val4);
-    assert(map->size() == 1);
+    map->put(*k2, val2); 
+    map->put(*k3, val3);
+    // map->put(*k4, val4);
+    assert(map->size() == 2);
 
     delete map;
     delete k; // Must manually delete key.
