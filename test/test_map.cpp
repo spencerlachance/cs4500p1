@@ -35,7 +35,7 @@ int main() {
     assert(map->get(*k) == nullptr); // returns nullptr when map does not have the requested key s1.
     assert(map->size() == 0);
 
-    // Putting a second key-value pair in the map, which would grow the map's capacity.
+    // Putting a second key-value pair in the map, which would grow the map's initial capacity of 1.
     map->put(*k2, val2); 
     map->put(*k3, val3);
     map->put(*k4, val4);

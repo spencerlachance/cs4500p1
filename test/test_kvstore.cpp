@@ -4,7 +4,14 @@
 
 #define NROWS 10000
 
-int main() {
+// Constants that allow us to use a different number of fields when running valgrind
+bool valgrind = false;
+size_t size = 100000;
+size_t valgrind_size = 2000;
+
+
+
+int test(int idx) {
 
     /* Arrays to be stored in KDStore. */
     float floats[NROWS];
@@ -128,6 +135,18 @@ int main() {
     assert(get_df8->equals(df_strings));
     delete get_df8;
 
+    KVStore* kv_ = kd_->get_kv();
+
+    /* Assert kvstore can be accessed from any node. */ 
+    assert(strcmp(kv_->get(key1), df_f->serialize()) == 0);
+    assert(strcmp(kv_->get(key2), df_b->serialize()) == 0);
+    assert(strcmp(kv_->get(key3), df_i->serialize()) == 0);
+    assert(strcmp(kv_->get(key4), df_s->serialize()) == 0);
+    assert(strcmp(kv_->get(key5), df_floats->serialize()) == 0);
+    assert(strcmp(kv_->get(key6), df_bools->serialize()) == 0);
+    assert(strcmp(kv_->get(key7), df_ints->serialize()) == 0);
+    assert(strcmp(kv_->get(key8), df_strings->serialize()) == 0);
+
     kd_->done();
 
     delete kd_; 
@@ -137,4 +156,18 @@ int main() {
 
     printf("kvstore test was SUCCESSFUL\n");
     return 0;
+}
+
+int main(int argc, char** argv) {
+    Sys s;
+    size_t idx;
+    if (strcmp(argv[1], "-v") == 0) {
+        // Demo is being run with valgrind
+        valgrind = true;
+        idx = atoi(argv[3]);
+    } else {
+        idx = atoi(argv[2]);
+    }
+    s.exit_if_not(idx <= 2, "Invalid index from command line");
+    test(idx);
 }
