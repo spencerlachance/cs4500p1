@@ -9,9 +9,7 @@ bool valgrind = false;
 size_t size = 100000;
 size_t valgrind_size = 2000;
 
-
-
-int test(int idx) {
+int test_one_node(KDStore* kd_) {
 
     /* Arrays to be stored in KDStore. */
     float floats[NROWS];
@@ -32,9 +30,6 @@ int test(int idx) {
     bool b = false;
     int i = 1;
     String s("scalar");
-
-    /* Testing KDStore with 1 node. */
-    KDStore* kd_ = new KDStore(0, 1);
 
     // /* Testing storing scalars and arrays in a KDStore. */
     Key key1("float",0);
@@ -147,15 +142,18 @@ int test(int idx) {
     assert(strcmp(kv_->get(key7), df_ints->serialize()) == 0);
     assert(strcmp(kv_->get(key8), df_strings->serialize()) == 0);
 
-    kd_->done();
-
-    delete kd_; 
     delete df_f; delete df_i; delete df_b; delete df_s; 
     delete df_floats; delete df_bools; delete df_ints; delete df_strings;
     delete s_;
 
-    printf("kvstore test was SUCCESSFUL\n");
+    Sys sys;
+    s.pln("kvstore test was SUCCESSFUL");
     return 0;
+}
+
+void test_multiple_nodes(KDStore* kd) {
+    Sys s;
+    s.pln("Testing multiple nodes...");
 }
 
 int main(int argc, char** argv) {
@@ -169,5 +167,12 @@ int main(int argc, char** argv) {
         idx = atoi(argv[2]);
     }
     s.exit_if_not(idx <= 2, "Invalid index from command line");
-    test(idx);
+
+    KDStore* kd = new KDStore(idx, 3);
+    if (idx == 0) test_one_node(kd);
+    test_multiple_nodes(kd);
+
+    if (idx == 0) kd->done();
+    delete kd;
+    return 0;
 }

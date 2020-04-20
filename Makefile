@@ -74,9 +74,9 @@ map:
 
 kv:
 	g++ -pthread -g -std=c++11 -o kvstore test/test_kvstore.cpp
+	./kvstore -idx 0 &
 	./kvstore -idx 1 &
-	./kvstore -idx 2 &
-	./kvstore -idx 3
+	./kvstore -idx 2
 	rm kvstore
 
 lm:
