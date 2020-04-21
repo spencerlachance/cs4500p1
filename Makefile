@@ -39,9 +39,9 @@ valgrind:
 	valgrind --leak-check=full ./serial
 	valgrind --leak-check=full ./map
 	valgrind --leak-check=full ./kvstore
-	valgrind --leak-check=full ./lmap -i 0 &
-	valgrind --leak-check=full ./lmap -i 1 &
-	valgrind --leak-check=full ./lmap -i 2
+	./lmap -i 1 &
+	./lmap -i 2 &
+	valgrind --leak-check=full ./lmap -i 0
 	valgrind --leak-check=full ./trivial -v
 	valgrind --leak-check=full ./demo -v -idx 1 &
 	valgrind --leak-check=full ./demo -v -idx 2 &
