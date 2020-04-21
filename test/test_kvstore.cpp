@@ -4,13 +4,7 @@
 
 #define NROWS 10000
 
-// Constants that allow us to use a different number of fields when running valgrind
-bool valgrind = false;
-size_t size = 100000;
-size_t valgrind_size = 2000;
-
-int test_one_node(KDStore* kd_) {
-
+int main(int argc, char** argv) {
     /* Arrays to be stored in KDStore. */
     float floats[NROWS];
     bool bools[NROWS];
@@ -30,6 +24,8 @@ int test_one_node(KDStore* kd_) {
     bool b = false;
     int i = 1;
     String s("scalar");
+
+    KDStore* kd_ = new KDStore(0, 1);
 
     // /* Testing storing scalars and arrays in a KDStore. */
     Key key1("float",0);
@@ -97,7 +93,7 @@ int test_one_node(KDStore* kd_) {
         assert(df_strings->get_string(0, i) == strings[i]);
     }
 
-    /* Testing methods get() and wantAndGet() in kdstore. */
+    /* Testing get() method in KDStore. */
     DataFrame* get_df1 = kd_->get(key1);
     assert(get_df1->equals(df_f));
     delete get_df1;
@@ -132,47 +128,54 @@ int test_one_node(KDStore* kd_) {
 
     KVStore* kv_ = kd_->get_kv();
 
-    /* Assert kvstore can be accessed from any node. */ 
-    assert(strcmp(kv_->get(key1), df_f->serialize()) == 0);
-    assert(strcmp(kv_->get(key2), df_b->serialize()) == 0);
-    assert(strcmp(kv_->get(key3), df_i->serialize()) == 0);
-    assert(strcmp(kv_->get(key4), df_s->serialize()) == 0);
-    assert(strcmp(kv_->get(key5), df_floats->serialize()) == 0);
-    assert(strcmp(kv_->get(key6), df_bools->serialize()) == 0);
-    assert(strcmp(kv_->get(key7), df_ints->serialize()) == 0);
-    assert(strcmp(kv_->get(key8), df_strings->serialize()) == 0);
+    /* Testing get() method in KVStore. */
+    const char* serial_df_f1 = kv_->get(key1);
+    const char* serial_df_f2 = df_f->serialize();
+    assert(strcmp(serial_df_f1, serial_df_f2) == 0);
+    delete[] serial_df_f1; delete[] serial_df_f2;
 
+    const char* serial_df_b1 = kv_->get(key2);
+    const char* serial_df_b2 = df_b->serialize();
+    assert(strcmp(serial_df_b1, serial_df_b2) == 0);
+    delete[] serial_df_b1; delete[] serial_df_b2;
+
+    const char* serial_df_i1 = kv_->get(key3);
+    const char* serial_df_i2 = df_i->serialize();
+    assert(strcmp(serial_df_i1, serial_df_i2) == 0);
+    delete[] serial_df_i1; delete[] serial_df_i2;
+
+    const char* serial_df_s1 = kv_->get(key4);
+    const char* serial_df_s2 = df_s->serialize();
+    assert(strcmp(serial_df_s1, serial_df_s2) == 0);
+    delete[] serial_df_s1; delete[] serial_df_s2;
+
+    const char* serial_df_floats1 = kv_->get(key5);
+    const char* serial_df_floats2 = df_floats->serialize();
+    assert(strcmp(serial_df_floats1, serial_df_floats2) == 0);
+    delete[] serial_df_floats1; delete[] serial_df_floats2;
+
+    const char* serial_df_bools1 = kv_->get(key6);
+    const char* serial_df_bools2 = df_bools->serialize();
+    assert(strcmp(serial_df_bools1, serial_df_bools2) == 0);
+    delete[] serial_df_bools1; delete[] serial_df_bools2;
+
+    const char* serial_df_ints1 = kv_->get(key7);
+    const char* serial_df_ints2 = df_ints->serialize();
+    assert(strcmp(serial_df_ints1, serial_df_ints2) == 0);
+    delete[] serial_df_ints1; delete[] serial_df_ints2;
+
+    const char* serial_df_strings1 = kv_->get(key8);
+    const char* serial_df_strings2 = df_strings->serialize();
+    assert(strcmp(serial_df_strings1, serial_df_strings2) == 0);
+    delete[] serial_df_strings1; delete[] serial_df_strings2;
+
+    kd_->done();
+    delete kd_;
     delete df_f; delete df_i; delete df_b; delete df_s; 
     delete df_floats; delete df_bools; delete df_ints; delete df_strings;
     delete s_;
 
     Sys sys;
     s.pln("kvstore test was SUCCESSFUL");
-    return 0;
-}
-
-void test_multiple_nodes(KDStore* kd) {
-    Sys s;
-    s.pln("Testing multiple nodes...");
-}
-
-int main(int argc, char** argv) {
-    Sys s;
-    size_t idx;
-    if (strcmp(argv[1], "-v") == 0) {
-        // Demo is being run with valgrind
-        valgrind = true;
-        idx = atoi(argv[3]);
-    } else {
-        idx = atoi(argv[2]);
-    }
-    s.exit_if_not(idx <= 2, "Invalid index from command line");
-
-    KDStore* kd = new KDStore(idx, 3);
-    if (idx == 0) test_one_node(kd);
-    test_multiple_nodes(kd);
-
-    if (idx == 0) kd->done();
-    delete kd;
     return 0;
 }
