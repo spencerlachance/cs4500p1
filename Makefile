@@ -57,11 +57,11 @@ clean:
 
 df:
 	g++ -pthread -g -std=c++11 -o dataf test/test_dataframe.cpp
-	wget https://raw.githubusercontent.com/spencerlachance/cs4500datafile/master/datafile.zip
-	mv datafile.zip data
-	unzip data/datafile.zip -d data
+	wget https://raw.githubusercontent.com/spencerlachance/cs4500datafile/master/datafiles.zip
+	mv datafiles.zip data
+	unzip data/datafiles.zip -d data
 	./dataf -f data/datafile.txt -len 1000000
-	rm dataf data/datafile.*
+	rm dataf data/datafile* data/*.ltgt
 
 serial:
 	g++ -pthread -g -std=c++11 -o serial test/test_serialization.cpp
@@ -101,8 +101,11 @@ word:
 
 linus:
 	g++ -pthread -g -std=c++11 -o linus test/linus.cpp
+	wget https://raw.githubusercontent.com/spencerlachance/cs4500datafile/master/datafiles.zip
+	mv datafiles.zip data
+	unzip data/datafiles.zip -d data
 	./linus -i 1 -n 4 &
 	./linus -i 2 -n 4 &
 	./linus -i 3 -n 4 &
 	./linus -i 0 -n 4 -l 1000000
-	rm linus
+	rm linus data/datafile* data/*.ltgt
