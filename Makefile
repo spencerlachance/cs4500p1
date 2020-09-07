@@ -6,10 +6,10 @@ build:
 	g++ -pthread -g -std=c++11 -o map test/test_map.cpp
 	g++ -pthread -g -std=c++11 -o kvstore test/test_kvstore.cpp
 	g++ -pthread -g -std=c++11 -o lmap test/test_local_map.cpp
-	g++ -pthread -g -std=c++11 -o trivial test/trivial.cpp
-	g++ -pthread -g -std=c++11 -o demo test/demo.cpp
-	g++ -pthread -g -std=c++11 -o word test/word_count.cpp
-	g++ -pthread -g -std=c++11 -o linus test/linus.cpp
+	g++ -pthread -g -std=c++11 -o trivial demos/trivial.cpp
+	g++ -pthread -g -std=c++11 -o demo demos/demo.cpp
+	g++ -pthread -g -std=c++11 -o word demos/word_count.cpp
+	g++ -pthread -g -std=c++11 -o linus demos/linus.cpp
 	wget https://raw.githubusercontent.com/spencerlachance/cs4500datafile/master/datafiles.zip
 	mv datafiles.zip data
 	unzip data/datafiles.zip -d data
@@ -85,22 +85,27 @@ lm:
 	./lmap -i 2
 	rm lmap
 
+triv:
+	g++ -pthread -g -std=c++11 -o trivial demos/trivial.cpp
+	./trivial
+	rm trivial
+
 demo:
-	g++ -pthread -g -std=c++11 -o demo test/demo.cpp
+	g++ -pthread -g -std=c++11 -o demo demos/demo.cpp
 	./demo -idx 1 &
 	./demo -idx 2 &
 	./demo -idx 0
 	rm demo
 
 word:
-	g++ -pthread -g -std=c++11 -o word test/word_count.cpp
+	g++ -pthread -g -std=c++11 -o word demos/word_count.cpp
 	./word -i 0 -n 3 -f data/100k.txt &
 	./word -i 1 -n 3 -f data/100k.txt &
 	./word -i 2 -n 3 -f data/100k.txt
 	rm word
 
 linus:
-	g++ -pthread -g -std=c++11 -o linus test/linus.cpp
+	g++ -pthread -g -std=c++11 -o linus demos/linus.cpp
 	wget https://raw.githubusercontent.com/spencerlachance/cs4500datafile/master/datafiles.zip
 	mv datafiles.zip data
 	unzip data/datafiles.zip -d data
