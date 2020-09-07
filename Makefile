@@ -10,9 +10,9 @@ build:
 	g++ -pthread -g -std=c++11 -o demo test/demo.cpp
 	g++ -pthread -g -std=c++11 -o word test/word_count.cpp
 	g++ -pthread -g -std=c++11 -o linus test/linus.cpp
-	wget https://raw.githubusercontent.com/spencerlachance/cs4500datafile/master/datafile.zip
-	mv datafile.zip data
-	unzip data/datafile.zip -d data
+	wget https://raw.githubusercontent.com/spencerlachance/cs4500datafile/master/datafiles.zip
+	mv datafiles.zip data
+	unzip data/datafiles.zip -d data
 
 run:
 	./dataf -f data/datafile.txt -len 1000000
@@ -52,7 +52,8 @@ valgrind:
 	valgrind --leak-check=full ./linus -i 0 -n 2 -l 100000
 
 clean:
-	rm dataf serial map kvstore lmap trivial demo word linus data/datafile.*
+	rm dataf serial map kvstore lmap trivial demo word linus
+	rm data/datafile* data/*.ltgt
 
 df:
 	g++ -pthread -g -std=c++11 -o dataf test/test_dataframe.cpp
